@@ -120,6 +120,27 @@ def _prepare_database_for_fixture_load():
     Permission.objects.all().delete()
 
 
+def _flush_database_for_full_restore():
+    """JSON yedeği mevcut verinin üzerine karıştırmadan tam yüklemek için tabloları boşaltır."""
+    _close_db_connections()
+    management.call_command('flush', '--noinput', verbosity=0)
+
+
+def _data_counts_summary() -> str:
+    from customers.models import Customer, CustomerMedia
+    from services.models import ServiceRecord, ServiceImage
+    from sales_leads.models import SalesLead
+
+    parts = [
+        f'{Customer.objects.count()} müşteri',
+        f'{ServiceRecord.objects.count()} servis',
+        f'{SalesLead.objects.count()} satış',
+        f'{CustomerMedia.objects.count()} medya kaydı',
+        f'{ServiceImage.objects.count()} servis görseli',
+    ]
+    return ', '.join(parts)
+
+
 def _sync_permissions_after_restore():
     try:
         management.call_command('sync_permissions', verbosity=0)
@@ -161,25 +182,32 @@ def import_backup_file(uploaded) -> tuple[bool, str]:
 
         # migrate transaction dışında (SQLite ve PostgreSQL uyumluluğu)
         _run_migrations()
+        _flush_database_for_full_restore()
         _prepare_database_for_fixture_load()
         with transaction.atomic():
             management.call_command('loaddata', tmp_fixture, verbosity=0)
 
         _sync_permissions_after_restore()
+        counts = _data_counts_summary()
+        media_note = (
+            ' Yüklenen dosyalar (resim/belge) media/ klasöründe — '
+            'sunucuda /data/media kopyalanmadıysa medya kırık görünür.'
+        )
 
         if meta:
             mig_count = meta.get('migration_count', len(meta.get('migrations', [])))
             rec_count = meta.get('record_count', len(fixture))
             created = meta.get('created_at', '')
             return True, (
-                f'Yedek geri yüklendi ({rec_count} kayıt). '
+                f'JSON yedek tam yüklendi (fixture: {rec_count} kayıt; DB: {counts}). '
                 f'Migration senkronu tamamlandı ({mig_count} migration kaydı yedekte). '
-                f'{f"Yedek tarihi: {created[:19]}" if created else ""}'
+                f'{f"Yedek tarihi: {created[:19]}." if created else ""}'
+                f'{media_note}'
             ).strip()
 
         return True, (
-            f'Eski format yedek içe aktarıldı ({len(fixture)} kayıt). '
-            'Önce migrate, ardından veri yükleme uygulandı.'
+            f'JSON yedek yüklendi (fixture: {len(fixture)} kayıt; DB: {counts}).'
+            f'{media_note}'
         )
     except Exception as exc:
         return False, f'İçe aktarma sırasında hata oluştu: {exc}'
@@ -287,13 +315,17 @@ def import_sqlite_file(uploaded) -> tuple[bool, str]:
         _sync_permissions_after_restore()
 
         size_mb = db_path.stat().st_size / (1024 * 1024)
+        counts = _data_counts_summary()
         msg = (
-            f'SQLite veritabanı yüklendi ({size_mb:.1f} MB). '
-            f'Hedef: {db_path}. Migration kontrolü tamamlandı.'
+            f'SQLite yüklendi ({size_mb:.1f} MB → {db_path}). '
+            f'Veritabanı: {counts}. Migration kontrolü tamamlandı.'
         )
         if prev_backup:
             msg += f' Önceki DB yedeklendi: {prev_backup}'
-        msg += ' Medya dosyaları ayrıca /data/media klasörüne kopyalanmalıdır.'
+        msg += (
+            ' ÖNEMLİ: Resim/belgeler db.sqlite3 içinde değil; lokal media/ klasörünü '
+            'sunucuda /data/media (volume) içine kopyalamazsan dosyalar açılmaz.'
+        )
         return True, msg
     except Exception as exc:
         return False, f'SQLite içe aktarma hatası: {exc}'

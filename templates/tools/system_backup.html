@@ -47,8 +47,13 @@
             <h2 class="text-lg font-bold text-slate-900">SQLite (db.sqlite3)</h2>
             <p class="text-xs text-slate-500 mt-1">
                 Lokalden sunucuya taşımak için en pratik yol. İndir → sunucuda yükle.
-                <strong>media/</strong> klasörünü ayrıca <code class="bg-slate-100 px-1 rounded">/data/media</code> volume’e kopyalayın.
             </p>
+            <ul class="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-xl p-3 mt-2 list-disc pl-5 space-y-1">
+                <li><strong>2 parça taşınır:</strong> db.sqlite3 + proje içindeki <code>media/</code> klasörü</li>
+                <li>Coolify’da <strong>Storages → /data</strong> mount şart; redeploy volume yoksa DB sıfırlanır</li>
+                <li>İçe aktardıktan sonra redeploy, import’u silmez (volume varsa)</li>
+                <li>Sunucuda medya: <code>/data/media</code> — örn. <code>docker cp ./media/. CONTAINER:/data/media/</code></li>
+            </ul>
         </div>
     </div>
 
