@@ -437,28 +437,9 @@ def _serialize_option(obj):
 
 def options_catalog_api(request):
     """Servis formu için tüm seçenekler ve ürün–servis tipi eşlemesi."""
-    products = ProductOption.objects.prefetch_related('service_types').order_by('name')
-    service_types = ServiceTypeOption.objects.prefetch_related('products').order_by('name')
+    from core_settings.catalog import build_options_catalog
 
-    def service_type_color(st):
-        first_product = next(iter(st.products.all()), None)
-        return first_product.color_hex if first_product else st.color_hex
-
-    return JsonResponse({
-        'products': [
-            {
-                **_serialize_option(p),
-                'service_type_ids': list(p.service_types.values_list('id', flat=True)),
-            }
-            for p in products
-        ],
-        'service_types': [
-            {'id': s.id, 'name': s.name, 'color': service_type_color(s)}
-            for s in service_types
-        ],
-        'statuses': [_serialize_option(s) for s in StatusOption.objects.order_by('name')],
-        'priorities': [_serialize_option(p) for p in PriorityOption.objects.order_by('name')],
-    })
+    return JsonResponse(build_options_catalog())
 
 
 def service_types_for_products_api(request):
@@ -534,6 +515,14 @@ def quick_option_create_api(request):
             obj.service_types.set(st_ids)
         payload['service_type_ids'] = list(obj.service_types.values_list('id', flat=True))
 
+    from config.live_sync import publish_live_event
+
+    publish_live_event(
+        kind='options',
+        action='created',
+        message='Yeni seçenek eklendi.',
+        user_id=getattr(request.user, 'id', None),
+    )
     return JsonResponse({'ok': True, 'item': payload, 'type': kind})
 
 
@@ -576,4 +565,12 @@ def quick_option_update_api(request):
     if kind == 'product':
         payload['service_type_ids'] = list(obj.service_types.values_list('id', flat=True))
 
+    from config.live_sync import publish_live_event
+
+    publish_live_event(
+        kind='options',
+        action='updated',
+        message='Seçenek güncellendi.',
+        user_id=getattr(request.user, 'id', None),
+    )
     return JsonResponse({'ok': True, 'item': payload})

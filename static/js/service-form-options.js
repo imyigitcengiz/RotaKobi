@@ -2,6 +2,9 @@
   const catalogEl = document.getElementById('optionsCatalogData');
   if (!catalogEl) return;
 
+  const sync = window.GyProductServiceTypeSync;
+  if (!sync) return;
+
   const catalog = JSON.parse(catalogEl.textContent);
   const initialProducts = JSON.parse(document.getElementById('initialProductIds')?.textContent || '[]');
   const initialServiceTypes = JSON.parse(document.getElementById('initialServiceTypeIds')?.textContent || '[]');
@@ -14,96 +17,17 @@
 
   let selectedServiceTypeIds = new Set(initialServiceTypes.map(Number));
 
-  function getSelectedProductIds() {
-    return Array.from(document.querySelectorAll('input[name="products"]:checked')).map((cb) =>
-      parseInt(cb.value, 10)
-    );
-  }
-
-  function resolveAllowedServiceTypeIds(productIds) {
-    if (!productIds.length) {
-      return { ids: null, mode: 'none', message: 'Önce en az bir ürün seçin.' };
-    }
-    const union = new Set();
-    let anyMapping = false;
-    productIds.forEach((pid) => {
-      const product = catalog.products.find((p) => p.id === pid);
-      if (product?.service_type_ids?.length) {
-        anyMapping = true;
-        product.service_type_ids.forEach((id) => union.add(id));
-      }
-    });
-    if (!anyMapping) {
-      return {
-        ids: null,
-        mode: 'all_fallback',
-        message: 'Seçili ürünlerde tanımlı arıza tipi yok; tüm tipler gösteriliyor.',
-      };
-    }
-    return {
-      ids: union,
-      mode: 'filtered',
-      message: `${union.size} arıza tipi bu ürün(ler) için tanımlı.`,
-    };
-  }
-
-  function getServiceTypeColor(serviceTypeId, selectedProductIds) {
-    const selectedFirst = selectedProductIds.length
-      ? catalog.products.find((p) => p.id === selectedProductIds[0])
-      : null;
-    for (const pid of selectedProductIds) {
-      const product = catalog.products.find((p) => p.id === pid);
-      if (product?.service_type_ids?.includes(serviceTypeId)) return product.color;
-    }
-    if (selectedFirst) return selectedFirst.color;
-    const fallbackProduct = catalog.products.find((p) => p.service_type_ids?.includes(serviceTypeId));
-    if (fallbackProduct) return fallbackProduct.color;
-    return catalog.service_types.find((st) => st.id === serviceTypeId)?.color || '#3b82f6';
-  }
-
   function renderServiceTypes() {
-    if (!serviceTypeContainer) return;
-    const productIds = getSelectedProductIds();
-    const { ids, mode, message } = resolveAllowedServiceTypeIds(productIds);
-
-    let list = catalog.service_types;
-    if (ids && mode === 'filtered') {
-      list = catalog.service_types.filter((st) => ids.has(st.id));
-    }
-
-    const validIds = new Set(list.map((st) => st.id));
-    selectedServiceTypeIds = new Set(
-      [...selectedServiceTypeIds].filter((id) => validIds.has(id))
-    );
-
-    serviceTypeContainer.innerHTML = '';
-    if (!productIds.length) {
-      serviceTypeContainer.innerHTML =
-        '<p class="col-span-full text-sm text-amber-600 font-medium py-2">Servis tipleri için önce ürün seçin.</p>';
-    } else if (!list.length) {
-      serviceTypeContainer.innerHTML =
-        '<p class="col-span-full text-sm text-slate-500 py-2">Gösterilecek servis tipi yok. Sistem ayarlarından tanımlayın.</p>';
-    } else {
-      list.forEach((st) => {
-        const label = document.createElement('label');
-        label.className =
-          'flex items-center gap-2 p-2 hover:bg-white rounded-lg transition-colors cursor-pointer group border border-transparent hover:border-slate-200';
-        const checked = selectedServiceTypeIds.has(st.id);
-        const dotColor = getServiceTypeColor(st.id, productIds);
-        label.innerHTML = `
-          <input type="checkbox" name="service_types" value="${st.id}" ${checked ? 'checked' : ''}
-            class="rounded border-slate-300 text-brand-600 service-type-cb">
-          <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:${dotColor}"></span>
-          <span class="text-sm text-slate-600 group-hover:text-brand-600">${st.name}</span>`;
-        serviceTypeContainer.appendChild(label);
-      });
-    }
-
-    if (serviceTypeHint) {
-      serviceTypeHint.textContent = message;
-      serviceTypeHint.className =
-        'text-xs font-medium ' + (mode === 'none' ? 'text-amber-600' : 'text-slate-500');
-    }
+    sync.renderFilteredServiceTypes({
+      catalog,
+      productRoot: document,
+      productSelector: 'input[name="products"]:checked',
+      serviceTypeContainer,
+      serviceTypeCheckboxClass: 'service-type-cb',
+      serviceTypeName: 'service_types',
+      hintEl: serviceTypeHint,
+      selectedServiceTypeIds,
+    });
   }
 
   function bindServiceTypeContainer() {
@@ -243,6 +167,8 @@
       return;
     }
 
+    if (window.GY_MARK_LOCAL_SAVE) window.GY_MARK_LOCAL_SAVE();
+
     const item = data.item;
     const catalogKey = {
       status: 'statuses',
@@ -267,14 +193,14 @@
       catalog.service_types.push(item);
     }
 
+    const script = document.getElementById('optionsCatalogData');
+    if (script) script.textContent = JSON.stringify(catalog);
+
     if (kind === 'status') {
       refreshSelectOptions(statusSelect, catalog.statuses, item.id);
     } else if (kind === 'priority') {
       refreshSelectOptions(prioritySelect, catalog.priorities, item.id);
-    } else if (kind === 'product') {
-      updateProductCheckboxLabel(item);
-      renderServiceTypes();
-    } else if (kind === 'service_type') {
+    } else if (kind === 'product' || kind === 'service_type') {
       renderServiceTypes();
     }
 

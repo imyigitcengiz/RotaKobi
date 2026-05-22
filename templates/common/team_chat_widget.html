@@ -1,0 +1,67 @@
+{% load static %}
+{% if user.is_authenticated %}
+<div id="teamChatRoot" class="fixed bottom-6 right-6 z-[96] flex flex-col items-end font-sans" aria-live="polite">
+    <div id="teamChatPanel" class="hidden w-[min(100vw-2rem,400px)] h-[min(70vh,520px)] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col mb-4">
+        <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-violet-500 flex items-center justify-center shrink-0">
+                    <i data-lucide="messages-square" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-sm font-bold truncate">Ekip Sohbeti</p>
+                    <p id="teamChatSubtitle" class="text-[10px] text-slate-400 truncate">Genel ve özel mesajlar</p>
+                </div>
+            </div>
+            <button type="button" id="teamChatClose" class="text-slate-400 hover:text-white p-1" aria-label="Kapat">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="flex flex-1 min-h-0">
+            <aside id="teamChatSidebar" class="w-[38%] min-w-[120px] border-r border-slate-100 bg-slate-50 flex flex-col shrink-0">
+                <div class="p-2 border-b border-slate-100">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">Sohbetler</p>
+                </div>
+                <div id="teamChatThreadList" class="flex-1 overflow-y-auto p-1 space-y-0.5 text-sm"></div>
+                <div class="p-2 border-t border-slate-100">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">Kişiler</p>
+                    <div id="teamChatUserList" class="max-h-28 overflow-y-auto p-1 space-y-0.5"></div>
+                </div>
+            </aside>
+
+            <section class="flex-1 flex flex-col min-w-0 bg-white">
+                <div id="teamChatMessages" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50/80"></div>
+                <form id="teamChatForm" class="p-3 border-t border-slate-100 flex gap-2 shrink-0">
+                    <input type="text" id="teamChatInput" maxlength="4000" placeholder="Mesaj yazın…" autocomplete="off"
+                           class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-400">
+                    <button type="submit" class="p-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 shrink-0" aria-label="Gönder">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </section>
+        </div>
+    </div>
+
+    <button type="button" id="teamChatToggle" class="relative w-14 h-14 bg-violet-600 text-white rounded-full shadow-xl shadow-violet-300/50 flex items-center justify-center hover:scale-105 transition-transform" aria-label="Sohbeti aç">
+        <i data-lucide="message-circle" class="w-7 h-7"></i>
+        <span id="teamChatBadge" class="hidden absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">0</span>
+    </button>
+</div>
+
+<script>
+window.GY_TEAM_CHAT = {
+    wsUrl: (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws/chat/',
+    api: {
+        summary: '{% url "chat_summary" %}',
+        users: '{% url "chat_users" %}',
+        joinTeam: '{% url "chat_join_team" %}',
+        direct: '{% url "chat_direct" %}',
+        messages: (id) => `/chat/api/threads/${id}/messages/`,
+        send: (id) => `/chat/api/threads/${id}/send/`,
+        read: (id) => `/chat/api/threads/${id}/read/`,
+    },
+    me: { id: {{ user.id }}, name: '{{ user.display_name|escapejs }}', initials: '{{ user.initials|escapejs }}' },
+};
+</script>
+<script src="{% static 'js/team-chat.js' %}" defer></script>
+{% endif %}

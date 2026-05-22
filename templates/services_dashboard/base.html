@@ -178,69 +178,19 @@
         window.SD_BASE = '/services-dashboard';
         window.CUSTOMER_API_BASE = '/contact';
         window.CRM_BASE = '/contact';
+        {% if user.is_authenticated %}window.GY_USER_ID = {{ user.id }};{% endif %}
     </script>
+    {% load static %}
+    <script src="{% static 'js/product-service-type-sync.js' %}" defer></script>
+    <script src="{% static 'js/live-sync.js' %}" defer></script>
+    <script src="{% static 'js/quick-field-update.js' %}" defer></script>
     <script>
         lucide.createIcons();
-    </script>
-    <script>
-        (function () {
-            const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-            const wsUrl = `${wsScheme}://${window.location.host}/ws/live-sync/`;
-            let socket = null;
-            let reconnectDelay = 1000;
-            let reloadTimer = null;
-
-            function shouldAutoReload() {
-                const path = window.location.pathname;
-                return path.startsWith('/services-dashboard/');
-            }
-
-            function showLiveToast(message) {
-                const toast = document.createElement('div');
-                toast.className = 'fixed bottom-4 right-4 z-[220] px-4 py-2 rounded-xl text-xs font-bold shadow-lg border bg-brand-50 border-brand-200 text-brand-700';
-                toast.textContent = message || 'Canlı güncelleme alındı.';
-                document.body.appendChild(toast);
-                setTimeout(() => {
-                    if (toast.parentNode) toast.parentNode.removeChild(toast);
-                }, 2500);
-            }
-
-            function scheduleReload() {
-                if (!shouldAutoReload()) return;
-                if (reloadTimer) clearTimeout(reloadTimer);
-                reloadTimer = setTimeout(() => window.location.reload(), 900);
-            }
-
-            function connect() {
-                socket = new WebSocket(wsUrl);
-
-                socket.onopen = function () {
-                    reconnectDelay = 1000;
-                };
-
-                socket.onmessage = function (event) {
-                    let payload = null;
-                    try {
-                        payload = JSON.parse(event.data);
-                    } catch (e) {
-                        return;
-                    }
-                    showLiveToast(payload.message || 'Canlı güncelleme alındı.');
-                    scheduleReload();
-                };
-
-                socket.onclose = function () {
-                    setTimeout(connect, reconnectDelay);
-                    reconnectDelay = Math.min(reconnectDelay * 2, 10000);
-                };
-            }
-
-            connect();
-        })();
     </script>
     {% block extra_js %}{% endblock %}
     {% if user_perms.services_whatsapp %}{% include 'services_dashboard/partials/whatsapp_modal.html' %}{% endif %}
     {% include 'common/whatsapp_scenario_prompt_assets.html' %}
+    {% include 'common/team_chat_widget.html' %}
     {% if user_perms.tools_ai and site_settings.ai_chat_enabled %}{% include 'services_dashboard/partials/ai_chat_widget.html' %}{% endif %}
 </body>
 </html>

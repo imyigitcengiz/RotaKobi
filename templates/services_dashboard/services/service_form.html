@@ -22,7 +22,7 @@
             </div>
         </div>
 
-        <form method="post" enctype="multipart/form-data" class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <form method="post" enctype="multipart/form-data" id="serviceRecordForm" data-gy-main-form class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
             {% csrf_token %}
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -313,8 +313,10 @@
     </div>
 </div>
 
-<script src="/static/js/color-picker.js"></script>
-<script src="/static/js/service-form-options.js"></script>
+{% load static %}
+<script src="{% static 'js/color-picker.js' %}"></script>
+<script src="{% static 'js/product-service-type-sync.js' %}"></script>
+<script src="{% static 'js/service-form-options.js' %}"></script>
 <script src="/static/js/service-customer-hints.js"></script>
 <script>
     (function () {

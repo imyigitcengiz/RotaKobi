@@ -393,11 +393,8 @@
             </div>
             <div>
                 <label class="text-xs font-bold text-slate-500 uppercase">Arıza Tipleri (çoklu)</label>
-                <div id="qsServiceTypesWrap" class="mt-1 p-2 bg-slate-50 rounded-xl border border-slate-100 grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-                    {% for t in all_service_types|default:service_types %}
-                    <label class="text-xs text-slate-700 flex items-center gap-2"><input type="checkbox" class="qs-service-type" value="{{ t.id }}"> {{ t.name }}</label>
-                    {% endfor %}
-                </div>
+                <p id="qsServiceTypeHint" class="text-[10px] text-slate-500 mt-0.5"></p>
+                <div id="qsServiceTypesWrap" class="mt-1 p-2 bg-slate-50 rounded-xl border border-slate-100 grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto"></div>
             </div>
             <div>
                 <label class="text-xs font-bold text-slate-500 uppercase">Servis Notu</label>
@@ -488,6 +485,8 @@
         </div>
     </div>
 </div>
+
+{% if options_catalog %}{{ options_catalog|json_script:"optionsCatalogData" }}{% endif %}
 
 <script>
     document.querySelectorAll('[data-set-view]').forEach((btn) => {
@@ -741,6 +740,42 @@
             .map((cb) => cb.value);
     }
 
+    const qsCatalogEl = document.getElementById('optionsCatalogData');
+    let qsCatalog = null;
+    try {
+        qsCatalog = qsCatalogEl ? JSON.parse(qsCatalogEl.textContent) : null;
+    } catch (e) { qsCatalog = null; }
+    const qsSelectedSt = new Set();
+
+    function qsRenderServiceTypes() {
+        if (!qsCatalog || !window.GyProductServiceTypeSync) return;
+        window.GyProductServiceTypeSync.renderFilteredServiceTypes({
+            catalog: qsCatalog,
+            productRoot: document,
+            productSelector: 'input.qs-product:checked',
+            serviceTypeContainer: document.getElementById('qsServiceTypesWrap'),
+            serviceTypeCheckboxClass: 'qs-service-type',
+            hintEl: document.getElementById('qsServiceTypeHint'),
+            selectedServiceTypeIds: qsSelectedSt,
+            labelClass: 'text-xs text-slate-700 flex items-center gap-2 p-1 rounded hover:bg-white',
+            emptyClass: 'col-span-full text-xs text-amber-600 py-2',
+        });
+    }
+
+    document.getElementById('qsProductsWrap')?.addEventListener('change', (e) => {
+        if (e.target.classList.contains('qs-product')) qsRenderServiceTypes();
+    });
+
+    window.GyQuickSheetSync = {
+        refresh() {
+            if (!qsCatalogEl) return;
+            try {
+                qsCatalog = JSON.parse(qsCatalogEl.textContent);
+                qsRenderServiceTypes();
+            } catch (e) {}
+        },
+    };
+
     function openQuickSheetModal() {
         quickSheetModal?.classList.remove('hidden');
         if (window.lucide) lucide.createIcons();
@@ -767,7 +802,9 @@
         document.getElementById('qsContractDate').value = data.customer.contract_date || '';
         document.getElementById('qsLocationLink').value = data.customer.location_link || '';
         setCheckedByValues('.qs-product', data.service.product_ids || []);
-        setCheckedByValues('.qs-service-type', data.service.service_type_ids || []);
+        qsSelectedSt.clear();
+        (data.service.service_type_ids || []).forEach((id) => qsSelectedSt.add(Number(id)));
+        qsRenderServiceTypes();
     }
 
     async function saveQuickSheetData() {
@@ -796,6 +833,7 @@
 
     async function triggerQuickSheetSave() {
         try {
+            if (window.GY_MARK_LOCAL_SAVE) window.GY_MARK_LOCAL_SAVE();
             const serviceId = document.getElementById('qsServiceId').value;
             const newStatusId = document.getElementById('qsStatus').value;
             const statusChanged = qsOriginalStatusId !== null && String(newStatusId) !== String(qsOriginalStatusId);
@@ -922,6 +960,10 @@
                     }
                     if (field === 'status' && window.handleServiceWhatsappStatusResponse) {
                         window.handleServiceWhatsappStatusResponse(data, () => location.reload());
+                        return;
+                    }
+                    if (window.GY_MARK_LOCAL_SAVE) window.GY_MARK_LOCAL_SAVE();
+                    if (window.GyQuickFieldUpdate?.patchQuickField(serviceId, field, data)) {
                         return;
                     }
                     location.reload();

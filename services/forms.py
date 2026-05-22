@@ -1,4 +1,5 @@
 from django import forms
+from core_settings.catalog import filter_service_type_ids
 from .models import ServiceRecord, ServiceImage
 from core_settings.models import ServiceTypeOption, ProductOption, SolutionPartner, ServicePersonnel
 
@@ -43,3 +44,15 @@ class ServiceRecordForm(forms.ModelForm):
         self.fields['service_personnel'].empty_label = 'Servis personeli seçin (opsiyonel)'
         self.fields['list_price'].label = 'Normal fiyat (₺)'
         self.fields['discounted_price'].label = 'İndirimli fiyat (₺)'
+
+    def clean(self):
+        cleaned = super().clean()
+        products = cleaned.get('products')
+        service_types = cleaned.get('service_types')
+        if products is not None and service_types is not None:
+            product_ids = [p.pk for p in products]
+            st_ids = [st.pk for st in service_types]
+            allowed = filter_service_type_ids(product_ids, st_ids)
+            allowed_set = set(allowed)
+            cleaned['service_types'] = [st for st in service_types if st.pk in allowed_set]
+        return cleaned

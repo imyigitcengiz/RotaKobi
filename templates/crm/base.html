@@ -163,39 +163,14 @@
         window.CUSTOMER_API_BASE = '/contact';
         window.CRM_BASE = window.CONTACT_BASE;
         window.SD_BASE = '/services-dashboard';
+        {% if user.is_authenticated %}window.GY_USER_ID = {{ user.id }};{% endif %}
     </script>
+    {% load static %}
+    <script src="{% static 'js/live-sync.js' %}" defer></script>
     <script>lucide.createIcons();</script>
-    <script>
-        (function () {
-            const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-            const wsUrl = `${wsScheme}://${window.location.host}/ws/live-sync/`;
-            let reloadTimer = null;
-
-            function shouldAutoReload() {
-                return window.location.pathname.startsWith('/contact/') || window.location.pathname.startsWith('/crm/');
-            }
-
-            function scheduleReload() {
-                if (!shouldAutoReload()) return;
-                if (reloadTimer) clearTimeout(reloadTimer);
-                reloadTimer = setTimeout(() => window.location.reload(), 900);
-            }
-
-            try {
-                const socket = new WebSocket(wsUrl);
-                socket.onmessage = function (event) {
-                    try {
-                        const data = JSON.parse(event.data);
-                        if (['customer', 'service', 'sales_lead'].includes(data.kind)) {
-                            scheduleReload();
-                        }
-                    } catch (e) {}
-                };
-            } catch (e) {}
-        })();
-    </script>
     {% block extra_js %}{% endblock %}
     {% if user_perms.tools_whatsapp %}{% include 'services_dashboard/partials/whatsapp_modal.html' %}{% endif %}
     {% include 'common/whatsapp_scenario_prompt_assets.html' %}
+    {% include 'common/team_chat_widget.html' %}
 </body>
 </html>

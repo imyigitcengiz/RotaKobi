@@ -18,6 +18,8 @@ from common.permissions import (
 from users.mixins import PermissionRequiredMixin
 from .models import ServiceRecord, ServiceImage, ServiceHistory
 from .forms import ServiceRecordForm
+from config.live_sync import publish_live_event, suppress_live_sync
+from core_settings.catalog import build_options_catalog, filter_service_type_ids
 from .form_context import build_service_form_context
 from .whatsapp_status_prompt import (
     build_whatsapp_service_created_prompt,
@@ -332,6 +334,7 @@ class ServiceListView(PermissionRequiredMixin, ListView):
         context['show_pending'] = self.request.GET.get('show_pending') == '1'
         context['visibility_active'] = not self.request.GET.get('status')
         context['whatsapp_prompt_queue'] = pop_whatsapp_status_prompt_queue(self.request)
+        context['options_catalog'] = build_options_catalog()
         view_mode = (self.request.GET.get('view') or 'customer').strip().lower()
         if view_mode not in ('customer', 'record'):
             view_mode = 'customer'
@@ -416,14 +419,18 @@ class ServiceCreateView(PermissionRequiredMixin, CreateView):
         return initial
 
     def form_valid(self, form):
-        response = super().form_valid(form)
-        
-        # Proactive Logic: Sync service products back to customer profile
-        # So the next service for this customer will have these products pre-selected.
-        customer = self.object.customer
-        for product in self.object.products.all():
-            customer.products.add(product)
-            
+        with suppress_live_sync():
+            response = super().form_valid(form)
+            customer = self.object.customer
+            for product in self.object.products.all():
+                customer.products.add(product)
+        publish_live_event(
+            kind='service',
+            action='created',
+            object_id=self.object.id,
+            message=f'Servis #{self.object.id} oluşturuldu.',
+            user_id=self.request.user.id,
+        )
         _create_service_history(self.object, "Servis kaydı oluşturuldu.", self.request.user)
         _ingest_service_media_uploads(self.request, self.object)
 
@@ -450,13 +457,25 @@ class ServiceUpdateView(PermissionRequiredMixin, UpdateView):
     def form_valid(self, form):
         prev_status_id = self.object.status_id if self.object.pk else None
         before_state = _capture_service_state(self.object)
-        response = super().form_valid(form)
-        self.object.refresh_from_db()
+        with suppress_live_sync():
+            response = super().form_valid(form)
+            self.object.refresh_from_db()
+            customer = self.object.customer
+            for product in self.object.products.all():
+                customer.products.add(product)
         after_state = _capture_service_state(self.object)
         changes = _diff_service_state(before_state, after_state)
 
         if changes:
             _create_service_history(self.object, " | ".join(changes), self.request.user)
+
+        publish_live_event(
+            kind='service',
+            action='updated',
+            object_id=self.object.id,
+            message=f'Servis #{self.object.id} güncellendi.',
+            user_id=self.request.user.id,
+        )
 
         if prev_status_id and prev_status_id != self.object.status_id:
             service = ServiceRecord.objects.select_related(
@@ -464,12 +483,7 @@ class ServiceUpdateView(PermissionRequiredMixin, UpdateView):
             ).prefetch_related('service_types').get(pk=self.object.pk)
             prompt = build_whatsapp_status_change_prompt(service, prev_status_id)
             queue_whatsapp_status_prompts(self.request, prompt)
-        
-        # Sync service products back to customer profile
-        customer = self.object.customer
-        for product in self.object.products.all():
-            customer.products.add(product)
-            
+
         _ingest_service_media_uploads(self.request, self.object)
         return response
 
@@ -804,11 +818,12 @@ def quick_update_service_field(request):
     prev_status_id = service.status_id if field == 'status' else None
     prev_status_name = service.status.name if field == 'status' and service.status_id else None
 
-    if field == 'status':
-        service.status = option
-    else:
-        service.priority = option
-    service.save(update_fields=[field, 'updated_at'])
+    with suppress_live_sync():
+        if field == 'status':
+            service.status = option
+        else:
+            service.priority = option
+        service.save(update_fields=[field, 'updated_at'])
     service.refresh_from_db()
     after_state = _capture_service_state(service)
     changes = _diff_service_state(before_state, after_state)
@@ -817,6 +832,13 @@ def quick_update_service_field(request):
         service,
         ' | '.join(changes) if changes else f"{field} aynı kaldı: {option.name}",
         request.user,
+    )
+    publish_live_event(
+        kind='service',
+        action='updated',
+        object_id=service.id,
+        message=f'Servis #{service.id} güncellendi.',
+        user_id=request.user.id,
     )
 
     return JsonResponse({
@@ -896,19 +918,22 @@ def service_quick_edit_api(request, pk):
                 'whatsapp_prompt': preview,
             })
 
-    service.status = status
-    service.priority = priority
-    service.notes = notes
-    service.save(update_fields=['status', 'priority', 'notes', 'updated_at'])
-    service.products.set(product_ids)
-    service.service_types.set(service_type_ids)
+    service_type_ids = filter_service_type_ids(product_ids, service_type_ids)
 
-    customer = service.customer
-    customer.phone = customer_phone or None
-    customer.region = customer_region or None
-    customer.location_link = customer_location_link or None
-    customer.contract_date = customer_contract_date or None
-    customer.save(update_fields=['phone', 'region', 'location_link', 'contract_date', 'updated_at'])
+    with suppress_live_sync():
+        service.status = status
+        service.priority = priority
+        service.notes = notes
+        service.save(update_fields=['status', 'priority', 'notes', 'updated_at'])
+        service.products.set(product_ids)
+        service.service_types.set(service_type_ids)
+
+        customer = service.customer
+        customer.phone = customer_phone or None
+        customer.region = customer_region or None
+        customer.location_link = customer_location_link or None
+        customer.contract_date = customer_contract_date or None
+        customer.save(update_fields=['phone', 'region', 'location_link', 'contract_date', 'updated_at'])
 
     service.refresh_from_db()
     after_state = _capture_service_state(service)
@@ -919,8 +944,15 @@ def service_quick_edit_api(request, pk):
         ' | '.join(changes) if changes else 'Hızlı düzenleme uygulandı (değişiklik yok).',
         request.user,
     )
+    publish_live_event(
+        kind='service',
+        action='updated',
+        object_id=service.id,
+        message=f'Servis #{service.id} güncellendi.',
+        user_id=request.user.id,
+    )
 
-    payload = {'ok': True}
+    payload = {'ok': True, 'service_type_ids': service_type_ids}
     if prev_status_id != service.status_id:
         service = ServiceRecord.objects.select_related(
             'customer', 'status', 'priority',

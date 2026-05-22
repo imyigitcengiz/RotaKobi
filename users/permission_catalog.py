@@ -122,6 +122,7 @@ DEFAULT_ROLES = {
 ROUTE_PERMISSIONS = [
     ('/yonetim/', None),
     ('/profil/', None),
+    ('/chat/', None),
     ('/services-dashboard/settings/', 'access.settings'),
     ('/services-dashboard/api/', 'access.settings'),
     ('/services-dashboard/services/bulk-delete/', 'services.delete'),

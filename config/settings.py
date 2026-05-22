@@ -116,6 +116,7 @@ INSTALLED_APPS = [
     'tools',
     'sales_leads',
     'common',
+    'chat',
 ]
 
 MIDDLEWARE = [

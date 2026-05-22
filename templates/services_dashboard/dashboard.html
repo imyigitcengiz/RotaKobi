@@ -437,6 +437,10 @@
                         window.handleServiceWhatsappStatusResponse(data, () => location.reload());
                         return;
                     }
+                    if (window.GY_MARK_LOCAL_SAVE) window.GY_MARK_LOCAL_SAVE();
+                    if (window.GyQuickFieldUpdate?.patchQuickField(serviceId, field, data)) {
+                        return;
+                    }
                     location.reload();
                 } catch (err) {
                     alert('Hızlı güncelleme sırasında hata oluştu.');

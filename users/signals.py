@@ -11,6 +11,12 @@ from .models import User, UserProfile
 def ensure_user_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.get_or_create(user=instance)
+        try:
+            from chat.services import add_user_to_team_thread
+
+            add_user_to_team_thread(instance)
+        except Exception:
+            pass
 
 
 @receiver(pre_save, sender=UserProfile)

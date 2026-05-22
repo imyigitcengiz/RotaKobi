@@ -16,6 +16,7 @@ urlpatterns = [
     path('contact/', include('config.contact_urls')),
     path('crm/', include('config.crm_urls')),
     path('ortak/', include('config.ortak_urls')),
+    path('chat/', include('chat.urls')),
 ]
 
 _serve_media = os.environ.get('DJANGO_SERVE_MEDIA', '1').lower() not in ('0', 'false', 'no')
