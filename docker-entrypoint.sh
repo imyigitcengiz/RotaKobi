@@ -18,6 +18,7 @@ echo "[gy-dashboard] migrate + collectstatic..."
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py sync_permissions 2>/dev/null || true
+python manage.py ensure_chat 2>/dev/null || true
 
 if [ "${DJANGO_ENSURE_SUPERADMIN:-0}" = "1" ]; then
   python manage.py ensure_superadmin 2>/dev/null || true

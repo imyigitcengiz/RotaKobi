@@ -7,6 +7,18 @@ from django.shortcuts import redirect
 from common.middleware import _is_api_request
 
 
+def json_auth_required(view_func):
+    """API uçları için JSON 401 (HTML login yönlendirmesi yok)."""
+
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'ok': False, 'error': 'Giriş gerekli.'}, status=401)
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
+
+
 def _deny(request, message='Bu işlem için yetkiniz yok.'):
     if _is_api_request(request):
         return JsonResponse({'ok': False, 'error': message}, status=403)

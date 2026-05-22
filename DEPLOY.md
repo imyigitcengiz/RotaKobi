@@ -82,3 +82,17 @@ Köprüyü elle: `cd tools/whatsapp_bridge && npm install && npm start`
 4. Sadece panel konteyneri varsa: ikinci servisi ekleyin veya harici köprü URL’si verin.
 
 “Başlatılıyor…” sonsuz döngüsü eski sürümde yerel port kontrolünden kaynaklanıyordu; güncel kod uzak URL’ye HTTP ile bakar.
+
+## Ekip sohbeti
+
+Deploy sonrası otomatik: `migrate` + `ensure_chat` (entrypoint).
+
+Reverse proxy (Coolify / Traefik / Nginx) WebSocket için:
+
+```nginx
+proxy_http_version 1.1;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+```
+
+WebSocket kapalı olsa bile sohbet **HTTP ile** çalışır (4 sn polling). Sohbet açılmıyorsa panelde kırmızı hata metni görünür; çoğunlukla `python manage.py migrate chat` eksiktir.

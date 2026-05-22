@@ -12,6 +12,7 @@
     const form = document.getElementById('teamChatForm');
     const input = document.getElementById('teamChatInput');
     const subtitle = document.getElementById('teamChatSubtitle');
+    const sendBtn = form?.querySelector('button[type="submit"]');
 
     let open = false;
     let activeThreadId = null;
@@ -21,8 +22,11 @@
     let pollTimer = null;
     let socket = null;
     let reconnectDelay = 1000;
+    let initDone = false;
 
     function csrf() {
+        const hidden = document.querySelector('#teamChatRoot [name=csrfmiddlewaretoken]');
+        if (hidden?.value) return hidden.value;
         const m = document.cookie.match(/csrftoken=([^;]+)/);
         return m ? decodeURIComponent(m[1]) : '';
     }
@@ -51,33 +55,96 @@
         }
     }
 
+    function showError(msg) {
+        if (threadList) {
+            threadList.innerHTML = `<p class="text-xs text-red-600 p-2 leading-snug">${escapeHtml(msg)}</p>`;
+        }
+        if (messagesEl) {
+            messagesEl.innerHTML = `<p class="text-sm text-red-600 p-4">${escapeHtml(msg)}</p>`;
+        }
+    }
+
+    function updateSendState() {
+        const ready = !!(open && activeThreadId);
+        if (input) input.disabled = !ready;
+        if (sendBtn) sendBtn.disabled = !ready;
+    }
+
+    async function fetchJson(url, options = {}) {
+        const opts = {
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                ...(options.headers || {}),
+            },
+            ...options,
+        };
+        const res = await fetch(url, opts);
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if (!ct.includes('application/json')) {
+            const text = await res.text();
+            throw new Error(
+                res.status === 401
+                    ? 'Oturum süresi dolmuş; sayfayı yenileyip tekrar giriş yapın.'
+                    : `Sunucu yanıtı beklenmiyor (${res.status}). ${text.slice(0, 80)}`
+            );
+        }
+        const data = await res.json();
+        if (!res.ok && !data.ok) {
+            throw new Error(data.error || data.detail || `İstek başarısız (${res.status})`);
+        }
+        return data;
+    }
+
     async function apiPost(url, body) {
-        const res = await fetch(url, {
+        return fetchJson(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
             body: JSON.stringify(body || {}),
         });
-        return res.json();
     }
 
-    async function loadSummary() {
-        const res = await fetch(cfg.api.summary);
-        const data = await res.json();
-        if (!data.ok) return;
+    async function ensureReady() {
+        await apiPost(cfg.api.joinTeam, {});
+        const data = await fetchJson(cfg.api.summary);
         threads = data.threads || [];
         setBadge(data.unread_total || 0);
         renderThreadList();
-        if (!activeThreadId && data.team_thread) {
-            await openThread(data.team_thread.id);
+
+        const pick =
+            data.team_thread ||
+            threads.find((t) => t.kind === 'team') ||
+            threads[0];
+        if (pick && !activeThreadId) {
+            await openThread(pick.id, { skipSummary: true });
+        } else if (!pick) {
+            showError('Genel sohbet bulunamadı. Yönetici: python manage.py ensure_chat');
+        }
+        updateSendState();
+        return data;
+    }
+
+    async function loadSummary() {
+        try {
+            const data = await fetchJson(cfg.api.summary);
+            threads = data.threads || [];
+            setBadge(data.unread_total || 0);
+            renderThreadList();
+            return data;
+        } catch (err) {
+            showError(err.message || 'Sohbet yüklenemedi');
+            return null;
         }
     }
 
     async function loadUsers() {
-        const res = await fetch(cfg.api.users);
-        const data = await res.json();
-        if (!data.ok) return;
-        users = data.users || [];
-        renderUserList();
+        try {
+            const data = await fetchJson(cfg.api.users);
+            users = data.users || [];
+            renderUserList();
+        } catch (err) {
+            if (userList) userList.innerHTML = `<p class="text-xs text-red-500 p-1">${escapeHtml(err.message)}</p>`;
+        }
     }
 
     function renderThreadList() {
@@ -86,19 +153,25 @@
             threadList.innerHTML = '<p class="text-xs text-slate-400 p-2">Sohbet yok</p>';
             return;
         }
-        threadList.innerHTML = threads.map((t) => {
-            const active = t.id === activeThreadId;
-            const unread = t.unread > 0 ? `<span class="ml-auto text-[10px] font-bold bg-violet-600 text-white px-1.5 rounded-full">${t.unread}</span>` : '';
-            const preview = t.last_message ? escapeHtml(t.last_message.body.slice(0, 40)) : 'Mesaj yok';
-            const icon = t.kind === 'team' ? 'users' : 'user';
-            return `<button type="button" data-thread-id="${t.id}" class="w-full text-left px-2 py-2 rounded-lg flex items-start gap-2 ${active ? 'bg-white shadow-sm border border-slate-200' : 'hover:bg-white/80'}">
+        threadList.innerHTML = threads
+            .map((t) => {
+                const active = t.id === activeThreadId;
+                const unread =
+                    t.unread > 0
+                        ? `<span class="ml-auto text-[10px] font-bold bg-violet-600 text-white px-1.5 rounded-full">${t.unread}</span>`
+                        : '';
+                const preview = t.last_message
+                    ? escapeHtml(t.last_message.body.slice(0, 40))
+                    : 'Mesaj yok';
+                return `<button type="button" data-thread-id="${t.id}" class="w-full text-left px-2 py-2 rounded-lg flex items-start gap-2 ${active ? 'bg-white shadow-sm border border-slate-200' : 'hover:bg-white/80'}">
                 <span class="w-7 h-7 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center shrink-0 text-[10px] font-bold">${t.kind === 'team' ? '#' : escapeHtml(t.peer?.initials || t.title?.slice(0, 2) || '?')}</span>
                 <span class="min-w-0 flex-1">
                     <span class="flex items-center gap-1"><span class="font-semibold text-slate-800 truncate text-xs">${escapeHtml(t.title)}</span>${unread}</span>
                     <span class="text-[10px] text-slate-400 truncate block">${preview}</span>
                 </span>
             </button>`;
-        }).join('');
+            })
+            .join('');
         threadList.querySelectorAll('[data-thread-id]').forEach((btn) => {
             btn.addEventListener('click', () => openThread(Number(btn.dataset.threadId)));
         });
@@ -106,21 +179,29 @@
 
     function renderUserList() {
         if (!userList) return;
-        userList.innerHTML = users.map((u) =>
-            `<button type="button" data-user-id="${u.id}" class="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white text-xs text-slate-700 flex items-center gap-2">
+        if (!users.length) {
+            userList.innerHTML = '<p class="text-xs text-slate-400 p-1">Başka kullanıcı yok</p>';
+            return;
+        }
+        userList.innerHTML = users
+            .map(
+                (u) =>
+                    `<button type="button" data-user-id="${u.id}" class="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white text-xs text-slate-700 flex items-center gap-2">
                 <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[9px] font-bold">${escapeHtml(u.initials)}</span>
                 <span class="truncate">${escapeHtml(u.name)}</span>
             </button>`
-        ).join('');
+            )
+            .join('');
         userList.querySelectorAll('[data-user-id]').forEach((btn) => {
             btn.addEventListener('click', () => startDirect(Number(btn.dataset.userId)));
         });
     }
 
     function renderMessages(items, append) {
+        if (!messagesEl) return;
         if (!append) messagesEl.innerHTML = '';
         const meId = cfg.me.id;
-        items.forEach((m) => {
+        (items || []).forEach((m) => {
             const mine = m.sender.id === meId;
             const row = document.createElement('div');
             row.className = `flex ${mine ? 'justify-end' : 'justify-start'}`;
@@ -134,41 +215,46 @@
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-    async function openThread(threadId) {
+    async function openThread(threadId, opts = {}) {
         activeThreadId = threadId;
         lastMessageId = 0;
         renderThreadList();
         const t = threads.find((x) => x.id === threadId);
         if (subtitle && t) subtitle.textContent = t.title;
-        messagesEl.innerHTML = '<p class="text-center text-slate-400 text-sm py-8">Yükleniyor…</p>';
-        const res = await fetch(cfg.api.messages(threadId));
-        const data = await res.json();
-        if (!data.ok) {
-            messagesEl.innerHTML = `<p class="text-red-600 text-sm p-4">${escapeHtml(data.error || 'Yüklenemedi')}</p>`;
-            return;
+        if (messagesEl) messagesEl.innerHTML = '<p class="text-center text-slate-400 text-sm py-8">Yükleniyor…</p>';
+        updateSendState();
+
+        try {
+            const data = await fetchJson(cfg.api.messages(threadId));
+            renderMessages(data.messages || [], false);
+            await apiPost(cfg.api.read(threadId), {});
+            if (!opts.skipSummary) await loadSummary();
+        } catch (err) {
+            showError(err.message || 'Mesajlar yüklenemedi');
         }
-        renderMessages(data.messages || [], false);
-        await fetch(cfg.api.read(threadId), { method: 'POST', headers: { 'X-CSRFToken': csrf() } });
-        await loadSummary();
+        updateSendState();
     }
 
     async function startDirect(userId) {
-        const data = await apiPost(cfg.api.direct, { user_id: userId });
-        if (!data.ok) {
-            alert(data.error || 'Sohbet açılamadı');
-            return;
+        try {
+            const data = await apiPost(cfg.api.direct, { user_id: userId });
+            await loadSummary();
+            await openThread(data.thread.id);
+        } catch (err) {
+            alert(err.message || 'Sohbet açılamadı');
         }
-        await loadSummary();
-        await openThread(data.thread.id);
     }
 
     async function pollNewMessages() {
         if (!activeThreadId || !open) return;
-        const res = await fetch(cfg.api.messages(activeThreadId) + '?since=' + lastMessageId);
-        const data = await res.json();
-        if (data.ok && data.messages && data.messages.length) {
-            renderMessages(data.messages, true);
-            await fetch(cfg.api.read(activeThreadId), { method: 'POST', headers: { 'X-CSRFToken': csrf() } });
+        try {
+            const data = await fetchJson(cfg.api.messages(activeThreadId) + '?since=' + lastMessageId);
+            if (data.messages?.length) {
+                renderMessages(data.messages, true);
+                await apiPost(cfg.api.read(activeThreadId), {});
+            }
+        } catch (e) {
+            /* sessiz — polling yedek */
         }
     }
 
@@ -178,7 +264,7 @@
         if (m.thread_id === activeThreadId && open) {
             if (!messagesEl.querySelector(`[data-msg-id="${m.id}"]`)) {
                 renderMessages([m], true);
-                fetch(cfg.api.read(activeThreadId), { method: 'POST', headers: { 'X-CSRFToken': csrf() } });
+                apiPost(cfg.api.read(activeThreadId), {}).catch(() => {});
             }
         }
         loadSummary();
@@ -187,9 +273,13 @@
     function connectWs() {
         try {
             socket = new WebSocket(cfg.wsUrl);
-            socket.onopen = () => { reconnectDelay = 1000; };
+            socket.onopen = () => {
+                reconnectDelay = 1000;
+            };
             socket.onmessage = (ev) => {
-                try { onWsPayload(JSON.parse(ev.data)); } catch (e) {}
+                try {
+                    onWsPayload(JSON.parse(ev.data));
+                } catch (e) {}
             };
             socket.onclose = () => {
                 setTimeout(connectWs, reconnectDelay);
@@ -198,40 +288,62 @@
         } catch (e) {}
     }
 
-    form.addEventListener('submit', async (e) => {
+    form?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const text = input.value.trim();
-        if (!text || !activeThreadId) return;
-        input.value = '';
-        const data = await apiPost(cfg.api.send(activeThreadId), { body: text });
-        if (!data.ok) {
-            alert(data.error || 'Gönderilemedi');
-            input.value = text;
+        if (!text || !activeThreadId) {
+            alert('Önce soldan bir sohbet seçin (Genel Sohbet).');
             return;
         }
-        if (!messagesEl.querySelector(`[data-msg-id="${data.message.id}"]`)) {
-            renderMessages([data.message], true);
+        input.value = '';
+        try {
+            const data = await apiPost(cfg.api.send(activeThreadId), { body: text });
+            if (!messagesEl.querySelector(`[data-msg-id="${data.message.id}"]`)) {
+                renderMessages([data.message], true);
+            }
+            if (window.GY_MARK_LOCAL_SAVE) window.GY_MARK_LOCAL_SAVE();
+            loadSummary();
+        } catch (err) {
+            alert(err.message || 'Gönderilemedi');
+            input.value = text;
         }
-        loadSummary();
     });
 
-    function setOpen(val) {
+    async function setOpen(val) {
         open = val;
-        panel.classList.toggle('hidden', !open);
+        panel?.classList.toggle('hidden', !open);
         if (open) {
-            input.focus();
-            loadSummary();
-            loadUsers();
-            apiPost(cfg.api.joinTeam, {});
-            if (!pollTimer) pollTimer = setInterval(pollNewMessages, 4000);
+            input?.focus();
+            messagesEl.innerHTML = '<p class="text-center text-slate-400 text-sm py-8">Hazırlanıyor…</p>';
+            try {
+                if (!initDone) {
+                    await ensureReady();
+                    initDone = true;
+                } else {
+                    await loadSummary();
+                    if (!activeThreadId) {
+                        const team = threads.find((t) => t.kind === 'team');
+                        if (team) await openThread(team.id, { skipSummary: true });
+                    }
+                }
+                await loadUsers();
+                if (!pollTimer) pollTimer = setInterval(pollNewMessages, 4000);
+            } catch (err) {
+                showError(err.message || 'Sohbet başlatılamadı');
+            }
+            updateSendState();
         }
         if (window.lucide) lucide.createIcons();
     }
 
-    toggle.addEventListener('click', () => setOpen(!open));
-    closeBtn.addEventListener('click', () => setOpen(false));
+    toggle?.addEventListener('click', () => setOpen(!open));
+    closeBtn?.addEventListener('click', () => setOpen(false));
 
     connectWs();
-    loadSummary();
-    setInterval(loadSummary, 30000);
+    loadSummary().catch(() => {});
+    setInterval(() => {
+        if (!open) loadSummary().catch(() => {});
+    }, 45000);
+
+    updateSendState();
 })();

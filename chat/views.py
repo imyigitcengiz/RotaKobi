@@ -1,7 +1,8 @@
 import json
 
-from django.contrib.auth.decorators import login_required
+from django.db import DatabaseError
 from django.http import JsonResponse
+from common.decorators import json_auth_required
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -41,10 +42,18 @@ def _membership_for(user, thread_id: int) -> ChatMembership:
     return membership
 
 
-@login_required
+@json_auth_required
 @require_GET
 def chat_summary_api(request):
-    ensure_team_thread()
+    try:
+        ensure_team_thread()
+        add_user_to_team_thread(request.user)
+    except DatabaseError as exc:
+        return JsonResponse({
+            'ok': False,
+            'error': 'Sohbet tabloları hazır değil. Sunucuda: python manage.py migrate chat',
+            'detail': str(exc),
+        }, status=503)
     memberships = (
         ChatMembership.objects.filter(user=request.user)
         .select_related('thread')
@@ -63,7 +72,7 @@ def chat_summary_api(request):
     })
 
 
-@login_required
+@json_auth_required
 @require_GET
 def chat_users_api(request):
     users = (
@@ -77,7 +86,7 @@ def chat_users_api(request):
     })
 
 
-@login_required
+@json_auth_required
 @require_GET
 def chat_messages_api(request, thread_id: int):
     try:
@@ -109,7 +118,7 @@ def chat_messages_api(request, thread_id: int):
     })
 
 
-@login_required
+@json_auth_required
 @require_POST
 def chat_send_api(request, thread_id: int):
     try:
@@ -134,7 +143,7 @@ def chat_send_api(request, thread_id: int):
     return JsonResponse({'ok': True, 'message': serialize_message(msg)})
 
 
-@login_required
+@json_auth_required
 @require_POST
 def chat_read_api(request, thread_id: int):
     try:
@@ -148,7 +157,7 @@ def chat_read_api(request, thread_id: int):
     })
 
 
-@login_required
+@json_auth_required
 @require_POST
 def chat_direct_api(request):
     body = _json_body(request) or {}
@@ -173,7 +182,7 @@ def chat_direct_api(request):
     })
 
 
-@login_required
+@json_auth_required
 @require_POST
 def chat_join_team_api(request):
     """Mevcut kullanıcıyı genel odaya ekler (ilk giriş)."""

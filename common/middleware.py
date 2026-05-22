@@ -22,7 +22,11 @@ def _is_api_request(request):
     if 'application/json' in accept and 'text/html' not in accept:
         return True
     path = request.path
-    return '/api/' in path or path.startswith('/tools/whatsapp/')
+    return (
+        '/api/' in path
+        or path.startswith('/chat/')
+        or path.startswith('/tools/whatsapp/')
+    )
 
 
 def _resolve_required_permission(path, method='GET'):
