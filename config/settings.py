@@ -70,6 +70,12 @@ if _lan_ip and _lan_ip not in ALLOWED_HOSTS:
 if DEBUG:
     ALLOWED_HOSTS.append('*')
 
+# Dokploy test domainleri (sslip.io) her redeploy'da değişir — tek tek yazmaya gerek kalmasın
+if os.environ.get('DJANGO_ALLOW_SSLIP_HOSTS', '1').lower() in ('1', 'true', 'yes'):
+    for _wild in ('.sslip.io', '.traefik.me'):
+        if _wild not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(_wild)
+
 _env_secret = os.environ.get('DJANGO_SECRET_KEY', '').strip()
 if _env_secret:
     SECRET_KEY = _env_secret
@@ -148,6 +154,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'common.middleware.DokploySslipCsrfMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
