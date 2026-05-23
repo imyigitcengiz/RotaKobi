@@ -28,7 +28,7 @@ class UserLoginView(AuthLoginView):
 
 
 class UserLogoutView(AuthLogoutView):
-    next_page = reverse_lazy('login')
+    next_page = reverse_lazy('landing')
     def dispatch(self, request, *args, **kwargs):
         response = super().dispatch(request, *args, **kwargs)
         if request.method == 'POST':

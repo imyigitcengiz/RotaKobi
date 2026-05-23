@@ -30,7 +30,13 @@ def _is_api_request(request):
     )
 
 
+PUBLIC_EXACT_PATHS = frozenset(('/', ''))
+
+
 def _resolve_required_permission(path, method='GET'):
+    if path in PUBLIC_EXACT_PATHS:
+        return None
+
     customer_perm = resolve_customer_route_permission(path, method)
     if customer_perm is not None:
         return customer_perm
@@ -50,6 +56,8 @@ class LoginRequiredMiddleware:
             return self.get_response(request)
 
         path = request.path
+        if path in PUBLIC_EXACT_PATHS:
+            return self.get_response(request)
         if any(_path_matches(path, prefix) for prefix in LOGIN_EXEMPT_PREFIXES):
             return self.get_response(request)
 
@@ -70,6 +78,8 @@ class PermissionMiddleware:
             return self.get_response(request)
 
         path = request.path
+        if path in PUBLIC_EXACT_PATHS:
+            return self.get_response(request)
         if any(_path_matches(path, prefix) for prefix in LOGIN_EXEMPT_PREFIXES):
             return self.get_response(request)
 

@@ -4,14 +4,15 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from analytics.views import HomeView
+from analytics.views import HomeView, PublicLandingView
 from common.media_views import serve_media_file
 from common.views import healthz
 
 urlpatterns = [
     path('healthz/', healthz, name='healthz'),
     path('admin/', admin.site.urls),
-    path('', HomeView.as_view(), name='home'),
+    path('', PublicLandingView.as_view(), name='landing'),
+    path('panel/', HomeView.as_view(), name='home'),
     path('', include('users.urls')),
     path('services-dashboard/', include('config.services_dashboard_urls')),
     path('tools/', include('config.tools_urls')),

@@ -167,7 +167,7 @@ ROUTE_PERMISSIONS = [
     ('/tools/', 'access.tools'),
     ('/admin/', None),
     ('/media/', None),
-    ('/', 'access.home'),
+    ('/panel/', 'access.home'),
 ]
 
 LOGIN_EXEMPT_PREFIXES = ('/giris/', '/static/', '/media/', '/healthz/')

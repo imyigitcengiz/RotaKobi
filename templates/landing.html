@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ site_settings.site_name }} — KOBİ operasyon paneli</title>
+    <meta name="description" content="Müşteri, servis, satış ve WhatsApp pazarlama — tek panelde.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+    <header class="border-b border-white/10 bg-slate-950/80 backdrop-blur sticky top-0 z-20">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+            <a href="{% url 'landing' %}" class="flex items-center gap-3">
+                {% if site_settings.logo %}
+                <img src="{{ site_settings.logo.url }}" alt="" class="h-10 w-10 rounded-xl object-contain bg-white/10">
+                {% else %}
+                <span class="h-10 w-10 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-lg">{{ site_settings.site_name.0|upper }}</span>
+                {% endif %}
+                <span class="font-bold text-lg text-white">{{ site_settings.site_name }}</span>
+            </a>
+            <a href="{% url 'login' %}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-bold hover:bg-brand-500 transition-colors shadow-lg shadow-brand-900/40">
+                <i data-lucide="log-in" class="w-4 h-4"></i>
+                Panele giriş
+            </a>
+        </div>
+    </header>
+
+    <main>
+        <section class="max-w-6xl mx-auto px-6 py-16 md:py-24">
+            <div class="max-w-3xl">
+                <p class="text-brand-400 text-sm font-bold uppercase tracking-wider mb-4">KOBİ operasyon yazılımı</p>
+                <h1 class="text-4xl md:text-5xl font-extrabold text-white leading-tight">
+                    Müşteri, servis, satış ve saha ekibiniz<br class="hidden sm:block"> tek yerde.
+                </h1>
+                <p class="mt-6 text-lg text-slate-400 leading-relaxed">
+                    {{ site_settings.site_name }}, küçük ve orta ölçekli işletmeler için hafif bir ERP panelidir.
+                    Rehber ve pazarlama, yardım masası, satış kayıtları ve WhatsApp iletişimi birbirine bağlı çalışır.
+                </p>
+                <div class="mt-10 flex flex-wrap gap-4">
+                    <a href="{% url 'login' %}" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-brand-600 text-white font-bold hover:bg-brand-500 transition-colors">
+                        Giriş yap
+                        <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </a>
+                    <a href="#moduller" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl border border-white/20 text-slate-200 font-semibold hover:bg-white/5 transition-colors">
+                        Neler var?
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="moduller" class="max-w-6xl mx-auto px-6 pb-20">
+            <h2 class="text-2xl font-bold text-white mb-8">Modüller</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <article class="rounded-3xl border border-violet-500/30 bg-violet-500/10 p-6">
+                    <div class="w-12 h-12 rounded-2xl bg-violet-600/30 text-violet-300 flex items-center justify-center mb-4">
+                        <i data-lucide="book-user" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">{{ gy.rehber }}</h3>
+                    <p class="mt-2 text-slate-400 text-sm leading-relaxed">
+                        Müşteri kartları, firma rehberi (Maps kazıma, etiketler), ekip ve personel.
+                        Pazarlama mesajları kampanya, firma ve müşteri olarak ayrı takip edilir.
+                    </p>
+                </article>
+                <article class="rounded-3xl border border-brand-500/30 bg-brand-500/10 p-6">
+                    <div class="w-12 h-12 rounded-2xl bg-brand-600/30 text-brand-300 flex items-center justify-center mb-4">
+                        <i data-lucide="headphones" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">{{ gy.yardim_masasi }}</h3>
+                    <p class="mt-2 text-slate-400 text-sm leading-relaxed">
+                        Servis kayıtları, durum ve öncelik, saha personeli ataması, yazdırma ve WhatsApp ile müşteriye bilgilendirme.
+                    </p>
+                </article>
+                <article class="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-600/30 text-amber-300 flex items-center justify-center mb-4">
+                        <i data-lucide="badge-dollar-sign" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">{{ gy.satis_birimi }}</h3>
+                    <p class="mt-2 text-slate-400 text-sm leading-relaxed">
+                        Satış işlemleri, raporlar ve müşteriyle ortak veri. Muhasebe ve operasyon aynı rehberi kullanır.
+                    </p>
+                </article>
+                <article class="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-600/30 text-emerald-300 flex items-center justify-center mb-4">
+                        <i data-lucide="message-circle" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">WhatsApp & araçlar</h3>
+                    <p class="mt-2 text-slate-400 text-sm leading-relaxed">
+                        WhatsApp köprüsü, otomatik senaryolar, toplu mesaj ve medya kütüphanesi.
+                        Sunucunuza kurulur; verileriniz kendi disk alanınızda kalır.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <section class="max-w-6xl mx-auto px-6 pb-24">
+            <div class="rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 p-8 md:p-12">
+                <h2 class="text-2xl font-bold text-white">Kimler için?</h2>
+                <ul class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-slate-300 text-sm">
+                    <li class="flex items-start gap-2"><i data-lucide="check" class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"></i> Montaj, teknik servis ve saha ekipleri</li>
+                    <li class="flex items-start gap-2"><i data-lucide="check" class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"></i> Bayi ve çözüm ortağı ağları</li>
+                    <li class="flex items-start gap-2"><i data-lucide="check" class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"></i> B2B satış ve müşteri takibi yapan KOBİ’ler</li>
+                    <li class="flex items-start gap-2"><i data-lucide="check" class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"></i> Tek sunucuda kendi kurulumunuz (Docker)</li>
+                </ul>
+                <p class="mt-8 text-slate-500 text-sm">
+                    Hesaplar yönetici tarafından oluşturulur. Giriş bilgileriniz için firma yöneticinize başvurun.
+                </p>
+                <a href="{% url 'login' %}" class="mt-6 inline-flex items-center gap-2 text-brand-400 font-semibold hover:text-brand-300">
+                    Panele giriş <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="border-t border-white/10 py-8 text-center text-slate-500 text-sm">
+        <p>{{ site_settings.site_name }} · KobiOps</p>
+    </footer>
+    <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

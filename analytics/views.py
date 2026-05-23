@@ -1,3 +1,4 @@
+from django.shortcuts import redirect
 from django.views.generic import TemplateView
 from django.db.models import Count, Q
 from services.models import ServiceRecord
@@ -17,7 +18,20 @@ from .service_report import build_service_dashboard_report
 
 logger = logging.getLogger(__name__)
 
+class PublicLandingView(TemplateView):
+    """Herkese açık tanıtım sayfası — girişten önce."""
+
+    template_name = 'landing.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('home')
+        return super().dispatch(request, *args, **kwargs)
+
+
 class HomeView(TemplateView):
+    """Giriş sonrası modül kısayolları."""
+
     template_name = 'home.html'
 
 

@@ -259,7 +259,7 @@ AUTH_USER_MODEL = 'users.User'
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'login'
+LOGOUT_REDIRECT_URL = 'landing'
 
 _use_secure_ssl = os.environ.get('DJANGO_SECURE_SSL', '').lower() in ('1', 'true', 'yes')
 # sslip.io / traefik.me: HTTPS yok; SECURE_SSL=1 → http→https redirect → Traefik 404
