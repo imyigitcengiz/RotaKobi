@@ -13,17 +13,25 @@ Panel konteynerinde Node/Puppeteer **yoktur**. Köprü ayrı servistir.
 
 ## Hızlı başlangıç (önerilen)
 
-```bash
-git clone https://github.com/imyigitcengiz/kobi-ops.git
-cd kobi-ops
-cp deploy/coolify/.env.example .env
-# .env içinde DJANGO_SECRET_KEY, DJANGO_ALLOWED_HOSTS, DJANGO_CSRF_TRUSTED_ORIGINS doldurun
+Anahtar, host ve CSRF **otomatik** — elle doldurma yok:
 
-docker compose up -d --build
+```bash
+git clone https://github.com/imyigitcengiz/kobi-ops.git /opt/kobi-ops
+cd /opt/kobi-ops
+chmod +x deploy/install.sh
+./deploy/install.sh
 ```
 
-- Panel: `http://sunucu:8000/giris/`
-- İlk giriş: `DJANGO_ENSURE_SUPERADMIN=1` ise `admin` / `admin` (sonra kapatın)
+Domain varsa (HTTPS ayarları buna göre):
+
+```bash
+./deploy/install.sh panel.firma.com
+```
+
+- Panel: `http://SUNUCU_IP:8000/giris/` veya `https://panel.firma.com/giris/`
+- İlk giriş: `admin` / `admin` — sonra `.env` → `DJANGO_ENSURE_SUPERADMIN=0` + `docker compose up -d`
+
+Manuel `.env` isterseniz: `deploy/coolify/.env.example` → `.env`
 
 ## Ortam değişkenleri (app)
 

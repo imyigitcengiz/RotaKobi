@@ -18,9 +18,10 @@ Django tabanlı hafif CRM: müşteri rehberi, satış kayıtları, servis / iş 
 **[DEPLOY.md](DEPLOY.md)** — Docker Compose, Dokploy, Coolify, 1Panel, ortam değişkenleri, WhatsApp köprüsü.
 
 ```bash
-git clone https://github.com/imyigitcengiz/kobi-ops.git
-cd kobi-ops
-docker compose up -d --build
+git clone https://github.com/imyigitcengiz/kobi-ops.git /opt/kobi-ops
+cd /opt/kobi-ops
+./deploy/install.sh          # secret + host otomatik
+# ./deploy/install.sh panel.firma.com   # domain ile HTTPS ayarları
 ```
 
 - Kalıcı veri: volume `/data`
