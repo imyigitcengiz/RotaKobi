@@ -35,6 +35,8 @@ docker compose up -d --build
 | `DATA_DIR` | Docker’da otomatik | `/data` — kalıcı volume bağlayın |
 | `WHATSAPP_BRIDGE_URL` | WhatsApp için | Compose’ta: `http://whatsapp-bridge:3939` |
 | `DJANGO_WHATSAPP_BRIDGE_CAN_SPAWN` | Docker’da `0` | Panel içinden Node başlatmayı kapatır |
+| `GY_REQUIRE_PERSISTENT_VOLUME` | Docker’da `1` (varsayılan) | `/data` volume yoksa konteyner başlamaz |
+| `GY_ALLOW_EPHEMERAL_DATA` | `0` | `1` = volume zorunluluğunu kapat (sadece test) |
 
 ## Kalıcı veri
 
@@ -42,8 +44,26 @@ Volume **`/data`**:
 
 - `/data/db.sqlite3` — veritabanı
 - `/data/media/` — yüklenen dosyalar
+- `/data/backups/auto/` — her deploy öncesi otomatik SQLite yedeği (son 10)
 
-Yedek: Araçlar → Sistem yedeği (SQLite indir) + `media/` klasörünü kopyalayın.
+**Volume yoksa veya Coolify rebuild sırasında volume silindiyse tüm kayıtlar gider.**
+
+Panel, `/data` gerçekten kalıcı volume değilse **başlamaz** (`GY_REQUIRE_PERSISTENT_VOLUME=1`). Coolify → **Persistent Storage** → mount path: **`/data`**.
+
+İlk kurulumda volume henüz yoksa (sadece test): `GY_ALLOW_EPHEMERAL_DATA=1` — üretimde kullanmayın; volume ekledikten sonra kaldırın.
+
+Deploy logu:
+
+```text
+[gy-dashboard] kalıcı veri kontrolü...
+Kalıcı veri kontrolü OK (migrate öncesi).
+```
+
+Volume hatası örneği:
+
+```text
+KRİTİK: /data kalıcı volume olarak bağlı değil...
+```
 
 ## Coolify
 

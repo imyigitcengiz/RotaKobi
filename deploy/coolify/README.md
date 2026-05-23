@@ -14,12 +14,14 @@ Tek üretim yolu: **GitHub + Dockerfile + `/data` volume**.
 
 ## 2. Kalıcı depolama (zorunlu)
 
-**Persistent Storage** ekleyin:
+**Persistent Storage** ekleyin — **deploy/rebuild öncesinde**:
 
 - **Mount path:** `/data`
-- İçerik: `db.sqlite3`, `media/`
+- İçerik: `db.sqlite3`, `media/`, `backups/auto/`
 
-Volume yoksa her deploy’da veritabanı sıfırlanır.
+Volume yoksa her deploy’da veritabanı sıfırlanır. Coolify’da “Rebuild” yaparken **volumes silme** seçeneğini işaretlemeyin.
+
+Panel başlarken `/data` volume kontrolü yapar; bağlı değilse konteyner **kapanır** (kayıp sessizce yaşanmasın diye).
 
 ## 3. Ortam değişkenleri
 
@@ -68,7 +70,7 @@ Alternatif: JSON.gz (aynı sayfada).
 | Container kapanıyor | Logs; `PORT` ve entrypoint `0.0.0.0` |
 | 400 DisallowedHost | `DJANGO_ALLOWED_HOSTS` |
 | CSRF | `DJANGO_CSRF_TRUSTED_ORIGINS` https URL |
-| DB sıfırlanıyor | Volume `/data` |
+| DB sıfırlanıyor | Volume `/data` bağlı mı? Rebuild’de volume silindi mi? `/data/backups/auto/latest.sqlite3` |
 | WhatsApp “başlatılıyor” | Sadece panel konteyneri yetmez; köprü servisi gerekir (aşağı) |
 
 ## 6. WhatsApp köprüsü (zorunlu — mesaj / QR için)

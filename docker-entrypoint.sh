@@ -14,8 +14,12 @@ export DJANGO_SERVE_MEDIA="${DJANGO_SERVE_MEDIA:-1}"
 HOST="${DAPHNE_HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 
+echo "[gy-dashboard] kalıcı veri kontrolü..."
+python manage.py guard_persistent_data --phase pre
+
 echo "[gy-dashboard] migrate + collectstatic..."
 python manage.py migrate --noinput
+python manage.py guard_persistent_data --phase post
 python manage.py collectstatic --noinput
 python manage.py sync_permissions 2>/dev/null || true
 python manage.py ensure_chat 2>/dev/null || true
