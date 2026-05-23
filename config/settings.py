@@ -261,13 +261,21 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
+_use_secure_ssl = os.environ.get('DJANGO_SECURE_SSL', '').lower() in ('1', 'true', 'yes')
+# sslip.io / traefik.me: HTTPS yok; SECURE_SSL=1 → http→https redirect → Traefik 404
+if os.environ.get('DJANGO_ALLOW_SSLIP_HOSTS', '1').lower() in ('1', 'true', 'yes'):
+    if '.sslip.io' in ALLOWED_HOSTS or '.traefik.me' in ALLOWED_HOSTS:
+        _use_secure_ssl = False
+
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
     SESSION_COOKIE_HTTPONLY = True
     CSRF_COOKIE_HTTPONLY = True
-    if os.environ.get('DJANGO_SECURE_SSL', '').lower() in ('1', 'true', 'yes'):
+    if os.environ.get('DATA_DIR', '').strip():
+        USE_X_FORWARDED_HOST = True
+    if _use_secure_ssl:
         SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
         USE_X_FORWARDED_HOST = True
         SECURE_SSL_REDIRECT = True
