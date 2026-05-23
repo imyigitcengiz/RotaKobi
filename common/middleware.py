@@ -104,3 +104,18 @@ class PermissionMiddleware:
                 return redirect('home')
 
         return self.get_response(request)
+
+
+class DokploySslipCsrfMiddleware:
+    """sslip.io / traefik.me: CSRF için http Origin'i otomatik güvenilir listeye ekler."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        host = request.get_host().partition(':')[0].lower()
+        if host.endswith('.sslip.io') or host.endswith('.traefik.me'):
+            origin = f'http://{host}'
+            if origin not in settings.CSRF_TRUSTED_ORIGINS:
+                settings.CSRF_TRUSTED_ORIGINS.append(origin)
+        return self.get_response(request)
