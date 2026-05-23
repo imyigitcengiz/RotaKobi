@@ -53,16 +53,16 @@ python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 
 1. **Konteyner** → **Compose** → **Oluştur** (veya **Stack oluştur**)
 2. **Kaynak**: Yerel yol → `/opt/kobi-ops` (clone ettiğiniz dizin)
-3. **Compose dosyası**: `compose.yaml` (repo kökündeki)
+3. **Compose dosyası**: `docker-compose.yml` (repo kökündeki)
 4. **Ortam dosyası**: `.env` dosyasını seçin veya değişkenleri 1Panel arayüzüne tek tek yapıştırın
-5. **Ortam dosyası**: `/opt/kobi-ops/.env` — `compose.yaml` bunu `env_file` ile container’a aktarır (sadece host’ta durması yetmez)
+5. **Ortam dosyası**: `/opt/kobi-ops/.env` — `docker-compose.yml` bunu `env_file` ile container’a aktarır (sadece host’ta durması yetmez)
 6. **Başlat** / **Deploy**
 
 İlk build 5–15 dakika sürebilir (Python + Node/Chromium imajları).
 
 ## 4. Kalıcı veri (çok önemli)
 
-Stack volume’ları `compose.yaml` içinde tanımlıdır:
+Stack volume’ları `docker-compose.yml` içinde tanımlıdır:
 
 | Volume | Mount | İçerik |
 |--------|--------|--------|

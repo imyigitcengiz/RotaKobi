@@ -25,7 +25,7 @@ cd /opt/kobi-ops
 ```
 
 - Kalıcı veri: volume `/data`
-- WhatsApp: `whatsapp-bridge` servisi (panel ile birlikte `compose.yaml`)
+- WhatsApp: `whatsapp-bridge` servisi (panel ile birlikte `docker-compose.yml`)
 
 | Platform | Rehber |
 |----------|--------|

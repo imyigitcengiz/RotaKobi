@@ -12,7 +12,7 @@
 
 1. Dokploy → **Project** → **Docker Compose** → **Create**
 2. **Source:** GitHub → `imyigitcengiz/kobi-ops`, branch `main`
-3. **Compose file path:** `compose.yaml` (repo kökü — önerilen)  
+3. **Compose file path:** `docker-compose.yml` (repo kökü — varsayılan, boş bırakılabilir)  
    veya `deploy/dokploy/compose.yaml` (o zaman `.env` aynı klasörde olmalı)
 4. **Build:** Compose modu (Stack değil — `build:` destekler)
 
@@ -20,7 +20,7 @@
 
 **Environment** sekmesinde `deploy/dokploy/.env.example` içeriğini yapıştırın veya düzenleyin.
 
-Dokploy değişkenleri compose dosyasıyla **aynı dizinde** `.env` oluşturur. Container’a geçmesi için `compose.yaml` içinde zaten vardır:
+Dokploy değişkenleri compose dosyasıyla **aynı dizinde** `.env` oluşturur. Container’a geçmesi için `docker-compose.yml` içinde zaten vardır:
 
 ```yaml
 env_file:

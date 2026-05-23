@@ -75,7 +75,7 @@ KRİTİK: /data kalıcı volume olarak bağlı değil...
 
 ## Dokploy
 
-1. **Docker Compose** → GitHub `imyigitcengiz/kobi-ops`, compose path: **`compose.yaml`**
+1. **Docker Compose** → GitHub `imyigitcengiz/kobi-ops`, compose path: **`docker-compose.yml`** (veya boş — varsayılan)
 2. **Environment** → `deploy/dokploy/.env.example` şablonu; `env_file: .env` compose’ta hazır
 3. **Domains** → servis `app`, port **8000**, Let’s Encrypt
 4. Push deploy: Dokploy **Webhook** (GitHub) — ayrı script gerekmez
@@ -95,7 +95,7 @@ Detay: [deploy/coolify/README.md](deploy/coolify/README.md)
 
 ## 1Panel / Portainer
 
-`compose.yaml` dosyasını **Compose Stack** olarak içe aktarın (repo kökü); `.env` doldurun; reverse proxy ile **443 → 8000** yönlendirin.
+`docker-compose.yml` dosyasını **Compose Stack** olarak içe aktarın (repo kökü); `.env` doldurun; reverse proxy ile **443 → 8000** yönlendirin.
 
 Adım adım (1Panel): **[deploy/1panel/README.md](deploy/1panel/README.md)**
 

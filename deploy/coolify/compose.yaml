@@ -1,4 +1,4 @@
-# Coolify → Docker Compose (kaynak: bu dosya veya kök compose.yaml)
+# Coolify → Docker Compose (kaynak: bu dosya veya kök docker-compose.yml)
 services:
   app:
     build:

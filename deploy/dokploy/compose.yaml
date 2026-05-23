@@ -1,5 +1,5 @@
 # Dokploy: Compose dosya yolu olarak bunu seçerseniz build context repo köküne göredir.
-# Alternatif (önerilen): repo kökündeki compose.yaml + .env (aynı klasör)
+# Alternatif (önerilen): repo kökündeki docker-compose.yml + .env (aynı klasör)
 services:
   app:
     build:

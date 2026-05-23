@@ -80,7 +80,7 @@ Panel imajında Node yoktur. İki yol:
 
 ### A) Docker Compose (önerilen)
 
-Coolify’da **Docker Compose** kaynağı: repo kökündeki `compose.yaml` veya `deploy/coolify/compose.yaml`.
+Coolify’da **Docker Compose** kaynağı: repo kökündeki `docker-compose.yml` veya `deploy/coolify/compose.yaml`.
 
 - `app` + `whatsapp-bridge` birlikte ayağa kalkar
 - App ortamı: `WHATSAPP_BRIDGE_URL=http://whatsapp-bridge:3939`

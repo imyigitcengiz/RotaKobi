@@ -1,5 +1,5 @@
-# KobiOps — panel + WhatsApp köprüsü (Dokploy, Coolify, 1Panel, ham Docker)
-# Dokploy: compose path = compose.yaml, Environment = .env, Domains → app:8000
+# KobiOps — panel + WhatsApp köprüsü (Dokploy, 1Panel, ham Docker)
+# Dokploy Compose path: docker-compose.yml  |  Domains → app:8000  |  .env → env_file
 services:
   app:
     build:
