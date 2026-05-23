@@ -1,6 +1,6 @@
 # KobiOps — üretim kurulumu
 
-Bu ürün **müşteri başına ayrı kurulum** içindir (her müşteri kendi VPS / panelinde). Tek kod tabanı; Coolify, 1Panel, Portainer, Railway veya `docker compose` ile dağıtılabilir.
+Bu ürün **müşteri başına ayrı kurulum** içindir (her müşteri kendi VPS / panelinde). Tek kod tabanı; Dokploy, Coolify, 1Panel, Portainer veya `docker compose` ile dağıtılabilir.
 
 ## Bileşenler
 
@@ -64,6 +64,15 @@ Volume hatası örneği:
 ```text
 KRİTİK: /data kalıcı volume olarak bağlı değil...
 ```
+
+## Dokploy
+
+1. **Docker Compose** → GitHub `imyigitcengiz/kobi-ops`, compose path: **`compose.yaml`**
+2. **Environment** → `deploy/dokploy/.env.example` şablonu; `env_file: .env` compose’ta hazır
+3. **Domains** → servis `app`, port **8000**, Let’s Encrypt
+4. Push deploy: Dokploy **Webhook** (GitHub) — ayrı script gerekmez
+
+Adım adım: **[deploy/dokploy/README.md](deploy/dokploy/README.md)**
 
 ## Coolify
 

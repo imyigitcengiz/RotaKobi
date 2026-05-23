@@ -1,15 +1,15 @@
-# KobiOps — panel + WhatsApp köprüsü (Dokploy, Coolify, 1Panel, ham Docker)
-# Dokploy: compose path = compose.yaml, Environment = .env, Domains → app:8000
+# Dokploy: Compose dosya yolu olarak bunu seçerseniz build context repo köküne göredir.
+# Alternatif (önerilen): repo kökündeki compose.yaml + .env (aynı klasör)
 services:
   app:
     build:
-      context: .
+      context: ../..
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
       - .env
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       PORT: "8000"
       WHATSAPP_BRIDGE_URL: http://whatsapp-bridge:3939
@@ -23,7 +23,7 @@ services:
 
   whatsapp-bridge:
     build:
-      context: .
+      context: ../..
       dockerfile: deploy/whatsapp-bridge/Dockerfile
     restart: unless-stopped
     expose:

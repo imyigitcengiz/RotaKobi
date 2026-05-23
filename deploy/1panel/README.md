@@ -55,7 +55,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 2. **Kaynak**: Yerel yol → `/opt/kobi-ops` (clone ettiğiniz dizin)
 3. **Compose dosyası**: `compose.yaml` (repo kökündeki)
 4. **Ortam dosyası**: `.env` dosyasını seçin veya değişkenleri 1Panel arayüzüne tek tek yapıştırın
-5. **Ağ**: Varsayılan bridge yeterli; iki servis aynı stack içinde birbirini görür
+5. **Ortam dosyası**: `/opt/kobi-ops/.env` — `compose.yaml` bunu `env_file` ile container’a aktarır (sadece host’ta durması yetmez)
 6. **Başlat** / **Deploy**
 
 İlk build 5–15 dakika sürebilir (Python + Node/Chromium imajları).
