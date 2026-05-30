@@ -38,6 +38,42 @@ def period_label(period: date) -> str:
     return f'{months[period.month - 1]} {period.year}'
 
 
+def pay_day_from_date(value: date) -> int:
+    return int(value.day)
+
+
+def update_personnel_salary_schedule(personnel: ServicePersonnel, *, pay_date: date | None = None, pay_day: int | None = None):
+    """Maaş gününü tam tarihten veya ayın gün numarasından güncelle."""
+    if pay_date is not None:
+        personnel.salary_pay_day = pay_day_from_date(pay_date)
+    elif pay_day is not None:
+        if pay_day < 1 or pay_day > 31:
+            raise ValueError('Maaş günü 1–31 arasında olmalı.')
+        personnel.salary_pay_day = pay_day
+    else:
+        personnel.salary_pay_day = None
+    personnel.save(update_fields=['salary_pay_day'])
+
+
+def process_cycle_salary(
+    *,
+    personnel: ServicePersonnel,
+    period: date,
+    payment_date: date,
+    recorded_by,
+    notes: str = '',
+):
+    """Seçili dönem maaşını kaydet; ödeme tarihindeki gün tekrar eden maaş günü olur."""
+    update_personnel_salary_schedule(personnel, pay_date=payment_date)
+    return create_salary_payment(
+        personnel=personnel,
+        period=period,
+        payment_date=payment_date,
+        recorded_by=recorded_by,
+        notes=notes,
+    )
+
+
 def salary_due_date(personnel: ServicePersonnel, period: date) -> date | None:
     day = personnel.salary_pay_day
     if not day:

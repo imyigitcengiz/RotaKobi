@@ -219,15 +219,20 @@ class ServicePersonnelForm(forms.ModelForm):
 class PayrollPersonnelQuickForm(forms.ModelForm):
     """Muhasebe panelinden hızlı personel ekleme."""
 
+    salary_pay_date = forms.DateField(
+        required=False,
+        label='Maaş tarihi',
+        widget=forms.DateInput(attrs={'class': INPUT, 'type': 'date'}),
+    )
+
     class Meta:
         model = ServicePersonnel
-        fields = ['name', 'team', 'company_phone', 'monthly_salary', 'salary_pay_day', 'notes']
+        fields = ['name', 'team', 'company_phone', 'monthly_salary', 'notes']
         widgets = {
             'name': forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Ad Soyad'}),
             'team': forms.Select(attrs={'class': INPUT}),
             'company_phone': forms.TextInput(attrs={'class': INPUT, 'placeholder': '+905…'}),
             'monthly_salary': forms.NumberInput(attrs={'class': INPUT, 'step': '0.01', 'min': '0', 'placeholder': 'Aylık maaş'}),
-            'salary_pay_day': forms.NumberInput(attrs={'class': INPUT, 'min': '1', 'max': '31', 'placeholder': 'Gün'}),
             'notes': forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Not (opsiyonel)'}),
         }
 
@@ -237,7 +242,6 @@ class PayrollPersonnelQuickForm(forms.ModelForm):
         self.fields['team'].required = False
         self.fields['team'].empty_label = 'Ekip (opsiyonel)'
         self.fields['monthly_salary'].required = False
-        self.fields['salary_pay_day'].required = False
 
 
 class PayrollQuickAdvanceForm(forms.Form):
@@ -331,7 +335,7 @@ class PersonnelSalaryAddForm(forms.Form):
     )
     notes = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Opsiyonel not'}),
+        widget=forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Not (opsiyonel)'}),
         label='Not',
     )
 
@@ -359,7 +363,7 @@ class PersonnelSalaryPayForm(forms.Form):
     )
     notes = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Opsiyonel not'}),
+        widget=forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Not (opsiyonel)'}),
         label='Not',
     )
 

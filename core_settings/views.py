@@ -2,6 +2,7 @@ from django.urls import reverse
 from django.views.generic import TemplateView
 from django.views import View
 import csv
+from datetime import date
 from django.utils import timezone
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
@@ -26,7 +27,9 @@ from .payroll import (
     default_salary_payment_date,
     parse_period,
     period_label,
+    process_cycle_salary,
     release_advances_on_salary_delete,
+    update_personnel_salary_schedule,
 )
 from common.permissions import (
     can_manage_payroll, can_manage_finance, can_manage_teams, can_manage_personnel,
@@ -545,6 +548,9 @@ class AccountingPayrollView(TemplateView):
             form = PayrollPersonnelQuickForm(request.POST)
             if form.is_valid():
                 person = form.save()
+                pay_date = form.cleaned_data.get('salary_pay_date')
+                if pay_date:
+                    update_personnel_salary_schedule(person, pay_date=pay_date)
                 messages.success(request, f'{person.name} personel listesine eklendi.')
             else:
                 messages.error(request, 'Personel eklenemedi. Ad soyad zorunludur.')
@@ -622,9 +628,49 @@ class AccountingPayrollView(TemplateView):
                     messages.error(request, str(exc))
             else:
                 messages.error(request, 'Maaş ödemesi kaydedilemedi.')
+        elif 'cycle_salary' in request.POST:
+            personnel_id = request.POST.get('personnel')
+            person = ServicePersonnel.objects.filter(pk=personnel_id, is_active=True).first()
+            if not person:
+                messages.error(request, 'Personel bulunamadı.')
+            else:
+                raw_date = (request.POST.get('salary_pay_date') or request.POST.get('payment_date') or '').strip()
+                notes = (request.POST.get('notes') or '').strip()
+                try:
+                    payment_date = date.fromisoformat(raw_date) if raw_date else default_salary_payment_date(person, period)
+                    process_cycle_salary(
+                        personnel=person,
+                        period=period,
+                        payment_date=payment_date,
+                        recorded_by=request.user if request.user.is_authenticated else None,
+                        notes=notes,
+                    )
+                    messages.success(
+                        request,
+                        f'{person.name} — {period_label(period)} maaşı kaydedildi; '
+                        f'her ay {payment_date.day}. gün döngüye alındı.',
+                    )
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+        elif 'update_pay_schedule' in request.POST:
+            personnel_id = request.POST.get('personnel')
+            raw_pay_date = (request.POST.get('salary_pay_date') or '').strip()
+            person = ServicePersonnel.objects.filter(pk=personnel_id, is_active=True).first()
+            if not person:
+                messages.error(request, 'Personel bulunamadı.')
+            elif not raw_pay_date:
+                messages.error(request, 'Maaş tarihi seçin.')
+            else:
+                try:
+                    pay_date = date.fromisoformat(raw_pay_date)
+                    update_personnel_salary_schedule(person, pay_date=pay_date)
+                    messages.success(request, f'{person.name} için maaş günü her ay {pay_date.day}. gün olacak şekilde kaydedildi.')
+                except ValueError as exc:
+                    messages.error(request, str(exc))
         elif 'update_monthly_salary' in request.POST:
             personnel_id = request.POST.get('personnel')
             raw_salary = (request.POST.get('monthly_salary') or '').strip().replace(',', '.')
+            raw_pay_date = (request.POST.get('salary_pay_date') or '').strip()
             raw_pay_day = (request.POST.get('salary_pay_day') or '').strip()
             person = ServicePersonnel.objects.filter(pk=personnel_id, is_active=True).first()
             if not person:
@@ -636,15 +682,22 @@ class AccountingPayrollView(TemplateView):
                     person.monthly_salary = Decimal(raw_salary)
                 else:
                     person.monthly_salary = None
-                if raw_pay_day:
+                update_fields = ['monthly_salary']
+                if raw_pay_date:
+                    try:
+                        person.salary_pay_day = date.fromisoformat(raw_pay_date).day
+                        update_fields.append('salary_pay_day')
+                    except ValueError as exc:
+                        messages.error(request, str(exc))
+                        return redirect(f"{reverse('accounting_payroll')}{period_qs}")
+                elif raw_pay_day:
                     day = int(raw_pay_day)
                     if day < 1 or day > 31:
                         messages.error(request, 'Maaş günü 1–31 arasında olmalı.')
                         return redirect(f"{reverse('accounting_payroll')}{period_qs}")
                     person.salary_pay_day = day
-                else:
-                    person.salary_pay_day = None
-                person.save(update_fields=['monthly_salary', 'salary_pay_day'])
+                    update_fields.append('salary_pay_day')
+                person.save(update_fields=update_fields)
                 messages.success(request, f'{person.name} maaş bilgileri güncellendi.')
         elif 'delete_payment' in request.POST:
             payment = PersonnelPayment.objects.filter(id=request.POST.get('id')).first()
