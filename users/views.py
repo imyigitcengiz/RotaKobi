@@ -34,7 +34,13 @@ class UserLoginView(AuthLoginView):
         ):
             return redirect_to
         if self.request.user.is_superuser:
+            from common.module_runtime import is_profile_setup_complete, user_can_manage_profile_setup
+            if user_can_manage_profile_setup(self.request.user) and not is_profile_setup_complete():
+                return reverse('profile_setup')
             return reverse('admin_dashboard')
+        from common.module_runtime import is_profile_setup_complete, user_can_manage_profile_setup
+        if user_can_manage_profile_setup(self.request.user) and not is_profile_setup_complete():
+            return reverse('profile_setup')
         return reverse('home')
 
     def form_invalid(self, form):

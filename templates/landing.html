@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ gy.app_name }} — KOBİ operasyon paneli</title>
-    <meta name="description" content="Montaj, teknik servis ve B2B satış yapan KOBİ'ler için müşteri rehberi, servis takibi, muhasebe ve WhatsApp — tek panelde.">
+    <title>{{ gy.app_name }} — Operasyon paneli</title>
+    <meta name="description" content="KOBİ, ajans ve diğer sektör profilleri için modüler uygulama setleri — tek panelde.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -52,45 +52,27 @@
         <section class="hero-glow border-b border-white/5">
             <div class="max-w-6xl mx-auto px-6 py-16 md:py-24">
                 <div class="max-w-3xl">
-                    <p class="text-brand-400 text-sm font-bold uppercase tracking-wider mb-4">KOBİ operasyon yazılımı</p>
+                    <p class="text-brand-400 text-sm font-bold uppercase tracking-wider mb-4">{{ landing_vertical_copy.badge }}</p>
                     <h1 class="text-4xl md:text-5xl lg:text-[3.25rem] font-extrabold text-white leading-[1.1]">
-                        Müşteri, servis, satış ve saha ekibiniz<br class="hidden sm:block"> tek panelde birleşsin.
+                        {{ landing_vertical_copy.headline }}
                     </h1>
                     <p class="mt-6 text-lg text-slate-400 leading-relaxed max-w-2xl">
-                        {{ gy.app_name }}, montaj ve teknik servis ekipleri ile B2B satış yapan küçük ve orta ölçekli
-                        işletmeler için hafif bir operasyon panelidir. Müşteri rehberi, yardım masası, muhasebe,
-                        satış kayıtları ve WhatsApp iletişimi aynı veri üzerinde çalışır.
+                        {{ landing_vertical_copy.lead }}
                     </p>
-                    <div class="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-5 md:p-6 max-w-2xl">
-                        <p class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3">Kimler için uygun?</p>
-                        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-slate-300">
-                            <li class="flex items-start gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i> Montaj ve teknik servis ekipleri</li>
-                            <li class="flex items-start gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i> Bayi ve çözüm ortağı ağları</li>
-                            <li class="flex items-start gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i> B2B satış yapan KOBİ'ler</li>
-                            <li class="flex items-start gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i> Saha ekibi WhatsApp ile çalışanlar</li>
-                        </ul>
-                    </div>
                     <div class="mt-8 flex flex-wrap gap-2">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-slate-300">
-                            <i data-lucide="wallet" class="w-3.5 h-3.5 text-emerald-400"></i> Maaş & avans
+                        {% for icon, title, sub in landing_vertical_copy.highlights %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-slate-300" title="{{ sub }}">
+                            <i data-lucide="{{ icon }}" class="w-3.5 h-3.5 text-brand-400"></i> {{ title }}
                         </span>
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-slate-300">
-                            <i data-lucide="headphones" class="w-3.5 h-3.5 text-brand-400"></i> Servis takibi
-                        </span>
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-slate-300">
-                            <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-violet-400"></i> Raporlar
-                        </span>
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-slate-300">
-                            <i data-lucide="message-circle" class="w-3.5 h-3.5 text-green-400"></i> WhatsApp
-                        </span>
+                        {% endfor %}
                     </div>
                     <div class="mt-10 flex flex-wrap gap-4">
                         <a href="{% url 'login' %}" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-brand-600 text-white font-bold hover:bg-brand-500 transition-colors shadow-lg shadow-brand-900/30">
                             Giriş yap
                             <i data-lucide="arrow-right" class="w-5 h-5"></i>
                         </a>
-                        <a href="#sektorler" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl border border-white/20 text-slate-200 font-semibold hover:bg-white/5 transition-colors">
-                            Sektör & modüller
+                        <a href="#uygulamalar" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl border border-white/20 text-slate-200 font-semibold hover:bg-white/5 transition-colors">
+                            Uygulamalar
                         </a>
                     </div>
                 </div>
@@ -115,13 +97,21 @@
         </section>
 
         <section id="sektorler" class="max-w-6xl mx-auto px-6 py-14 border-t border-white/5">
-            <div class="mb-10">
-                <h2 class="text-2xl md:text-3xl font-bold text-white">Sektör profilleri</h2>
-                <p class="mt-2 text-slate-400 max-w-2xl">Odoo tarzı modül kataloğu — KOBİ, ajans, perakende ve daha fazlası için önerilen uygulama setleri.</p>
+            <div class="mb-8">
+                <h2 class="text-2xl md:text-3xl font-bold text-white">Kurulum profilleri</h2>
+                <p class="mt-2 text-slate-400 max-w-2xl">Her profil kendi uygulama setini getirir — KOBİ personel/bordro görmez; ajans saha servisi görmez.</p>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-8">
+                {% for v in landing_verticals %}
+                <a href="?v={{ v.slug }}#uygulamalar"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors {% if landing_selected_vertical == v.slug %}bg-brand-600 text-white{% else %}bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10{% endif %}">
+                    <i data-lucide="{{ v.icon }}" class="w-4 h-4"></i>{{ v.name }}
+                </a>
+                {% endfor %}
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for v in landing_verticals %}
-                <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 {% if landing_selected_vertical == v.slug %}ring-2 ring-brand-500/50{% endif %}">
                     <div class="flex items-center gap-3 mb-2">
                         <span class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-brand-300">
                             <i data-lucide="{{ v.icon }}" class="w-5 h-5"></i>
@@ -134,40 +124,26 @@
             </div>
         </section>
 
-        <section id="moduller" class="max-w-6xl mx-auto px-6 pb-20">
+        <section id="uygulamalar" class="max-w-6xl mx-auto px-6 pb-20">
             <div class="mb-10">
-                <h2 class="text-2xl md:text-3xl font-bold text-white">Modül kataloğu</h2>
-                <p class="mt-2 text-slate-400 max-w-2xl">Kurulu modüller hemen kullanılır; yol haritasındakiler katalogda listelenir ve zamanla eklenir.</p>
+                <h2 class="text-2xl md:text-3xl font-bold text-white">
+                    {% for v in landing_verticals %}{% if v.slug == landing_selected_vertical %}{{ v.name }}{% endif %}{% endfor %} uygulamaları
+                </h2>
+                <p class="mt-2 text-slate-400 max-w-2xl">Profile özel uygulama kartları — monolitik ERP modülleri değil.</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-                {% for mod in landing_active_modules %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for app in landing_apps %}
                 <article class="rounded-3xl border border-white/10 bg-white/[0.03] p-6 flex flex-col">
                     <div class="w-12 h-12 rounded-2xl bg-white/10 text-slate-200 flex items-center justify-center mb-4">
-                        <i data-lucide="{{ mod.icon }}" class="w-6 h-6"></i>
+                        <i data-lucide="{{ app.icon }}" class="w-6 h-6"></i>
                     </div>
-                    <h3 class="text-lg font-bold text-white">{{ mod.name }}</h3>
-                    <p class="mt-2 text-slate-400 text-sm leading-relaxed flex-1">{{ mod.summary }}</p>
-                    <div class="mt-3 flex flex-wrap gap-1">
-                        {% for vslug in mod.verticals %}
-                        <span class="px-2 py-0.5 text-[10px] rounded-full bg-white/5 text-slate-500">{{ vslug }}</span>
-                        {% endfor %}
-                    </div>
+                    <h3 class="text-lg font-bold text-white">{{ app.name }}</h3>
+                    <p class="mt-2 text-slate-400 text-sm leading-relaxed flex-1">{{ app.summary }}</p>
                 </article>
+                {% empty %}
+                <p class="text-slate-500 col-span-full">Bu profil için uygulama listesi yakında.</p>
                 {% endfor %}
             </div>
-            {% if landing_roadmap_modules %}
-            <div class="rounded-3xl border border-dashed border-violet-500/40 bg-violet-500/5 p-6">
-                <h3 class="text-sm font-bold uppercase tracking-wider text-violet-300 mb-4">Yol haritası</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {% for mod in landing_roadmap_modules %}
-                    <div class="rounded-xl bg-white/[0.03] border border-white/10 p-4">
-                        <p class="font-semibold text-white text-sm">{{ mod.name }}</p>
-                        <p class="text-xs text-slate-500 mt-1">{{ mod.summary }}</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
         </section>
 
         <section class="border-t border-white/5 bg-white/[0.02]">

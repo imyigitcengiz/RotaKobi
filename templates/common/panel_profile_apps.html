@@ -7,7 +7,7 @@
     </h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for app in profile_panel_apps %}
-        <a href="{{ app.hub_url }}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-brand-300 transition-all p-6">
+        <a href="{{ app.open_url }}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-brand-300 transition-all p-6">
             <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mb-4 group-hover:bg-brand-600 group-hover:text-white transition-colors">
                 <i data-lucide="{{ app.icon }}" class="w-6 h-6"></i>
             </div>

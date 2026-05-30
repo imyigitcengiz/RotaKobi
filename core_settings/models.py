@@ -78,6 +78,12 @@ class SiteSettings(models.Model):
         verbose_name='Açık modüller',
         help_text='Boş bırakılırsa varsayılan aktif modüller kullanılır.',
     )
+    profile_setup_completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Profil kurulumu tamamlandı',
+        help_text='İlk kurulum sihirbazı tamamlandığında doldurulur.',
+    )
 
     class Meta:
         verbose_name = "Site Ayarları"

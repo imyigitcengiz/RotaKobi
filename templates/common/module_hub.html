@@ -88,7 +88,7 @@
                     </div>
                     <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/80 flex gap-2 items-center">
                         {% if app.can_open %}
-                        <a href="{{ app.hub_url }}" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold">Aç</a>
+                        <a href="{{ app.open_url }}" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold">Aç</a>
                         {% elif app.installed %}
                         <span class="text-xs text-amber-700 font-semibold">Rol izni gerekir</span>
                         {% endif %}
@@ -123,7 +123,7 @@
                         <p class="text-sm text-slate-500 mt-2">{{ app.summary }}</p>
                     </div>
                     <div class="px-5 py-3 border-t flex gap-2 items-center">
-                        {% if app.can_open %}<a href="{{ app.hub_url }}" class="text-xs font-bold text-emerald-700">Aç →</a>{% endif %}
+                        {% if app.can_open %}<a href="{{ app.open_url }}" class="text-xs font-bold text-emerald-700">Aç →</a>{% endif %}
                         {% if can_manage_modules %}
                         <form method="post" class="ml-auto">
                             {% csrf_token %}

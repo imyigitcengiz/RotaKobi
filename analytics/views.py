@@ -33,16 +33,30 @@ class PublicLandingView(TemplateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        from common.module_catalog import MODULES, MODULE_STATUS_ACTIVE, MODULE_STATUS_ROADMAP, all_verticals
+        from common.landing_content import DEFAULT_LANDING_VERTICAL, LANDING_VERTICAL_COPY
+        from common.module_catalog import all_verticals
+        from common.profile_apps import profile_apps_for_vertical, profile_integrations_for_vertical
 
         context = super().get_context_data(**kwargs)
-        context['landing_verticals'] = [v for v in all_verticals() if v['slug'] != 'universal']
-        from common.module_catalog import MODULE_STATUS_BETA
-        context['landing_active_modules'] = [
-            m for m in MODULES
-            if m['status'] in (MODULE_STATUS_ACTIVE, MODULE_STATUS_BETA)
-        ]
-        context['landing_roadmap_modules'] = [m for m in MODULES if m['status'] == MODULE_STATUS_ROADMAP]
+        verticals = [v for v in all_verticals() if v['slug'] != 'universal']
+        selected = self.request.GET.get('v', DEFAULT_LANDING_VERTICAL)
+        if not any(v['slug'] == selected for v in verticals):
+            selected = DEFAULT_LANDING_VERTICAL
+
+        apps_by_vertical = {}
+        for v in verticals:
+            slug = v['slug']
+            apps = profile_apps_for_vertical(slug) + profile_integrations_for_vertical(slug)
+            apps.sort(key=lambda a: (a.get('sort', 99), a['name']))
+            apps_by_vertical[slug] = apps
+
+        context['landing_verticals'] = verticals
+        context['landing_selected_vertical'] = selected
+        context['landing_vertical_copy'] = LANDING_VERTICAL_COPY.get(
+            selected, LANDING_VERTICAL_COPY[DEFAULT_LANDING_VERTICAL],
+        )
+        context['landing_apps_by_vertical'] = apps_by_vertical
+        context['landing_apps'] = apps_by_vertical.get(selected, [])
         return context
 
 
@@ -50,6 +64,13 @@ class HomeView(TemplateView):
     """Giriş sonrası modül kısayolları."""
 
     template_name = 'home.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            from common.module_runtime import is_profile_setup_complete, user_can_manage_profile_setup
+            if user_can_manage_profile_setup(request.user) and not is_profile_setup_complete():
+                return redirect('profile_setup')
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         from common.permissions import can_access_accounting
@@ -297,6 +318,98 @@ class AgencyHubView(TemplateView):
             )
             messages.success(request, f'"{name}" eklendi.')
         return redirect('agency_hub')
+
+
+class ProfileSetupView(TemplateView):
+    """İlk kurulum — sektör profili ve uygulama paketi seçimi."""
+
+    template_name = 'common/profile_setup.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('login')
+        from common.module_runtime import is_profile_setup_complete, user_can_manage_profile_setup
+        if not user_can_manage_profile_setup(request.user):
+            messages.info(request, 'Kurulum profili yalnızca yönetici tarafından ayarlanır.')
+            return redirect('home')
+        if is_profile_setup_complete() and request.method != 'POST':
+            return redirect('home')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        from common.module_catalog import all_verticals
+        from common.profile_apps import profile_apps_for_vertical, profile_integrations_for_vertical
+
+        context = super().get_context_data(**kwargs)
+        verticals = []
+        preview = {}
+        for v in all_verticals():
+            if v['slug'] == 'universal':
+                continue
+            slug = v['slug']
+            apps = profile_apps_for_vertical(slug) + profile_integrations_for_vertical(slug)
+            apps.sort(key=lambda a: (a.get('sort', 99), a['name']))
+            preview[slug] = apps
+            vd = dict(v)
+            vd['app_count'] = len(apps)
+            verticals.append(vd)
+        context['setup_verticals'] = verticals
+        context['setup_apps_preview'] = preview
+        context['setup_selected'] = self.request.GET.get('v', 'kobi')
+        return context
+
+    def post(self, request, *args, **kwargs):
+        from common.module_catalog import vertical_by_slug
+        from common.module_runtime import apply_vertical_preset, mark_profile_setup_complete
+
+        slug = (request.POST.get('vertical_slug') or 'kobi').strip()
+        v = vertical_by_slug(slug)
+        if not v or slug == 'universal':
+            messages.error(request, 'Geçersiz kurulum profili.')
+            return redirect('profile_setup')
+
+        apply_vertical_preset(slug)
+        mark_profile_setup_complete()
+        messages.success(request, f'{v["name"]} profili uygulandı. Uygulamalarınız hazır.')
+        return redirect('home')
+
+
+class ProfileAppHubView(TemplateView):
+    """Profil uygulaması mini hub — KPI + hızlı bağlantılar."""
+
+    template_name = 'common/profile_app_hub.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('login')
+        from common.profile_apps import profile_app_by_slug
+        from common.module_runtime import is_profile_app_enabled, user_can_access_profile_app
+
+        app_slug = kwargs.get('app_slug', '')
+        app = profile_app_by_slug(app_slug)
+        if not app or not is_profile_app_enabled(app_slug):
+            messages.warning(request, 'Bu uygulama kurulu değil veya kapalı.')
+            return redirect('module_hub')
+        if not user_can_access_profile_app(request.user, app):
+            messages.error(request, 'Bu uygulamaya erişim yetkiniz yok.')
+            return redirect('home')
+        self.profile_app = app
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        from common.module_catalog import vertical_by_slug
+        from common.module_runtime import build_profile_app_record, get_primary_vertical_slug
+        from common.profile_app_hub import build_profile_app_hub_metrics, profile_app_quick_links
+
+        context = super().get_context_data(**kwargs)
+        app = self.profile_app
+        user = self.request.user
+        record = build_profile_app_record(user, app)
+        context['app'] = record
+        context['app_metrics'] = build_profile_app_hub_metrics(user, app)
+        context['app_quick_links'] = profile_app_quick_links(app, user)
+        context['panel_vertical'] = vertical_by_slug(get_primary_vertical_slug())
+        return context
 
 
 class DashboardView(TemplateView):

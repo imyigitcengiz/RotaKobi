@@ -227,6 +227,98 @@ def _hub_url(url_name: str | None) -> str | None:
         return None
 
 
+def profile_app_mini_hub_url(slug: str) -> str | None:
+    try:
+        return reverse('profile_app_hub', kwargs={'app_slug': slug})
+    except NoReverseMatch:
+        return None
+
+
+_PLATFORM_MODULE_PATH_PREFIXES: dict[str, tuple[str, ...]] = {
+    'services': ('/services-dashboard/',),
+    'contact': ('/contact/', '/crm/', '/ortak/'),
+    'accounting': ('/muhasebe/', '/sales-lead/'),
+    'outreach': ('/iletisim/',),
+    'agency_suite': ('/panel/ajans/',),
+    'integration_whatsapp_bridge': ('/tools/whatsapp',),
+    'integration_whatsapp_api': ('/tools/whatsapp',),
+    'integration_media': ('/tools/media',),
+}
+
+
+def _app_is_active(app: dict, path: str, url_name: str | None, app_slug_kw: str | None) -> bool:
+    if app_slug_kw and app['slug'] == app_slug_kw:
+        return True
+    if url_name and url_name == app.get('hub_url_name'):
+        return True
+    for mod in app.get('platform_modules', ()):
+        for prefix in _PLATFORM_MODULE_PATH_PREFIXES.get(mod, ()):
+            if path.startswith(prefix):
+                return True
+    return False
+
+
+def build_profile_sidebar(user, request) -> dict:
+    """Sol menü — yalnızca aktif profile ait uygulamalar."""
+    vertical = get_primary_vertical_slug()
+    path = getattr(request, 'path', '') or ''
+    match = getattr(request, 'resolver_match', None)
+    url_name = match.url_name if match else None
+    app_slug_kw = match.kwargs.get('app_slug') if match and match.kwargs else None
+
+    groups: dict[str, dict] = {}
+    for app in profile_apps_for_vertical(vertical):
+        if not profile_app_available_for_nav(user, app['slug']):
+            continue
+        cat = app.get('category', 'operasyon')
+        cat_label = APP_CATEGORY_LABELS.get(cat, (cat, 'puzzle'))
+        mini = profile_app_mini_hub_url(app['slug'])
+        hub = _hub_url(app.get('hub_url_name'))
+        groups.setdefault(cat, {
+            'slug': cat,
+            'name': cat_label[0],
+            'icon': cat_label[1],
+            'items': [],
+        })
+        groups[cat]['items'].append({
+            'slug': app['slug'],
+            'name': app['name'],
+            'icon': app.get('icon', 'puzzle'),
+            'url': mini or hub,
+            'platform_modules': tuple(app.get('platform_modules', ())),
+            'active': _app_is_active(app, path, url_name, app_slug_kw),
+        })
+
+    integrations = []
+    for item in profile_integrations_for_vertical(vertical):
+        if not profile_app_available_for_nav(user, item['slug']):
+            continue
+        mini = profile_app_mini_hub_url(item['slug'])
+        hub = _hub_url(item.get('hub_url_name'))
+        integrations.append({
+            'slug': item['slug'],
+            'name': item['name'],
+            'icon': item.get('icon', 'plug'),
+            'url': mini or hub,
+            'platform_modules': tuple(item.get('platform_modules', ())),
+            'active': _app_is_active(item, path, url_name, app_slug_kw),
+        })
+
+    ordered_groups = []
+    for cat_slug, (cat_name, cat_icon) in APP_CATEGORY_LABELS.items():
+        if cat_slug == 'entegrasyon':
+            continue
+        g = groups.get(cat_slug)
+        if g and g['items']:
+            g['items'].sort(key=lambda i: i['name'])
+            ordered_groups.append(g)
+
+    return {
+        'groups': ordered_groups,
+        'integrations': integrations,
+    }
+
+
 def build_profile_app_record(user, app: dict) -> dict:
     slug = app['slug']
     installed = is_profile_app_enabled(slug)
@@ -236,8 +328,10 @@ def build_profile_app_record(user, app: dict) -> dict:
     record['category_name'] = cat[0]
     record['category_icon'] = cat[1]
     record['hub_url'] = _hub_url(app.get('hub_url_name')) if installed else None
+    record['mini_hub_url'] = profile_app_mini_hub_url(slug) if installed else None
+    record['open_url'] = record['mini_hub_url'] or record['hub_url']
     record['user_has_access'] = user_can_access_profile_app(user, app) if installed else False
-    record['can_open'] = bool(record['hub_url'] and record['user_has_access'])
+    record['can_open'] = bool(record['open_url'] and record['user_has_access'])
     record['can_toggle'] = True
     return record
 
@@ -362,6 +456,29 @@ def apply_vertical_preset(vertical_slug: str) -> list[str]:
     settings.enabled_module_slugs = slugs
     settings.save(update_fields=['primary_vertical_slug', 'enabled_module_slugs'])
     return slugs
+
+
+def is_profile_setup_complete() -> bool:
+    settings = _site_settings()
+    if not settings:
+        return False
+    return bool(settings.profile_setup_completed_at)
+
+
+def mark_profile_setup_complete() -> None:
+    settings = _site_settings()
+    if not settings:
+        from core_settings.models import SiteSettings
+        settings = SiteSettings.objects.create()
+    from django.utils import timezone
+    settings.profile_setup_completed_at = timezone.now()
+    settings.save(update_fields=['profile_setup_completed_at'])
+
+
+def user_can_manage_profile_setup(user) -> bool:
+    if not user or not user.is_authenticated:
+        return False
+    return user.is_superuser or user.has_perm_codename('access.settings')
 
 
 def vertical_preset_modules(vertical_slug: str) -> tuple[str, ...]:

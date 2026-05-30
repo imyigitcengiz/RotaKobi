@@ -4,6 +4,7 @@ from common import module_labels as ml
 from common.module_runtime import (
     build_modules_nav_flags,
     build_particles_nav_short,
+    build_profile_sidebar,
     get_enabled_module_slugs,
     get_primary_vertical_slug,
 )
@@ -49,6 +50,7 @@ def module_install_context(request):
             'modules_nav': {},
             'particles_nav': {},
             'primary_vertical_slug': 'kobi',
+            'profile_sidebar': {'groups': [], 'integrations': []},
         }
     installed = {slug: slug in get_enabled_module_slugs() for slug in _all_module_slugs()}
     return {
@@ -56,6 +58,7 @@ def module_install_context(request):
         'modules_nav': build_modules_nav_flags(user),
         'particles_nav': build_particles_nav_short(user),
         'primary_vertical_slug': get_primary_vertical_slug(),
+        'profile_sidebar': build_profile_sidebar(user, request),
     }
 
 
