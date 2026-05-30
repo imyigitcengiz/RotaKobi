@@ -1,16 +1,20 @@
-"""Kapalı modül URL'lerini engelle — Modül Merkezi'ne yönlendir."""
+"""Kapalı modül / parçacık URL'lerini engelle."""
 
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.urls import reverse
 
 from common.module_catalog import MODULE_STATUS_ACTIVE, MODULE_STATUS_BETA, module_by_slug
-from common.module_runtime import is_module_enabled, resolve_path_module_slug
+from common.module_particles import particle_by_slug
+from common.module_runtime import (
+    is_module_enabled,
+    is_particle_enabled,
+    resolve_path_module_slug,
+    resolve_path_particle_slug,
+)
 
 
 class ModuleInstallMiddleware:
-    """Kurulu olmayan uygulama route'larına erişimi keser."""
-
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -22,7 +26,19 @@ class ModuleInstallMiddleware:
         return self.get_response(request)
 
     def _blocked_response(self, request):
-        slug = resolve_path_module_slug(request.path)
+        path = request.path
+
+        particle_slug = resolve_path_particle_slug(path)
+        if particle_slug:
+            p = particle_by_slug(particle_slug)
+            if p and not is_particle_enabled(particle_slug):
+                messages.warning(
+                    request,
+                    f'"{p["name"]}" özelliği kapalı. Modül Merkezi\'nden açabilirsiniz.',
+                )
+                return redirect(reverse('module_hub') + '?section=particles')
+
+        slug = resolve_path_module_slug(path)
         if not slug:
             return None
         mod = module_by_slug(slug)

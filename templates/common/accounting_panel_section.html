@@ -1,5 +1,5 @@
 {# Ortak muhasebe kısayolları — /panel ve muhasebe özeti. accounting_* bağlamı gerekir. #}
-{% if accounting_show_payroll or accounting_show_finance or accounting_show_reports or accounting_show_sales or user_perms.contact_personnel %}
+{% if accounting_show_payroll or accounting_show_finance or accounting_show_reports or accounting_show_sales or user_perms.contact_personnel and particles_nav.accounting_personnel %}
 <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
     <div>
         {% if section_title %}
@@ -53,6 +53,7 @@
     {% endif %}
 
     {% if user_perms.contact_payroll or user_perms.contact_personnel %}
+    {% if particles_nav.accounting_personnel %}
     <a href="{% url 'accounting_personnel' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-emerald-300 transition-all p-6">
         <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
             <i data-lucide="id-card" class="w-6 h-6"></i>
@@ -60,7 +61,7 @@
         <h4 class="text-lg font-bold text-slate-900">{{ gy.mh_personel }}</h4>
         <p class="text-sm text-slate-500 mt-2">Personel kaydı, maaş tarihi ve aylık avans/ödeme takibi.</p>
     </a>
-    {% if user_perms.contact_payroll %}
+    {% if user_perms.contact_payroll and particles_nav.accounting_payroll %}
     <a href="{% url 'accounting_payroll' %}" class="group block bg-white rounded-3xl border {% if highlight_payroll %}border-emerald-300 ring-1 ring-emerald-100{% else %}border-slate-200{% endif %} shadow-sm hover:shadow-lg hover:border-emerald-300 transition-all p-6">
         <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
             <i data-lucide="wallet" class="w-6 h-6"></i>
@@ -71,6 +72,7 @@
         <span class="inline-flex mt-3 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-bold">{{ accounting_payroll_pending }} bekleyen ödeme</span>
         {% endif %}
     </a>
+    {% endif %}
     {% endif %}
     {% endif %}
 

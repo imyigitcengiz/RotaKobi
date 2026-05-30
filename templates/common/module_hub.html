@@ -15,16 +15,16 @@
             <div>
                 <a href="{% url 'home' %}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">← Panel</a>
                 <h1 class="text-xl font-bold text-slate-900 mt-1">Modül Merkezi</h1>
-                <p class="text-sm text-slate-500">Sektöre göre uygulama seçin — Odoo tarzı genişleyen katalog.</p>
+                <p class="text-sm text-slate-500">Uygulama, entegrasyon ve özellik parçacıkları — sektöre göre paketleyin.</p>
             </div>
             <div class="flex items-center gap-2 text-xs font-semibold">
-                <span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800">{{ module_installed_count }} kurulu</span>
+                <span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800">{{ module_installed_count }} açık</span>
                 <span class="px-3 py-1.5 rounded-lg bg-violet-50 text-violet-800">{{ module_roadmap_count }} yol haritası</span>
             </div>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-6 py-8 space-y-8">
+    <main class="max-w-6xl mx-auto px-6 py-8 space-y-10">
         {% if messages %}
         <div class="space-y-2">
             {% for message in messages %}
@@ -33,10 +33,11 @@
         </div>
         {% endif %}
 
+        {% if can_manage_modules %}
         <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
-            <form method="get" class="flex flex-wrap gap-3 items-end">
+            <form method="get" class="flex flex-wrap gap-3 items-end mb-4">
                 <div class="flex-1 min-w-[200px] space-y-1">
-                    <label class="text-xs font-bold text-slate-500 uppercase">Sektör filtresi</label>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Katalog filtresi</label>
                     <select name="vertical" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" onchange="this.form.submit()">
                         {% for v in module_verticals %}
                         <option value="{{ v.slug }}" {% if module_vertical_filter == v.slug %}selected{% endif %}>{{ v.name }}</option>
@@ -45,32 +46,16 @@
                 </div>
                 <div class="flex-1 min-w-[200px] space-y-1">
                     <label class="text-xs font-bold text-slate-500 uppercase">Ara</label>
-                    <input type="text" name="q" value="{{ module_search_query }}" placeholder="Modül adı…" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                    <input type="text" name="q" value="{{ module_search_query }}" placeholder="Modül veya parçacık…" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                 </div>
                 <button type="submit" class="px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold">Filtrele</button>
             </form>
-            {% if can_manage_modules %}
-            <form method="post" class="mt-4 flex flex-wrap items-end gap-3 pt-4 border-t border-slate-100">
-                {% csrf_token %}
-                <input type="hidden" name="set_primary_vertical" value="1">
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-500 uppercase">Kurulum birincil sektörü</label>
-                    <select name="vertical_slug" class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm min-w-[200px]">
-                        {% for v in module_verticals %}
-                        {% if v.slug != 'all' %}
-                        <option value="{{ v.slug }}" {% if module_primary_vertical == v.slug %}selected{% endif %}>{{ v.name }}</option>
-                        {% endif %}
-                        {% endfor %}
-                    </select>
-                </div>
-                <button type="submit" class="px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold">Kaydet</button>
-            </form>
-            <form method="post" class="mt-3 flex flex-wrap items-end gap-3">
+            <form method="post" class="flex flex-wrap items-end gap-3 pt-4 border-t border-slate-100">
                 {% csrf_token %}
                 <input type="hidden" name="apply_vertical_preset" value="1">
                 <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-500 uppercase">Sektör paketini uygula</label>
-                    <select name="vertical_slug" class="p-2.5 bg-violet-50 border border-violet-200 rounded-xl text-sm min-w-[200px]">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Kurulum profili & paket</label>
+                    <select name="vertical_slug" class="p-2.5 bg-violet-50 border border-violet-200 rounded-xl text-sm min-w-[220px]">
                         {% for v in module_verticals %}
                         {% if v.slug != 'all' %}
                         <option value="{{ v.slug }}" {% if module_primary_vertical == v.slug %}selected{% endif %}>{{ v.name }}</option>
@@ -79,81 +64,94 @@
                     </select>
                 </div>
                 <button type="submit" class="px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700"
-                    onclick="return confirm('Bu sektörün önerilen modül listesi uygulanacak (ajans: Yardım Masası kapalı). Devam?');">
-                    Paketi kur
+                    onclick="return confirm('Seçilen profilin modül + parçacık paketi uygulanacak. Devam?');">
+                    Paketi uygula
                 </button>
             </form>
-            <p class="text-xs text-slate-500 mt-2">Ajans paketi: Rehber, İletişim, Muhasebe, Tools + Ajans Alanı — Yardım Masası kapalı.</p>
-            {% endif %}
+            <p class="text-xs text-slate-500 mt-3">
+                <strong>KOBİ:</strong> saha ekipleri + personel/maaş.
+                <strong>Ajans:</strong> freelancer ağı + retainer; personel/yardım masası kapalı.
+            </p>
         </section>
+        {% endif %}
 
         <section>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Modüller</h2>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Uygulamalar</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {% for mod in module_catalog_items %}
-                <article class="bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col {% if mod.installed %}border-emerald-200{% elif mod.status == 'roadmap' %}border-dashed border-slate-300{% else %}border-slate-200{% endif %}">
-                    <div class="p-5 flex-1">
-                        <div class="flex items-start justify-between gap-2 mb-3">
-                            <span class="w-11 h-11 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center">
-                                <i data-lucide="{{ mod.icon }}" class="w-5 h-5"></i>
-                            </span>
-                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase
-                                {% if mod.installed %}bg-emerald-50 text-emerald-700
-                                {% elif mod.status == 'roadmap' %}bg-violet-50 text-violet-700
-                                {% else %}bg-slate-100 text-slate-600{% endif %}">
-                                {% if mod.installed %}Kurulu{% else %}{{ mod.status_label }}{% endif %}
-                            </span>
-                        </div>
-                        <span class="text-[10px] font-bold uppercase text-slate-400">{{ mod.kind_label }}</span>
-                        <h3 class="font-bold text-slate-900 mt-1">{{ mod.name }}</h3>
-                        <p class="text-sm text-slate-500 mt-2">{{ mod.summary }}</p>
-                        {% if mod.features %}
-                        <ul class="mt-3 space-y-1">
-                            {% for feat in mod.features %}
-                            <li class="text-xs text-slate-600 flex items-center gap-1.5"><i data-lucide="check" class="w-3 h-3 text-emerald-500"></i>{{ feat }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
-                        <div class="mt-3 flex flex-wrap gap-1">
-                            {% for vslug in mod.verticals %}
-                            <span class="px-1.5 py-0.5 text-[10px] rounded bg-slate-100 text-slate-600">{{ vslug }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/80 flex flex-wrap gap-2 items-center">
-                        {% if mod.can_open %}
-                        <a href="{{ mod.hub_url }}" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700">Aç</a>
-                        {% elif mod.status == 'roadmap' %}
-                        <span class="text-xs text-slate-400 font-semibold">Planlanıyor</span>
-                        {% elif mod.installed and not mod.user_has_access %}
-                        <span class="text-xs text-amber-700 font-semibold">Kurulu — rol izni gerekir</span>
-                        {% endif %}
-                        {% if can_manage_modules and mod.can_toggle %}
-                        <form method="post" class="ml-auto">
-                            {% csrf_token %}
-                            <input type="hidden" name="toggle_module" value="1">
-                            <input type="hidden" name="module_slug" value="{{ mod.slug }}">
-                            <button type="submit" class="text-xs font-bold {% if mod.installed %}text-red-600 hover:underline{% else %}text-emerald-700 hover:underline{% endif %}">
-                                {% if mod.installed %}Kapat{% else %}Kur{% endif %}
-                            </button>
-                        </form>
-                        {% endif %}
-                    </div>
-                </article>
+                {% for mod in module_catalog_apps %}
+                {% include 'common/module_hub_card.html' with item=mod item_type='module' %}
                 {% empty %}
-                <p class="text-slate-500 col-span-full text-center py-10">Filtreye uygun modül yok.</p>
+                <p class="text-slate-500 col-span-full">Filtreye uygun uygulama yok.</p>
                 {% endfor %}
             </div>
         </section>
 
-        <section class="rounded-3xl border border-violet-200 bg-violet-50/50 p-6">
-            <h2 class="font-bold text-violet-900">Nasıl büyür?</h2>
-            <p class="text-sm text-violet-800/90 mt-2 max-w-3xl">
-                Her yeni modül kataloga eklenir; sektör etiketleri (KOBİ, ajans, perakende…) ile vitrinde gruplanır.
-                Kurulu modüller panelde görünür; yol haritası modüller önce burada listelenir, route hazır olunca tek kayıtla aktif edilir.
-                Mevcut URL ve RBAC yapısı korunur.
-            </p>
+        <section id="integrations">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-sky-600 mb-4">Entegrasyonlar</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for mod in module_catalog_integrations %}
+                {% include 'common/module_hub_card.html' with item=mod item_type='module' %}
+                {% empty %}
+                <p class="text-slate-500 col-span-full">Entegrasyon yok.</p>
+                {% endfor %}
+            </div>
         </section>
+
+        <section id="particles">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-violet-600 mb-2">Özellik parçacıkları</h2>
+            <p class="text-sm text-slate-500 mb-6">Uygulama içi özellikler — sektöre göre ayrı aç/kapa (personel vs freelancer gibi).</p>
+            {% for group in module_particle_groups %}
+            <div class="mb-8">
+                <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <i data-lucide="{{ group.icon }}" class="w-4 h-4 text-violet-500"></i> {{ group.name }}
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {% for p in group.items %}
+                    <article class="bg-white rounded-2xl border p-4 flex flex-col {% if p.enabled %}border-emerald-200{% else %}border-slate-200{% endif %}">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <p class="text-[10px] font-bold uppercase text-slate-400">{{ p.parent_module_name }}</p>
+                                <h4 class="font-bold text-slate-900">{{ p.name }}</h4>
+                                <p class="text-xs text-slate-500 mt-1">{{ p.summary }}</p>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-lg {% if p.enabled %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %}">
+                                {% if p.enabled %}Açık{% else %}Kapalı{% endif %}
+                            </span>
+                        </div>
+                        <div class="mt-2 flex flex-wrap gap-1">
+                            {% for tag in p.vertical_tags %}
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        {% if can_manage_modules %}
+                        <form method="post" class="mt-3 pt-3 border-t border-slate-100">
+                            {% csrf_token %}
+                            <input type="hidden" name="toggle_particle" value="1">
+                            <input type="hidden" name="particle_slug" value="{{ p.slug }}">
+                            <button type="submit" class="text-xs font-bold {% if p.enabled %}text-red-600{% else %}text-emerald-700{% endif %} hover:underline">
+                                {% if p.enabled %}Kapat{% else %}Aç{% endif %}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-slate-500">Parçacık yok.</p>
+            {% endfor %}
+        </section>
+
+        {% if module_catalog_roadmap %}
+        <section>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Yol haritası</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for mod in module_catalog_roadmap %}
+                {% include 'common/module_hub_card.html' with item=mod item_type='module' %}
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
     </main>
     <script>if (window.lucide) lucide.createIcons();</script>
 </body>

@@ -63,7 +63,7 @@
             {% endif %}
             <div class="mb-10">
                 <h2 class="text-2xl font-bold text-slate-900">Hoş geldiniz, {{ user_profile_card.display_name }}</h2>
-                <p class="text-slate-600 mt-2">Modüllerinize sektör profiline göre hızlı erişin.</p>
+                <p class="text-slate-600 mt-2">Modüllerinize ve entegrasyonlara hızlı erişin.</p>
             </div>
 
             {% include 'common/panel_vertical_bar.html' %}
@@ -86,7 +86,7 @@
                 </div>
                 {% endif %}
             </section>
-            {% elif user_perms.contact_personnel %}
+            {% elif user_perms.contact_personnel and particles_nav.accounting_personnel %}
             <section class="mb-10">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-4 flex items-center gap-2">
                     <i data-lucide="calculator" class="w-4 h-4"></i> {{ gy.muhasebe }}
@@ -111,31 +111,38 @@
             {% include 'common/panel_outreach_section.html' %}
             {% endif %}
 
-            {% if user_perms.tools_media or user_access.tools or user_access.settings or user_access.admin_panel %}
+            {% if user_perms.tools_media or modules_nav.integration_whatsapp_bridge or modules_nav.integration_whatsapp_api or modules_nav.integration_media or user_access.settings or user_access.admin_panel %}
             <section class="mb-10">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
-                    <i data-lucide="layers" class="w-4 h-4"></i> Sistem
+                    <i data-lucide="plug" class="w-4 h-4"></i> Entegrasyonlar & sistem
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {% if user_perms.tools_media %}
-                    <a href="{% url 'tools_media_library' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg p-6">
-                        <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-4"><i data-lucide="images" class="w-6 h-6"></i></div>
-                        <h4 class="text-lg font-bold text-slate-900">Medya Yöneticisi</h4>
-                        <p class="text-sm text-slate-500 mt-2">Dosya ve fotoğraf arşivi.</p>
+                    {% if modules_nav.integration_whatsapp_bridge %}
+                    <a href="{% url 'tools_whatsapp_baglan' %}" class="group block bg-white rounded-3xl border border-green-200 shadow-sm hover:shadow-lg p-6">
+                        <div class="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center mb-4"><i data-lucide="message-circle" class="w-6 h-6"></i></div>
+                        <h4 class="text-lg font-bold text-slate-900">WhatsApp Köprüsü</h4>
+                        <p class="text-sm text-slate-500 mt-2">QR bağlantı, hatlar ve senaryolar.</p>
                     </a>
                     {% endif %}
-                    {% if user_access.tools %}
-                    <a href="{% url 'tools_hub' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg p-6">
-                        <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mb-4"><i data-lucide="hammer" class="w-6 h-6"></i></div>
-                        <h4 class="text-lg font-bold text-slate-900">Tools</h4>
-                        <p class="text-sm text-slate-500 mt-2">WhatsApp ve medya araçları.</p>
+                    {% if modules_nav.integration_whatsapp_api %}
+                    <a href="{% url 'tools_whatsapp_api_settings' %}" class="group block bg-white rounded-3xl border border-violet-200 shadow-sm hover:shadow-lg p-6">
+                        <div class="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4"><i data-lucide="cloud" class="w-6 h-6"></i></div>
+                        <h4 class="text-lg font-bold text-slate-900">WhatsApp Business API</h4>
+                        <p class="text-sm text-slate-500 mt-2">Kampanya ve toplu gönderim ayarları.</p>
+                    </a>
+                    {% endif %}
+                    {% if modules_nav.integration_media and user_perms.tools_media %}
+                    <a href="{% url 'tools_media_library' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg p-6">
+                        <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-4"><i data-lucide="images" class="w-6 h-6"></i></div>
+                        <h4 class="text-lg font-bold text-slate-900">Medya Kütüphanesi</h4>
+                        <p class="text-sm text-slate-500 mt-2">Dosya ve fotoğraf arşivi.</p>
                     </a>
                     {% endif %}
                     {% if user_access.settings %}
                     <a href="{% url 'settings_genel' %}" class="group block bg-white rounded-3xl border border-amber-200 shadow-sm hover:shadow-lg p-6">
                         <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4"><i data-lucide="sliders-horizontal" class="w-6 h-6"></i></div>
                         <h4 class="text-lg font-bold text-slate-900">Site Ayarları</h4>
-                        <p class="text-sm text-slate-500 mt-2">Katalog, AI, yedekleme ve firma bilgileri.</p>
+                        <p class="text-sm text-slate-500 mt-2">Katalog, AI ve firma bilgileri.</p>
                     </a>
                     {% endif %}
                     {% if user_access.admin_panel %}

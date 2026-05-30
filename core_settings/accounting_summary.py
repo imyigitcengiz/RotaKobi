@@ -11,6 +11,11 @@ from django.utils import timezone
 
 from common.permissions import can_manage_finance, can_manage_payroll
 
+
+def _particle_on(slug: str) -> bool:
+    from common.module_runtime import is_particle_enabled
+    return is_particle_enabled(slug)
+
 from .models import FinanceRecord
 from .payroll import build_period_summary, period_label, period_start
 
@@ -46,10 +51,20 @@ def build_accounting_panel_context(user) -> dict:
     ctx = {
         'accounting_period_label': period_label(period),
         'accounting_period_str': period.strftime('%Y-%m'),
-        'accounting_show_payroll': can_manage_payroll(user),
-        'accounting_show_finance': can_manage_finance(user),
+        'accounting_show_payroll': (
+            can_manage_payroll(user)
+            and _particle_on('p.accounting.payroll')
+        ),
+        'accounting_show_finance': (
+            can_manage_finance(user)
+            and _particle_on('p.accounting.finance')
+        ),
         'accounting_show_reports': user_can_view_accounting_reports(user),
-        'accounting_show_sales': user_can_view_accounting_sales(user),
+        'accounting_show_sales': (
+            user_can_view_accounting_sales(user)
+            and _particle_on('p.accounting.sales')
+        ),
+        'accounting_show_personnel': _particle_on('p.accounting.personnel'),
     }
 
     if ctx['accounting_show_payroll']:

@@ -66,29 +66,36 @@ class HomeView(TemplateView):
             context.update(build_services_panel_context(user))
         if user.has_perm_codename('access.outreach'):
             context.update(build_outreach_panel_context(user))
-        from common.module_runtime import module_available_for_nav
-        if module_available_for_nav(user, 'agency_suite'):
-            from analytics.agency_summary import build_agency_panel_context
-            context.update(build_agency_panel_context(user))
         from common.module_runtime import (
             build_module_hub_context,
             get_primary_vertical_slug,
+            is_particle_enabled_for_nav,
+            module_available_for_nav,
             panel_section_visible,
             recommended_modules_for_vertical,
+            recommended_particles_for_vertical,
             vertical_by_slug,
         )
-        vertical = self.request.GET.get('vertical') or get_primary_vertical_slug()
-        if not vertical_by_slug(vertical):
-            vertical = get_primary_vertical_slug()
+        if is_particle_enabled_for_nav('p.agency.retainer') and module_available_for_nav(user, 'agency_suite'):
+            from analytics.agency_summary import build_agency_panel_context
+            context.update(build_agency_panel_context(user))
+        vertical = get_primary_vertical_slug()
         hub_ctx = build_module_hub_context(user, vertical_filter=None)
         context.update(hub_ctx)
         context['panel_vertical'] = vertical_by_slug(vertical)
         context['panel_vertical_recommended'] = recommended_modules_for_vertical(vertical)
+        context['panel_particles_recommended'] = recommended_particles_for_vertical(vertical)
+        context['can_manage_modules'] = (
+            user.is_superuser or user.has_perm_codename('access.settings')
+        )
         context['panel_show_contact'] = panel_section_visible('contact')
         context['panel_show_services'] = panel_section_visible('services')
         context['panel_show_accounting'] = panel_section_visible('accounting')
         context['panel_show_outreach'] = panel_section_visible('outreach')
-        context['panel_show_agency'] = panel_section_visible('agency')
+        context['panel_show_agency'] = (
+            panel_section_visible('agency')
+            and is_particle_enabled_for_nav('p.agency.retainer')
+        )
         return context
 
 
@@ -117,13 +124,14 @@ class ModuleHubView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         from common.module_catalog import (
+            MODULE_KIND_APP,
             module_by_slug,
             vertical_by_slug,
             MODULE_STATUS_ACTIVE,
             MODULE_STATUS_BETA,
-            vertical_preset_modules,
         )
-        from common.module_runtime import apply_vertical_preset, get_enabled_module_slugs
+        from common.module_particles import particle_by_slug, vertical_preset_all_slugs
+        from common.module_runtime import apply_vertical_preset, get_enabled_catalog_slugs
 
         if not (request.user.is_superuser or request.user.has_perm_codename('access.settings')):
             messages.error(request, 'Modül ayarları için yetkiniz yok.')
@@ -143,10 +151,9 @@ class ModuleHubView(TemplateView):
             slug = request.POST.get('vertical_slug', '').strip()
             if vertical_by_slug(slug):
                 applied = apply_vertical_preset(slug)
-                names = ', '.join(applied)
                 messages.success(
                     request,
-                    f'{vertical_by_slug(slug)["name"]} paketi uygulandı: {names}',
+                    f'{vertical_by_slug(slug)["name"]} paketi uygulandı ({len(applied)} parça).',
                 )
             else:
                 messages.error(request, 'Geçersiz sektör.')
@@ -155,28 +162,49 @@ class ModuleHubView(TemplateView):
             if vertical_by_slug(slug):
                 settings.primary_vertical_slug = slug
                 settings.save(update_fields=['primary_vertical_slug'])
-                preset = vertical_preset_modules(slug)
+                preset = vertical_preset_all_slugs(slug)
                 messages.success(
                     request,
-                    f'Birincil sektör güncellendi. Önerilen paket: {", ".join(preset)}',
+                    f'Kurulum profili güncellendi. Paket: {len(preset)} parça.',
                 )
             else:
                 messages.error(request, 'Geçersiz sektör.')
+        elif 'toggle_particle' in request.POST:
+            slug = request.POST.get('particle_slug', '').strip()
+            p = particle_by_slug(slug)
+            if not p:
+                messages.error(request, 'Geçersiz parçacık.')
+            else:
+                enabled = list(get_enabled_catalog_slugs())
+                if slug in enabled:
+                    enabled.remove(slug)
+                    settings.enabled_module_slugs = enabled
+                    settings.save(update_fields=['enabled_module_slugs'])
+                    messages.info(request, f'"{p["name"]}" kapatıldı.')
+                else:
+                    enabled.append(slug)
+                    settings.enabled_module_slugs = enabled
+                    settings.save(update_fields=['enabled_module_slugs'])
+                    messages.success(request, f'"{p["name"]}" açıldı.')
         elif 'toggle_module' in request.POST:
             slug = request.POST.get('module_slug', '').strip()
             mod = module_by_slug(slug)
             if not mod or mod['status'] not in (MODULE_STATUS_ACTIVE, MODULE_STATUS_BETA):
                 messages.error(request, 'Bu modül henüz kurulamaz.')
             else:
-                enabled = list(get_enabled_module_slugs())
+                enabled = list(get_enabled_catalog_slugs())
                 if slug in enabled:
-                    if len(enabled) <= 1:
-                        messages.error(request, 'En az bir modül açık kalmalı.')
+                    app_enabled = [
+                        s for s in enabled
+                        if (m := module_by_slug(s)) and m.get('kind') == MODULE_KIND_APP
+                    ]
+                    if len(app_enabled) <= 1 and mod.get('kind') == MODULE_KIND_APP:
+                        messages.error(request, 'En az bir uygulama modülü açık kalmalı.')
                     else:
                         enabled.remove(slug)
                         settings.enabled_module_slugs = enabled
                         settings.save(update_fields=['enabled_module_slugs'])
-                        messages.info(request, f'{mod["name"]} modülü kapatıldı (panelden gizlenir).')
+                        messages.info(request, f'{mod["name"]} modülü kapatıldı.')
                 else:
                     if slug not in enabled:
                         enabled.append(slug)
@@ -194,12 +222,15 @@ class AgencyHubView(TemplateView):
     template_name = 'agency/hub.html'
 
     def dispatch(self, request, *args, **kwargs):
-        from common.module_runtime import is_module_enabled, module_available_for_nav
+        from common.module_runtime import is_module_enabled, is_particle_enabled_for_nav, module_available_for_nav
 
         if not request.user.is_authenticated:
             return redirect('login')
-        if not is_module_enabled('agency_suite'):
-            messages.warning(request, 'Ajans Çalışma Alanı kurulu değil. Modül Merkezi\'nden açın.')
+        if not is_particle_enabled_for_nav('p.agency.retainer'):
+            messages.warning(request, 'Retainer panosu kapalı. Modül Merkezi → Ajans parçacıkları.')
+            return redirect('module_hub')
+        if not is_module_enabled('agency_suite') and not is_module_enabled('contact'):
+            messages.warning(request, 'Ajans alanı için ilgili modüller kapalı.')
             return redirect('module_hub')
         if not module_available_for_nav(request.user, 'agency_suite'):
             messages.error(request, 'Ajans alanı için Rehber, İletişim veya Muhasebe erişiminiz olmalı.')
