@@ -35,13 +35,13 @@
         <p class="font-bold">Sunucu / Docker kurulumu (Coolify)</p>
         <p class="mt-2">WhatsApp köprüsü panel konteynerinden <strong>ayrı</strong> bir servistir (Node + Chromium). Sadece panel Dockerfile kurduysanız köprü <strong>çalışmaz</strong>; panel içinden de başlatılamaz.</p>
         <ul class="mt-2 list-disc list-inside space-y-1 text-amber-900">
-            <li><strong>Önerilen:</strong> Coolify kaynağını <strong>Docker Compose</strong> yapın — repo kökündeki <code class="text-xs bg-amber-100 px-1 rounded">compose.yaml</code> (veya <code class="text-xs bg-amber-100 px-1 rounded">deploy/coolify/compose.yaml</code>) hem <code class="text-xs bg-amber-100 px-1 rounded">app</code> hem <code class="text-xs bg-amber-100 px-1 rounded">whatsapp-bridge</code> açar.</li>
+            <li><strong>Önerilen:</strong> Coolify kaynağını <strong>Docker Compose</strong> yapın — repo kökündeki <code class="text-xs bg-amber-100 px-1 rounded">compose.yaml</code> hem <code class="text-xs bg-amber-100 px-1 rounded">app</code> hem <code class="text-xs bg-amber-100 px-1 rounded">whatsapp_bridge</code> servislerini otomatik başlatır.</li>
             <li>Panel ortam değişkeni (Compose içinde otomatik; tek panel uygulamasında elle yazın):
-                <code class="text-xs bg-amber-100 px-1 rounded block mt-1">WHATSAPP_BRIDGE_URL={{ whatsapp_bridge_url_docker|default:"http://whatsapp-bridge:3939" }}</code>
+                <code class="text-xs bg-amber-100 px-1 rounded block mt-1">WHATSAPP_BRIDGE_URL={{ whatsapp_bridge_url_docker|default:"http://whatsapp_bridge:3939" }}</code>
                 <code class="text-xs bg-amber-100 px-1 rounded block mt-1">DJANGO_WHATSAPP_BRIDGE_CAN_SPAWN=0</code>
             </li>
             {% if whatsapp_bridge_url_is_local %}
-            <li class="text-red-800 font-semibold">Şu an panelde <code class="text-xs bg-red-100 px-1 rounded">{{ whatsapp_bridge_url }}</code> görünüyor — Docker içinde bu adres <strong>yanlış</strong> (panel kendine bakar). Coolify Environment’a yukarıdaki <code class="text-xs bg-amber-100 px-1 rounded">whatsapp-bridge</code> URL’sini yazın veya Compose kullanın.</li>
+            <li class="text-red-800 font-semibold">Şu an panelde <code class="text-xs bg-red-100 px-1 rounded">{{ whatsapp_bridge_url }}</code> görünüyor — Docker içinde bu adres <strong>yanlış</strong> (panel kendine bakar). Docker Compose kullanın veya Environment’a <code class="text-xs bg-amber-100 px-1 rounded">http://whatsapp_bridge:3939</code> yazın.</li>
             {% else %}
             <li>Şu an ayarlı adres: <code class="text-xs bg-amber-100 px-1 rounded">{{ whatsapp_bridge_url }}</code> — köprü servisi ayakta ve aynı Docker ağında olmalı.</li>
             {% endif %}

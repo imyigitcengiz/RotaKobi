@@ -17,6 +17,8 @@ from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
 
+from common.panel_env import detect_panel_fqdn, detect_panel_origin, is_http_only_panel_host
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -64,6 +66,9 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
 _env_hosts = os.environ.get('DJANGO_ALLOWED_HOSTS', '').strip()
 if _env_hosts:
     ALLOWED_HOSTS.extend(h.strip() for h in _env_hosts.split(',') if h.strip())
+_panel_fqdn = detect_panel_fqdn()
+if _panel_fqdn and _panel_fqdn not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_panel_fqdn)
 _lan_ip = _lan_ipv4()
 if _lan_ip and _lan_ip not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_lan_ip)
@@ -96,6 +101,9 @@ if _env_csrf:
     CSRF_TRUSTED_ORIGINS = [h.strip() for h in _env_csrf.split(',') if h.strip()]
 else:
     CSRF_TRUSTED_ORIGINS = _csrf_origins_for_port(8000)
+_panel_origin = detect_panel_origin()
+if _panel_origin and _panel_origin not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(_panel_origin)
 
 WHATSAPP_BRIDGE_URL = os.environ.get('WHATSAPP_BRIDGE_URL', 'http://127.0.0.1:3939').strip()
 # Yerel Node köprüsünü Django sürecinden başlatma (Docker/production: 0)
@@ -265,6 +273,10 @@ _use_secure_ssl = os.environ.get('DJANGO_SECURE_SSL', '').lower() in ('1', 'true
 # sslip.io / traefik.me: HTTPS yok; SECURE_SSL=1 → http→https redirect → Traefik 404
 if os.environ.get('DJANGO_ALLOW_SSLIP_HOSTS', '1').lower() in ('1', 'true', 'yes'):
     if '.sslip.io' in ALLOWED_HOSTS or '.traefik.me' in ALLOWED_HOSTS:
+        _use_secure_ssl = False
+    elif _panel_fqdn and is_http_only_panel_host(_panel_fqdn):
+        _use_secure_ssl = False
+    elif _panel_origin.startswith('http://'):
         _use_secure_ssl = False
 
 if not DEBUG:

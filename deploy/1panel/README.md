@@ -1,119 +1,54 @@
-# KobiOps — 1Panel kurulumu
+# KobiOps — 1Panel kurulumu (tak-çalıştır)
 
-1Panel’de **Docker Compose Stack** ile panel + WhatsApp köprüsünü birlikte çalıştırın. Tek konteyner (sadece `app`) kurarsanız WhatsApp **çalışmaz**.
+1Panel **Docker Compose Stack** ile panel + WhatsApp köprüsü birlikte çalışır.
 
-## Ön koşullar
-
-- 1Panel kurulu VPS (en az 2 GB RAM önerilir; WhatsApp köprüsü Chromium kullanır)
-- Alan adı (isteğe bağlı ama HTTPS için önerilir)
-- GitHub’dan repo erişimi veya `git clone`
-
-## 1. Projeyi sunucuya alın
-
-SSH ile sunucuda:
+## Hızlı kurulum (SSH)
 
 ```bash
 cd /opt
 git clone https://github.com/imyigitcengiz/kobi-ops.git
 cd kobi-ops
+chmod +x deploy/install.sh
+./deploy/install.sh panel.sizin-domain.com
 ```
 
-1Panel **Terminal** veya **Dosya** ile de aynı klasöre kopyalayabilirsiniz.
+`install.sh` `.env` üretir, secret/host/CSRF ayarlar, `docker compose up -d --build` çalıştırır.
 
-## 2. Ortam dosyası (.env)
+Domain yoksa: `./deploy/install.sh` → `http://SUNUCU_IP:8000/giris/`
 
-```bash
-cp deploy/coolify/.env.example .env
-nano .env
-```
+## 1Panel arayüzü ile
 
-Örnek (kendi domaininizle değiştirin):
+1. **Konteyner** → **Compose** → **Oluştur**
+2. **Kaynak:** `/opt/kobi-ops`
+3. **Compose dosyası:** `docker-compose.yml`
+4. **Başlat** — `.env` zorunlu değil (bootstrap otomatik)
 
-```env
-DJANGO_SECRET_KEY=uzun-rastgele-50-karakter-veya-daha-fazla
-DJANGO_ALLOWED_HOSTS=panel.sizin-domain.com
-DJANGO_CSRF_TRUSTED_ORIGINS=https://panel.sizin-domain.com
-DJANGO_SECURE_SSL=1
-DJANGO_DEBUG=0
+İsteğe bağlı `.env`: `cp .env.example .env`
 
-DJANGO_ENSURE_SUPERADMIN=1
+## Reverse proxy (HTTPS)
 
-WHATSAPP_BRIDGE_URL=http://whatsapp-bridge:3939
-DJANGO_WHATSAPP_BRIDGE_CAN_SPAWN=0
-DJANGO_WHATSAPP_BRIDGE_AUTO_START=0
-```
+1Panel **Web sitesi** / OpenResty:
 
-`DJANGO_SECRET_KEY` üretmek için:
+- Domain → proxy `http://127.0.0.1:8000`
+- WebSocket açık (ekip sohbeti)
 
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(48))"
-```
+Domain ekledikten sonra redeploy veya `./deploy/install.sh panel.sizin-domain.com --force`
 
-## 3. 1Panel’de Compose Stack oluşturma
-
-1. **Konteyner** → **Compose** → **Oluştur** (veya **Stack oluştur**)
-2. **Kaynak**: Yerel yol → `/opt/kobi-ops` (clone ettiğiniz dizin)
-3. **Compose dosyası**: `docker-compose.yml` (repo kökündeki)
-4. **Ortam dosyası**: `.env` dosyasını seçin veya değişkenleri 1Panel arayüzüne tek tek yapıştırın
-5. **Ortam dosyası**: `/opt/kobi-ops/.env` — `docker-compose.yml` bunu `env_file` ile container’a aktarır (sadece host’ta durması yetmez)
-6. **Başlat** / **Deploy**
-
-İlk build 5–15 dakika sürebilir (Python + Node/Chromium imajları).
-
-## 4. Kalıcı veri (çok önemli)
-
-Stack volume’ları `docker-compose.yml` içinde tanımlıdır:
+## Kalıcı veri
 
 | Volume | Mount | İçerik |
 |--------|--------|--------|
-| `gy_data` | `/data` (app) | `db.sqlite3`, `media/`, otomatik yedekler |
-| `whatsapp_session` | `/app/session` (köprü) | WhatsApp oturumları |
+| `kobiops_gy_data` | `/data` | SQLite, medya, yedekler |
+| `kobiops_whatsapp_session` | köprü oturumu | WhatsApp QR |
 
-1Panel’de stack’i **silip yeniden oluştururken volume’ları silmeyin**; aksi halde tüm müşteri/servis verisi gider.
+Stack silinirken **volume silmeyin**.
 
-Yedek: **Site Ayarları** → **Sistem Yedekleri** → `db.sqlite3` indir + sunucuda volume içindeki `media/` klasörünü kopyalayın.
+## İlk giriş
 
-## 5. Reverse proxy (HTTPS)
+- `https://panel.sizin-domain.com/giris/`
+- **admin** / **admin** → sonra `DJANGO_ENSURE_SUPERADMIN=0`
 
-1Panel **Web sitesi** veya **OpenResty/Nginx** ile:
-
-- Domain: `panel.sizin-domain.com`
-- **Proxy** → hedef: `http://127.0.0.1:8000` (compose `8000:8000` map ise)
-- **WebSocket** desteği açık olsun (ekip sohbeti için)
-
-Örnek proxy başlıkları (Nginx):
-
-```nginx
-proxy_http_version 1.1;
-proxy_set_header Host $host;
-proxy_set_header X-Real-IP $remote_addr;
-proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-proxy_set_header X-Forwarded-Proto $scheme;
-proxy_set_header Upgrade $http_upgrade;
-proxy_set_header Connection "upgrade";
-```
-
-`.env` içinde `DJANGO_CSRF_TRUSTED_ORIGINS` ve `DJANGO_ALLOWED_HOSTS` domain ile **birebir** eşleşmeli.
-
-## 6. İlk giriş
-
-- URL: `https://panel.sizin-domain.com/giris/`
-- `DJANGO_ENSURE_SUPERADMIN=1` ise: kullanıcı **admin**, şifre **admin**
-- Giriş yaptıktan sonra `.env` içinde `DJANGO_ENSURE_SUPERADMIN=0` yapıp stack’i yeniden başlatın ve admin şifresini değiştirin
-
-## 7. WhatsApp
-
-1. **Tools** → **WhatsApp Bağlan**
-2. Köprü yeşil değilse: `docker compose logs whatsapp-bridge` (stack dizininde)
-3. QR ile telefon eşleştirin
-
-Köprü sağlık kontrolü (sunucuda):
-
-```bash
-docker compose exec whatsapp-bridge wget -qO- http://127.0.0.1:3939/health
-```
-
-## 8. Güncelleme
+## Güncelleme
 
 ```bash
 cd /opt/kobi-ops
@@ -125,10 +60,9 @@ docker compose up -d --build
 
 | Belirti | Çözüm |
 |---------|--------|
-| 502 / site açılmıyor | `docker compose ps` — `app` ayakta mı? `docker compose logs app` |
-| CSRF hatası | `DJANGO_CSRF_TRUSTED_ORIGINS` https:// ile domain |
-| Veri sıfırlandı | Volume silinmiş; `/data` mount kontrol edin |
-| WhatsApp köprü kapalı | `whatsapp-bridge` servisi var mı, `healthy` mi? |
-| DisallowedHost | `DJANGO_ALLOWED_HOSTS` domaini içeriyor mu? |
+| 502 | `docker compose logs app` |
+| CSRF | `./deploy/install.sh domain --force` |
+| WhatsApp | `docker compose logs whatsapp_bridge` |
+| Veri kaybı | Volume korundu mu? |
 
-Daha fazla detay: repo kökündeki [DEPLOY.md](../../DEPLOY.md).
+Detay: [DEPLOY.md](../../DEPLOY.md)

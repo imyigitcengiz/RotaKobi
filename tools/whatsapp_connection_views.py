@@ -87,7 +87,7 @@ def whatsapp_bridge_auto_start_api(request):
         return JsonResponse({
             'ok': False,
             'reason': 'spawn_disabled',
-            'error': 'Bu ortamda köprü panelden başlatılamaz; whatsapp-bridge servisini kullanın.',
+            'error': 'Bu ortamda köprü panelden başlatılamaz; whatsapp_bridge servisini kullanın.',
         }, status=403)
 
     body = _json_body(request) or {}

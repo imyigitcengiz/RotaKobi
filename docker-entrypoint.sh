@@ -4,6 +4,12 @@ set -euo pipefail
 cd /app
 export DJANGO_SETTINGS_MODULE=config.settings
 
+# Panel otomatik yapılandırma (Coolify / Dokploy / 1Panel)
+if [[ -f /app/deploy/bootstrap-env.sh ]]; then
+  # shellcheck source=/dev/null
+  source /app/deploy/bootstrap-env.sh
+fi
+
 DATA_DIR="${DATA_DIR:-/data}"
 mkdir -p "$DATA_DIR" "${DJANGO_MEDIA_ROOT:-$DATA_DIR/media}"
 
@@ -15,15 +21,18 @@ HOST="${DAPHNE_HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 
 if [ -z "${DJANGO_SECRET_KEY:-}" ]; then
-  echo "[gy-dashboard] HATA: DJANGO_SECRET_KEY tanımlı değil."
-  echo "  Dokploy → Compose → Environment sekmesine ekleyin veya .env dosyasında ayarlayın."
-  echo "  Örnek: openssl rand -base64 48"
-  echo "  Secret içinde \$ varsa tek tırnak kullanın: DJANGO_SECRET_KEY='...'"
+  echo "[gy-dashboard] HATA: DJANGO_SECRET_KEY üretilemedi."
+  echo "  Panel → Environment → DJANGO_SECRET_KEY ekleyin veya /data volume bağlı olduğundan emin olun."
+  exit 1
+fi
+
+if [ -n "${DATA_DIR:-}" ] && [ ! -w "$DATA_DIR" ]; then
+  echo "[gy-dashboard] HATA: ${DATA_DIR} yazılamıyor — Docker Compose volume (gy_data:/data) bağlı mı?"
   exit 1
 fi
 
 echo "[gy-dashboard] kalıcı veri kontrolü..."
-python manage.py guard_persistent_data --phase pre
+python manage.py guard_persistent_data --phase pre --verbose
 
 echo "[gy-dashboard] migrate + collectstatic..."
 python manage.py migrate --noinput

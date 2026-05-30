@@ -59,22 +59,100 @@ def require_persistent_volume() -> bool:
     return _truthy('GY_REQUIRE_PERSISTENT_VOLUME', default)
 
 
-def data_dir_looks_ephemeral(root: Path) -> bool:
-    """Named volume yoksa /data genelde konteyner kökü ile aynı disk cihazındadır."""
-    try:
-        root = root.resolve()
-        root_stat = os.stat(root)
-        root_dev = root_stat.st_dev
-    except OSError:
-        return True
+def _normalize_mount_path(path: str) -> str:
+    p = path.rstrip('/') or '/'
+    return p
 
-    for anchor in ('/', '/app'):
-        try:
-            if os.stat(anchor).st_dev == root_dev:
-                return True
-        except OSError:
-            continue
+
+def _is_mount_point(path: Path) -> bool:
+    """Docker named volume veya bind mount — parent'tan farklı cihaz."""
+    try:
+        path = path.resolve()
+        parent = path.parent
+        if parent == path:
+            return True
+        return os.lstat(path).st_dev != os.lstat(parent).st_dev
+    except OSError:
+        return False
+
+
+def _is_listed_in_mountinfo(path: Path) -> bool:
+    """/proc/self/mountinfo — Coolify bind mount edge case'leri."""
+    target = _normalize_mount_path(str(path.resolve()))
+    try:
+        with open('/proc/self/mountinfo', encoding='utf-8') as fh:
+            for line in fh:
+                parts = line.split()
+                if len(parts) >= 5:
+                    mountpoint = _normalize_mount_path(parts[4])
+                    if mountpoint == target:
+                        return True
+    except OSError:
+        return False
     return False
+
+
+def _is_listed_in_mounts(path: Path) -> bool:
+    """/proc/mounts — ek doğrulama (overlay / named volume)."""
+    target = _normalize_mount_path(str(path.resolve()))
+    try:
+        with open('/proc/mounts', encoding='utf-8') as fh:
+            for line in fh:
+                parts = line.split()
+                if len(parts) >= 2:
+                    mountpoint = _normalize_mount_path(parts[1])
+                    if mountpoint == target:
+                        return True
+    except OSError:
+        return False
+    return False
+
+
+def data_dir_is_persistent(root: Path) -> bool:
+    """True when /data is a real mount (compose named volume, panel bind mount, vb.)."""
+    root = root.resolve()
+    if _is_mount_point(root):
+        return True
+    if _is_listed_in_mountinfo(root):
+        return True
+    if _is_listed_in_mounts(root):
+        return True
+    return False
+
+
+def data_dir_looks_ephemeral(root: Path) -> bool:
+    """True yalnızca /data konteyner katmanında düz klasörse (volume yok)."""
+    return not data_dir_is_persistent(root)
+
+
+def _persistence_error_message(root: Path) -> str:
+    in_coolify = bool(
+        os.environ.get('COOLIFY_RESOURCE_UUID')
+        or os.environ.get('COOLIFY_FQDN')
+        or os.environ.get('SERVICE_FQDN_APP')
+    )
+    in_dokploy = bool(os.environ.get('DOKPLOY_DEPLOY_URL') or os.environ.get('DOKPLOY_IS_PREVIEW'))
+
+    base = (
+        'KRİTİK: /data kalıcı volume olarak bağlı değil — rebuild/deploy tüm kayıtları siler.\n'
+        f'  Algılanan yol: {root}\n'
+    )
+    if in_coolify:
+        return base + (
+            '  Coolify çözümü: Build Pack = Docker Compose (Dockerfile değil).\n'
+            '  Compose path: docker-compose.yml (repo kökü).\n'
+            '  Named volume compose içinde tanımlıdır; Persistent Storage UI gerekmez.\n'
+            '  Redeploy sonrası hâlâ hata: Logs → compose volume gy_data:/data uygulandı mı?'
+        )
+    if in_dokploy:
+        return base + (
+            '  Dokploy çözümü: Docker Compose modu, compose path docker-compose.yml.\n'
+            '  Named volume gy_data otomatik oluşur; deploy sırasında volume silmeyin.'
+        )
+    return base + (
+        '  Çözüm: docker compose up ile gy_data:/data volume bağlayın.\n'
+        '  Geçici test: GY_ALLOW_EPHEMERAL_DATA=1 (üretimde kullanmayın).'
+    )
 
 
 def _load_marker(root: Path) -> dict | None:
@@ -160,12 +238,7 @@ def check_before_migrate() -> None:
     marker = _load_marker(root)
 
     if require_persistent_volume() and data_dir_looks_ephemeral(root):
-        raise DataPersistenceError(
-            'KRİTİK: /data kalıcı volume olarak bağlı değil. '
-            'Her rebuild/deploy tüm kayıtları siler. '
-            'Coolify → Persistent Storage → mount path: /data. '
-            'Test için geçici olarak GY_ALLOW_EPHEMERAL_DATA=1 (üretimde kullanmayın).'
-        )
+        raise DataPersistenceError(_persistence_error_message(root))
 
     if marker:
         prev_bytes = int(marker.get('db_bytes') or 0)

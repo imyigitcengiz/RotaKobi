@@ -54,7 +54,7 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.ERROR(
                 f'Köprü {timeout}s içinde yanıt vermedi. '
-                'Docker: docker compose ps / logs whatsapp-bridge. '
+                'Docker: docker compose ps / logs whatsapp_bridge. '
                 'Yerel: Django otomatik başlatır; log: tools/whatsapp_bridge/bridge_ui.log'
             )
         )

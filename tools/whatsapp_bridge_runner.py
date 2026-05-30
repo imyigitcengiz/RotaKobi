@@ -67,7 +67,7 @@ def _offline_detail_local() -> str:
         return 'Köprü kapalı. Birkaç saniye bekleyin veya "Köprüyü başlat"a basın — Django otomatik açar.'
     return (
         'Köprü bu sunucuda otomatik başlatılmıyor. '
-        'whatsapp-bridge servisini çalıştırın ve WHATSAPP_BRIDGE_URL ayarlayın '
+        'whatsapp_bridge servisini çalıştırın (Docker Compose) ve WHATSAPP_BRIDGE_URL ayarlayın '
         '(DEPLOY.md).'
     )
 
@@ -77,7 +77,7 @@ def _offline_detail_remote(base: str, err: str | None = None) -> str:
     if err:
         short = err.replace('\n', ' ')[:160]
         msg += f' Hata: {short}'
-    msg += ' whatsapp-bridge konteynerinin/sürecinin çalıştığını doğrulayın.'
+    msg += ' whatsapp_bridge konteynerinin çalıştığını doğrulayın (docker compose logs whatsapp_bridge).'
     return msg
 
 

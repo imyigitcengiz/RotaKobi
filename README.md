@@ -15,7 +15,7 @@ Django tabanlı hafif CRM: müşteri rehberi, satış kayıtları, servis / iş 
 
 ## Üretim
 
-**[DEPLOY.md](DEPLOY.md)** — Docker Compose, Dokploy, Coolify, 1Panel, ortam değişkenleri, WhatsApp köprüsü.
+**[DEPLOY.md](DEPLOY.md)** — Coolify / Dokploy / 1Panel tak-çalıştır Docker Compose.
 
 ```bash
 git clone https://github.com/imyigitcengiz/kobi-ops.git /opt/kobi-ops
@@ -25,7 +25,7 @@ cd /opt/kobi-ops
 ```
 
 - Kalıcı veri: volume `/data`
-- WhatsApp: `whatsapp-bridge` servisi (panel ile birlikte `docker-compose.yml`)
+- WhatsApp: `whatsapp_bridge` servisi (`docker-compose.yml` ile otomatik)
 
 | Platform | Rehber |
 |----------|--------|

@@ -29,9 +29,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN sed -i 's/\r$//' docker-entrypoint.sh \
-    && mkdir -p /data/media staticfiles \
-    && chmod +x docker-entrypoint.sh
+RUN sed -i 's/\r$//' docker-entrypoint.sh deploy/bootstrap-env.sh \
+    && mkdir -p staticfiles \
+    && chmod +x docker-entrypoint.sh deploy/bootstrap-env.sh
 
 EXPOSE 8000
 

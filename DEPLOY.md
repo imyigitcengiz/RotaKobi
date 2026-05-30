@@ -1,157 +1,109 @@
 # KobiOps — üretim kurulumu
 
-Bu ürün **müşteri başına ayrı kurulum** içindir (her müşteri kendi VPS / panelinde). Tek kod tabanı; Dokploy, Coolify, 1Panel, Portainer veya `docker compose` ile dağıtılabilir.
+Her müşteri kendi VPS / panelinde bağımsız kurulum. **Coolify, Dokploy, 1Panel, Portainer** veya `docker compose` ile dağıtılır.
+
+## Tak-çalıştır (Ghost gibi)
+
+Panelde 3 adım — `.env` ve Persistent Storage UI **gerekmez**:
+
+1. GitHub: `imyigitcengiz/kobi-ops`
+2. **Docker Compose** build pack (`compose.yaml` veya `docker-compose.yml`) — **Dockerfile tek başına değil**
+3. Domain → servis **`app`**, port **8000**, HTTPS → Deploy
+
+Named volume `kobiops_gy_data` compose ile otomatik oluşur; veri rebuild'lerde kalır.
+
+`deploy/bootstrap-env.sh` otomatik ayarlar:
+
+| Ne | Nasıl |
+|----|--------|
+| `DJANGO_SECRET_KEY` | `/data/.django_secret_key` (kalıcı) |
+| `DJANGO_ALLOWED_HOSTS` | Coolify `SERVICE_FQDN_APP` / panel domain |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | `SERVICE_URL_APP` / https URL |
+| `DJANGO_SECURE_SSL` | HTTPS domain → 1, sslip.io → 0 |
+| Admin hesabı | İlk deploy: admin/admin (`DJANGO_ENSURE_SUPERADMIN=1`) |
 
 ## Bileşenler
 
 | Bileşen | Açıklama |
 |--------|----------|
-| **app** | Django + Daphne (port 8000), SQLite + medya `/data` altında |
-| **whatsapp-bridge** | Node + Chromium, WhatsApp Web QR (port 3939, iç ağ) |
+| **app** | Django + Daphne (8000), SQLite + medya `/data` |
+| **whatsapp_bridge** | Node + Chromium, WhatsApp QR (3939, iç ağ) |
 
-Panel konteynerinde Node/Puppeteer **yoktur**. Köprü ayrı servistir.
-
-## Hızlı başlangıç (önerilen)
-
-Anahtar, host ve CSRF **otomatik** — elle doldurma yok:
+## VPS tek komut
 
 ```bash
 git clone https://github.com/imyigitcengiz/kobi-ops.git /opt/kobi-ops
-cd /opt/kobi-ops
-chmod +x deploy/install.sh
-./deploy/install.sh
+cd /opt/kobi-ops && ./deploy/install.sh panel.firma.com
 ```
 
-Domain varsa (HTTPS ayarları buna göre):
+## Platform rehberleri
 
-```bash
-./deploy/install.sh panel.firma.com
-```
+| Platform | Rehber |
+|----------|--------|
+| Coolify | [deploy/coolify/README.md](deploy/coolify/README.md) |
+| Dokploy | [deploy/dokploy/README.md](deploy/dokploy/README.md) |
+| 1Panel | [deploy/1panel/README.md](deploy/1panel/README.md) |
 
-- Panel: `http://SUNUCU_IP:8000/giris/` veya `https://panel.firma.com/giris/`
-- İlk giriş: `admin` / `admin` — sonra `.env` → `DJANGO_ENSURE_SUPERADMIN=0` + `docker compose up -d`
+## Ortam değişkenleri
 
-Manuel `.env` isterseniz: `deploy/coolify/.env.example` → `.env`
+**Tak-çalıştır:** Panel Environment sekmesine bir şey yazmanız gerekmez.
 
-## Ortam değişkenleri (app)
+| Kaynak | Ne sağlar |
+|--------|-----------|
+| `docker-compose.yml` | Üretim varsayılanları (port, /data, WhatsApp URL, volume) |
+| `bootstrap-env.sh` | Secret, ALLOWED_HOSTS, CSRF (domain'den otomatik) |
+| Coolify `SERVICE_FQDN_APP` / `SERVICE_URL_APP` | Domain tanımlayınca otomatik enjekte |
+
+**Referans şablon** (isteğe bağlı override için): [.env.example](.env.example)
+
+Tüm değişkenler 4 grupta:
+- **A) Otomatik** — boş bırakın
+- **B) Compose'ta hazır** — zaten yazılı
+- **C) İsteğe bağlı override** — sadece değiştirmek istediğinizde
+- **D) Yerel geliştirme** — Docker dışı
 
 | Değişken | Zorunlu | Açıklama |
 |----------|---------|----------|
-| `DJANGO_SECRET_KEY` | Evet | Uzun rastgele anahtar |
-| `DJANGO_ALLOWED_HOSTS` | Evet | `panel.ornek.com` |
-| `DJANGO_CSRF_TRUSTED_ORIGINS` | HTTPS ise | `https://panel.ornek.com` |
-| `DATA_DIR` | Docker’da otomatik | `/data` — kalıcı volume bağlayın |
-| `WHATSAPP_BRIDGE_URL` | WhatsApp için | Compose’ta: `http://whatsapp-bridge:3939` |
-| `DJANGO_WHATSAPP_BRIDGE_CAN_SPAWN` | Docker’da `0` | Panel içinden Node başlatmayı kapatır |
-| `GY_REQUIRE_PERSISTENT_VOLUME` | Docker’da `1` (varsayılan) | `/data` volume yoksa konteyner başlamaz |
-| `GY_ALLOW_EPHEMERAL_DATA` | `0` | `1` = volume zorunluluğunu kapat (sadece test) |
+| `DJANGO_SECRET_KEY` | Otomatik | Boş bırakılırsa `/data` içinde üretilir |
+| `DJANGO_ALLOWED_HOSTS` | Otomatik | Panel domain'den |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | Otomatik | HTTPS URL'den |
+| `DATA_DIR` | Docker varsayılan | `/data` |
+| `WHATSAPP_BRIDGE_URL` | Compose varsayılan | `http://whatsapp_bridge:3939` |
+| `GY_REQUIRE_PERSISTENT_VOLUME` | `1` | Volume yoksa başlamaz |
+| `GY_ALLOW_EPHEMERAL_DATA` | `0` | `1` = sadece test |
 
 ## Kalıcı veri
 
-Volume **`/data`**:
+Named volume **`kobiops_gy_data`** → `/data`:
 
-- `/data/db.sqlite3` — veritabanı
-- `/data/media/` — yüklenen dosyalar
-- `/data/backups/auto/` — her deploy öncesi otomatik SQLite yedeği (son 10)
+- `db.sqlite3`, `media/`, `backups/auto/`
 
-**Volume yoksa veya Coolify rebuild sırasında volume silindiyse tüm kayıtlar gider.**
+Coolify ekstra: Persistent Storage → `/data`. Rebuild'de volume **silinmesin**.
 
-Panel, `/data` gerçekten kalıcı volume değilse **başlamaz** (`GY_REQUIRE_PERSISTENT_VOLUME=1`). Coolify → **Persistent Storage** → mount path: **`/data`**.
+## Sorun giderme
 
-İlk kurulumda volume henüz yoksa (sadece test): `GY_ALLOW_EPHEMERAL_DATA=1` — üretimde kullanmayın; volume ekledikten sonra kaldırın.
+**Container kapanıyor — `/data kalıcı volume`**
 
-Deploy logu:
+Bu hata = `/data` mount edilmemiş. Coolify'da **Build Pack Dockerfile ise** volume bağlanmaz.
 
-```text
-[gy-dashboard] kalıcı veri kontrolü...
-Kalıcı veri kontrolü OK (migrate öncesi).
-```
+→ Build Pack'i **Docker Compose** yapın, compose path: `compose.yaml` veya `docker-compose.yml`, redeploy.
 
-Volume hatası örneği:
+Logda beklenen: `Kalıcı veri kontrolü OK (migrate öncesi).`
 
-```text
-KRİTİK: /data kalıcı volume olarak bağlı değil...
-```
+**WhatsApp**
 
-## Dokploy
+1. `docker compose ps` — `whatsapp_bridge` ayakta mı?
+2. `docker compose logs whatsapp_bridge`
+3. RAM ≥ 2 GB, `shm_size: 512mb` compose'ta tanımlı
 
-1. **Docker Compose** → GitHub `imyigitcengiz/kobi-ops`, compose path: **`docker-compose.yml`** (veya boş — varsayılan)
-2. **Environment** → `deploy/dokploy/.env.example` şablonu; `env_file: .env` compose’ta hazır
-3. **Domains** → servis `app`, port **8000**, Let’s Encrypt
-4. Push deploy: Dokploy **Webhook** (GitHub) — ayrı script gerekmez
+**CSRF / DisallowedHost**
 
-Adım adım: **[deploy/dokploy/README.md](deploy/dokploy/README.md)**
+Domain panelde `app` servisine bağlı olmalı; redeploy.
 
-## Coolify
-
-1. **Docker Compose** veya iki uygulama:
-   - Uygulama 1: repo kökü, `Dockerfile`, port **8000**, volume `/data`
-   - Uygulama 2 (isteğe bağlı ayrı): `deploy/whatsapp-bridge/Dockerfile`, port 3939 (dışarı açmayın)
-2. Aynı Docker ağında: `WHATSAPP_BRIDGE_URL=http://<köprü-servis-adı>:3939`
-3. `DJANGO_WHATSAPP_BRIDGE_CAN_SPAWN=0`
-4. Tek Dockerfile ile sadece panel kurulursa WhatsApp **çalışmaz** — köprü servisi şart.
-
-Detay: [deploy/coolify/README.md](deploy/coolify/README.md)
-
-## 1Panel / Portainer
-
-`docker-compose.yml` dosyasını **Compose Stack** olarak içe aktarın (repo kökü); `.env` doldurun; reverse proxy ile **443 → 8000** yönlendirin.
-
-Adım adım (1Panel): **[deploy/1panel/README.md](deploy/1panel/README.md)**
-
-## Yerel geliştirme (Windows)
-
-1. Yerel geliştirmede Node.js yoksa Django `npm install` dener; Windows’ta [Node.js LTS](https://nodejs.org) kurmanız yeterli. Linux sunucuda (root) apt ile nodejs kurmayı da dener.
-2. Bir kez köprü bağımlılıkları:
-
-```bash
-cd tools/whatsapp_bridge
-# npm install — Django otomatik çalıştırır; elle gerekmez
-```
-
-3. Panel:
-
-```bash
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
-```
-
-`DATA_DIR` yokken Django **otomatik** Node köprüsünü başlatır (`DJANGO_WHATSAPP_BRIDGE_AUTO_START` varsayılan açık). Kapatmak için: `set DJANGO_WHATSAPP_BRIDGE_AUTO_START=0`.
-
-Köprüyü elle (gerekirse): `cd tools/whatsapp_bridge && npm start` → http://127.0.0.1:3939 — normalde Django açar.
-
-`WHATSAPP_BRIDGE_URL=http://127.0.0.1:3939` — isteğe bağlı `WHATSAPP_BRIDGE_NODE=C:\Program Files\nodejs\node.exe`
-
-## Sorun giderme — “Köprü çalışmıyor”
-
-**Docker / Coolify (üretim)**
-
-1. `docker compose ps` — `whatsapp-bridge` **healthy** mi?
-2. App ortamında `WHATSAPP_BRIDGE_URL=http://whatsapp-bridge:3939` ve `DJANGO_WHATSAPP_BRIDGE_CAN_SPAWN=0`
-3. Köprü logları: `docker compose logs whatsapp-bridge` (Chromium / QR hataları burada)
-4. Sadece `app` konteyneri kurulduysa WhatsApp **çalışmaz** — `whatsapp-bridge` servisini ekleyin (`deploy/coolify/compose.yaml`).
-5. Panel açılışında entrypoint köprüyü bekler; hazır değilse logda uyarı görünür.
-
-**Yerel Windows**
-
-1. `node -v` çalışıyor mu? Log: `tools/whatsapp_bridge/bridge_ui.log` (Django npm install dener)
-2. `http://127.0.0.1:3939/health` tarayıcıda `{"ok":true}` dönmeli.
-3. Araçlar → WhatsApp bağlan → “Köprüyü başlat” veya sunucuyu yeniden başlatın (otomatik spawn).
-4. Port 3939 meşgulse Görev Yöneticisi’nden eski `node.exe` sürecini kapatın.
-
-Manuel test: `python manage.py wait_whatsapp_bridge --timeout 30 --spawn`
-
-## Ekip sohbeti
-
-Deploy sonrası otomatik: `migrate` + `ensure_chat` (entrypoint).
-
-Reverse proxy (Coolify / Traefik / Nginx) WebSocket için:
+**WebSocket** (sohbet): reverse proxy Upgrade header — HTTP polling yedek olarak çalışır.
 
 ```nginx
 proxy_http_version 1.1;
 proxy_set_header Upgrade $http_upgrade;
 proxy_set_header Connection "upgrade";
 ```
-
-WebSocket kapalı olsa bile sohbet **HTTP ile** çalışır (4 sn polling). Sohbet açılmıyorsa panelde kırmızı hata metni görünür; çoğunlukla `python manage.py migrate chat` eksiktir.

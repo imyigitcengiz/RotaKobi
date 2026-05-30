@@ -86,7 +86,7 @@ class WhatsappBaglanView(TemplateView):
         host = (urlparse(bridge_url).hostname or '').lower()
         context['whatsapp_bridge_url_is_local'] = host in ('127.0.0.1', 'localhost', '::1')
         if not context['whatsapp_bridge_can_spawn']:
-            context['whatsapp_bridge_url_docker'] = 'http://whatsapp-bridge:3939'
+            context['whatsapp_bridge_url_docker'] = 'http://whatsapp_bridge:3939'
         from core_settings.whatsapp_print import get_whatsapp_location_request_template
 
         context['whatsapp_location_request_template'] = get_whatsapp_location_request_template()

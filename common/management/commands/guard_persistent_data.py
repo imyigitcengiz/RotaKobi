@@ -7,6 +7,7 @@ from common.data_persistence import (
     auto_backup_sqlite,
     check_after_migrate,
     check_before_migrate,
+    data_dir_is_persistent,
     data_dir_looks_ephemeral,
     data_root,
     db_path,
@@ -26,10 +27,22 @@ class Command(BaseCommand):
             help='pre: migrate öncesi kontrol+yedek, post: marker güncelle, backup: yalnız yedek',
         )
 
+        parser.add_argument(
+            '--verbose',
+            action='store_true',
+            help='Mount / volume durumunu logla',
+        )
+
     def handle(self, *args, **options):
         phase = options['phase']
+        verbose = options.get('verbose', False)
         root = data_root()
         db = db_path()
+
+        if verbose and phase == 'pre':
+            self.stdout.write(f'[volume] DATA root: {root}')
+            self.stdout.write(f'[volume] Persistent mount: {data_dir_is_persistent(root)}')
+            self.stdout.write(f'[volume] Require volume: {require_persistent_volume()}')
 
         if phase == 'status':
             self._print_status(root, db)
@@ -70,4 +83,5 @@ class Command(BaseCommand):
             self.stdout.write(f'DB size:   {db.stat().st_size} bayt')
         self.stdout.write(f'Container: {is_containerized_production()}')
         self.stdout.write(f'Require volume: {require_persistent_volume()}')
+        self.stdout.write(f'Persistent mount: {data_dir_is_persistent(root)}')
         self.stdout.write(f'Ephemeral /data: {data_dir_looks_ephemeral(root)}')
