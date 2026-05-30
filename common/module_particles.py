@@ -215,11 +215,8 @@ def default_enabled_particle_slugs() -> list[str]:
 
 
 def vertical_preset_all_slugs(vertical_slug: str) -> tuple[str, ...]:
-    preset = VERTICAL_CATALOG_PRESETS.get(vertical_slug)
-    if not preset:
-        from common.module_catalog import default_enabled_module_slugs
-        return tuple(default_enabled_module_slugs()) + tuple(default_enabled_particle_slugs())
-    return preset['modules'] + preset['particles']
+    from common.profile_apps import expand_profile_slugs_to_platform, vertical_profile_preset
+    return tuple(expand_profile_slugs_to_platform(list(vertical_profile_preset(vertical_slug))))
 
 
 def particle_route_prefixes() -> list[tuple[str, str]]:

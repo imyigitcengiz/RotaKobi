@@ -1,0 +1,38 @@
+{# Kurulum profiline özel uygulamalar — monolitik modül kartları yok #}
+{% if profile_panel_apps %}
+<section class="mb-10">
+    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
+        <i data-lucide="layout-grid" class="w-4 h-4"></i>
+        {% if panel_vertical %}{{ panel_vertical.name }} uygulamaları{% else %}Uygulamalar{% endif %}
+    </h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for app in profile_panel_apps %}
+        <a href="{{ app.hub_url }}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-brand-300 transition-all p-6">
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mb-4 group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                <i data-lucide="{{ app.icon }}" class="w-6 h-6"></i>
+            </div>
+            <p class="text-[10px] font-bold uppercase text-slate-400">{{ app.category_name }}</p>
+            <h4 class="text-lg font-bold text-slate-900 mt-1">{{ app.name }}</h4>
+            <p class="text-sm text-slate-500 mt-2">{{ app.summary }}</p>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if panel_vertical.slug == 'agency' and agency_project_count is not None %}
+{% include 'common/panel_agency_section.html' %}
+{% endif %}
+
+{% if panel_vertical.slug == 'kobi' %}
+{% if accounting_show_payroll or accounting_show_finance %}
+<section class="mb-10">
+    {% include 'common/accounting_panel_section.html' with section_title=gy.muhasebe show_hub_link=True show_hub_card=False card_layout='wide' highlight_payroll=True %}
+</section>
+{% endif %}
+{% if user_access.services %}
+<section class="mb-10">
+    {% include 'common/panel_services_section.html' %}
+</section>
+{% endif %}
+{% endif %}

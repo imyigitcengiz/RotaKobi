@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modül Merkezi | {{ site_settings.site_name }}</title>
+    <title>Uygulama Merkezi | {{ site_settings.site_name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -14,13 +14,12 @@
         <div class="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
             <div>
                 <a href="{% url 'home' %}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">← Panel</a>
-                <h1 class="text-xl font-bold text-slate-900 mt-1">Modül Merkezi</h1>
-                <p class="text-sm text-slate-500">Uygulama, entegrasyon ve özellik parçacıkları — sektöre göre paketleyin.</p>
+                <h1 class="text-xl font-bold text-slate-900 mt-1">Uygulama Merkezi</h1>
+                {% if panel_vertical %}
+                <p class="text-sm text-slate-500">{{ panel_vertical.name }} — yalnızca bu profile ait uygulamalar listelenir.</p>
+                {% endif %}
             </div>
-            <div class="flex items-center gap-2 text-xs font-semibold">
-                <span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800">{{ module_installed_count }} açık</span>
-                <span class="px-3 py-1.5 rounded-lg bg-violet-50 text-violet-800">{{ module_roadmap_count }} yol haritası</span>
-            </div>
+            <span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold">{{ module_installed_count }} açık</span>
         </div>
     </header>
 
@@ -34,27 +33,19 @@
         {% endif %}
 
         {% if can_manage_modules %}
-        <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
-            <form method="get" class="flex flex-wrap gap-3 items-end mb-4">
-                <div class="flex-1 min-w-[200px] space-y-1">
-                    <label class="text-xs font-bold text-slate-500 uppercase">Katalog filtresi</label>
-                    <select name="vertical" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" onchange="this.form.submit()">
-                        {% for v in module_verticals %}
-                        <option value="{{ v.slug }}" {% if module_vertical_filter == v.slug %}selected{% endif %}>{{ v.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+        <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <form method="get" class="flex flex-wrap gap-3 items-end">
                 <div class="flex-1 min-w-[200px] space-y-1">
                     <label class="text-xs font-bold text-slate-500 uppercase">Ara</label>
-                    <input type="text" name="q" value="{{ module_search_query }}" placeholder="Modül veya parçacık…" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                    <input type="text" name="q" value="{{ module_search_query }}" placeholder="Uygulama adı…" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                 </div>
                 <button type="submit" class="px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold">Filtrele</button>
             </form>
             <form method="post" class="flex flex-wrap items-end gap-3 pt-4 border-t border-slate-100">
                 {% csrf_token %}
-                <input type="hidden" name="apply_vertical_preset" value="1">
+                <input type="hidden" name="set_primary_vertical" value="1">
                 <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-500 uppercase">Kurulum profili & paket</label>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Kurulum profili değiştir</label>
                     <select name="vertical_slug" class="p-2.5 bg-violet-50 border border-violet-200 rounded-xl text-sm min-w-[220px]">
                         {% for v in module_verticals %}
                         {% if v.slug != 'all' %}
@@ -64,90 +55,101 @@
                     </select>
                 </div>
                 <button type="submit" class="px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700"
-                    onclick="return confirm('Seçilen profilin modül + parçacık paketi uygulanacak. Devam?');">
-                    Paketi uygula
+                    onclick="return confirm('Profil değişince uygulama listesi o profile göre sıfırlanır. Devam?');">
+                    Profili uygula
                 </button>
             </form>
-            <p class="text-xs text-slate-500 mt-3">
-                <strong>KOBİ:</strong> saha ekipleri + personel/maaş.
-                <strong>Ajans:</strong> freelancer ağı + retainer; personel/yardım masası kapalı.
+            <p class="text-xs text-slate-500">
+                <strong>KOBİ:</strong> saha ekipleri, personel, maaş.
+                <strong>Ajans:</strong> retainer, freelancer — personel/yardım masası yok.
             </p>
         </section>
         {% endif %}
 
+        {% for group in profile_app_groups %}
         <section>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Uygulamalar</h2>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
+                <i data-lucide="{{ group.icon }}" class="w-4 h-4"></i> {{ group.name }}
+            </h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {% for mod in module_catalog_apps %}
-                {% include 'common/module_hub_card.html' with item=mod item_type='module' %}
-                {% empty %}
-                <p class="text-slate-500 col-span-full">Filtreye uygun uygulama yok.</p>
-                {% endfor %}
-            </div>
-        </section>
-
-        <section id="integrations">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-sky-600 mb-4">Entegrasyonlar</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {% for mod in module_catalog_integrations %}
-                {% include 'common/module_hub_card.html' with item=mod item_type='module' %}
-                {% empty %}
-                <p class="text-slate-500 col-span-full">Entegrasyon yok.</p>
-                {% endfor %}
-            </div>
-        </section>
-
-        <section id="particles">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-violet-600 mb-2">Özellik parçacıkları</h2>
-            <p class="text-sm text-slate-500 mb-6">Uygulama içi özellikler — sektöre göre ayrı aç/kapa (personel vs freelancer gibi).</p>
-            {% for group in module_particle_groups %}
-            <div class="mb-8">
-                <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                    <i data-lucide="{{ group.icon }}" class="w-4 h-4 text-violet-500"></i> {{ group.name }}
-                </h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {% for p in group.items %}
-                    <article class="bg-white rounded-2xl border p-4 flex flex-col {% if p.enabled %}border-emerald-200{% else %}border-slate-200{% endif %}">
-                        <div class="flex items-start justify-between gap-2">
-                            <div>
-                                <p class="text-[10px] font-bold uppercase text-slate-400">{{ p.parent_module_name }}</p>
-                                <h4 class="font-bold text-slate-900">{{ p.name }}</h4>
-                                <p class="text-xs text-slate-500 mt-1">{{ p.summary }}</p>
-                            </div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-lg {% if p.enabled %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %}">
-                                {% if p.enabled %}Açık{% else %}Kapalı{% endif %}
+                {% for app in group.items %}
+                <article class="bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col {% if app.installed %}border-emerald-200{% else %}border-slate-200{% endif %}">
+                    <div class="p-5 flex-1">
+                        <div class="flex justify-between gap-2 mb-3">
+                            <span class="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center">
+                                <i data-lucide="{{ app.icon }}" class="w-5 h-5 text-slate-600"></i>
+                            </span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-lg {% if app.installed %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %}">
+                                {% if app.installed %}Açık{% else %}Kapalı{% endif %}
                             </span>
                         </div>
-                        <div class="mt-2 flex flex-wrap gap-1">
-                            {% for tag in p.vertical_tags %}
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{{ tag }}</span>
-                            {% endfor %}
-                        </div>
+                        <h3 class="font-bold text-slate-900">{{ app.name }}</h3>
+                        <p class="text-sm text-slate-500 mt-2">{{ app.summary }}</p>
+                    </div>
+                    <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/80 flex gap-2 items-center">
+                        {% if app.can_open %}
+                        <a href="{{ app.hub_url }}" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold">Aç</a>
+                        {% elif app.installed %}
+                        <span class="text-xs text-amber-700 font-semibold">Rol izni gerekir</span>
+                        {% endif %}
                         {% if can_manage_modules %}
-                        <form method="post" class="mt-3 pt-3 border-t border-slate-100">
+                        <form method="post" class="ml-auto">
                             {% csrf_token %}
-                            <input type="hidden" name="toggle_particle" value="1">
-                            <input type="hidden" name="particle_slug" value="{{ p.slug }}">
-                            <button type="submit" class="text-xs font-bold {% if p.enabled %}text-red-600{% else %}text-emerald-700{% endif %} hover:underline">
-                                {% if p.enabled %}Kapat{% else %}Aç{% endif %}
+                            <input type="hidden" name="toggle_profile_app" value="1">
+                            <input type="hidden" name="app_slug" value="{{ app.slug }}">
+                            <button type="submit" class="text-xs font-bold {% if app.installed %}text-red-600{% else %}text-emerald-700{% endif %} hover:underline">
+                                {% if app.installed %}Kapat{% else %}Aç{% endif %}
                             </button>
                         </form>
                         {% endif %}
-                    </article>
-                    {% endfor %}
-                </div>
+                    </div>
+                </article>
+                {% endfor %}
             </div>
-            {% empty %}
-            <p class="text-slate-500">Parçacık yok.</p>
-            {% endfor %}
         </section>
+        {% empty %}
+        <p class="text-slate-500 text-center py-10">Bu profile uygun uygulama bulunamadı.</p>
+        {% endfor %}
+
+        {% if profile_integrations %}
+        <section>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-sky-600 mb-4">Entegrasyonlar</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for app in profile_integrations %}
+                <article class="bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col {% if app.installed %}border-sky-200{% else %}border-slate-200{% endif %}">
+                    <div class="p-5 flex-1">
+                        <span class="text-[10px] font-bold uppercase text-sky-500">Entegrasyon</span>
+                        <h3 class="font-bold text-slate-900 mt-1">{{ app.name }}</h3>
+                        <p class="text-sm text-slate-500 mt-2">{{ app.summary }}</p>
+                    </div>
+                    <div class="px-5 py-3 border-t flex gap-2 items-center">
+                        {% if app.can_open %}<a href="{{ app.hub_url }}" class="text-xs font-bold text-emerald-700">Aç →</a>{% endif %}
+                        {% if can_manage_modules %}
+                        <form method="post" class="ml-auto">
+                            {% csrf_token %}
+                            <input type="hidden" name="toggle_profile_app" value="1">
+                            <input type="hidden" name="app_slug" value="{{ app.slug }}">
+                            <button type="submit" class="text-xs font-bold {% if app.installed %}text-red-600{% else %}text-emerald-700{% endif %}">
+                                {% if app.installed %}Kapat{% else %}Aç{% endif %}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
 
         {% if module_catalog_roadmap %}
         <section>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Yol haritası</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {% for mod in module_catalog_roadmap %}
-                {% include 'common/module_hub_card.html' with item=mod item_type='module' %}
+            <h2 class="text-xs font-bold uppercase text-slate-400 mb-4">Yol haritası (bu profil)</h2>
+            <div class="grid sm:grid-cols-2 gap-3">
+                {% for m in module_catalog_roadmap %}
+                <div class="p-4 rounded-2xl border border-dashed border-slate-300 bg-white/50">
+                    <p class="font-bold text-slate-700">{{ m.name }}</p>
+                    <p class="text-xs text-slate-500 mt-1">{{ m.summary }}</p>
+                </div>
                 {% endfor %}
             </div>
         </section>

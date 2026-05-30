@@ -1,4 +1,4 @@
-"""Kurulum modül + parçacık çözümlemesi."""
+"""Kurulum profili uygulamaları + backend platform çözümlemesi."""
 
 from __future__ import annotations
 
@@ -7,28 +7,30 @@ from django.urls import NoReverseMatch, reverse
 from common.module_catalog import (
     DEFAULT_PRIMARY_VERTICAL,
     MODULE_GATE_EXEMPT_PREFIXES,
-    MODULE_KIND_APP,
-    MODULE_KIND_INTEGRATION,
-    MODULE_KIND_ROADMAP,
     MODULE_STATUS_ACTIVE,
     MODULE_STATUS_BETA,
     MODULE_STATUS_ROADMAP,
     MODULES,
-    VERTICALS,
-    default_enabled_module_slugs,
+    all_verticals,
     module_by_slug,
     route_prefix_to_module_slug,
     vertical_by_slug,
 )
 from common.module_particles import (
     LEGACY_MODULE_ALIASES,
-    PARTICLE_CATEGORIES,
-    PARTICLES,
-    category_by_slug,
-    default_enabled_particle_slugs,
     particle_by_slug,
     particle_route_prefixes,
-    vertical_preset_all_slugs,
+)
+from common.profile_apps import (
+    ALL_PROFILE_ITEMS,
+    APP_CATEGORY_LABELS,
+    LEGACY_TO_PROFILE,
+    collapse_platform_to_profile_slugs,
+    expand_profile_slugs_to_platform,
+    profile_app_by_slug,
+    profile_apps_for_vertical,
+    profile_integrations_for_vertical,
+    vertical_profile_preset,
 )
 
 
@@ -41,42 +43,6 @@ def _site_settings():
     return SiteSettings.objects.first()
 
 
-def _normalize_catalog_slugs(raw: list | tuple | None) -> list[str]:
-    if not raw:
-        return default_enabled_module_slugs() + default_enabled_particle_slugs()
-
-    known_modules = {m['slug'] for m in MODULES}
-    known_particles = {p['slug'] for p in PARTICLES}
-    known = known_modules | known_particles
-    out: list[str] = []
-
-    for slug in raw:
-        if slug in LEGACY_MODULE_ALIASES:
-            for alias in LEGACY_MODULE_ALIASES[slug]:
-                if alias not in out:
-                    out.append(alias)
-            continue
-        if slug in known and slug not in out:
-            out.append(slug)
-
-    if not out:
-        return default_enabled_module_slugs() + default_enabled_particle_slugs()
-
-    # Eski kurulumlar: modül listesi var, parçacık yok → profile göre tamamla
-    if not any(s.startswith('p.') for s in out):
-        settings = _site_settings()
-        vertical = DEFAULT_PRIMARY_VERTICAL
-        if settings and settings.primary_vertical_slug:
-            v = settings.primary_vertical_slug.strip()
-            if vertical_by_slug(v):
-                vertical = v
-        for slug in vertical_preset_all_slugs(vertical):
-            if slug not in out:
-                out.append(slug)
-
-    return out
-
-
 def get_primary_vertical_slug() -> str:
     settings = _site_settings()
     if settings and settings.primary_vertical_slug:
@@ -86,11 +52,45 @@ def get_primary_vertical_slug() -> str:
     return DEFAULT_PRIMARY_VERTICAL
 
 
-def get_enabled_catalog_slugs() -> list[str]:
+def _normalize_stored_slugs(raw: list | tuple | None) -> list[str]:
+    vertical = get_primary_vertical_slug()
+    if not raw:
+        return list(vertical_profile_preset(vertical))
+
+    known_profile = {i['slug'] for i in ALL_PROFILE_ITEMS}
+    out: list[str] = []
+
+    for slug in raw:
+        if slug in LEGACY_MODULE_ALIASES:
+            for alias in LEGACY_MODULE_ALIASES[slug]:
+                mapped = LEGACY_TO_PROFILE.get(alias)
+                if mapped and mapped not in out:
+                    out.append(mapped)
+            continue
+        if slug in LEGACY_TO_PROFILE and slug not in known_profile:
+            mapped = LEGACY_TO_PROFILE[slug]
+            if mapped not in out:
+                out.append(mapped)
+            continue
+        if slug in known_profile and slug not in out:
+            out.append(slug)
+
+    if not out or not any(s.startswith('app.') or s.startswith('int.') for s in out):
+        out = collapse_platform_to_profile_slugs(list(raw), vertical)
+
+    preset = vertical_profile_preset(vertical)
+    return out or list(preset)
+
+
+def get_enabled_profile_slugs() -> list[str]:
     settings = _site_settings()
     if settings and settings.enabled_module_slugs:
-        return _normalize_catalog_slugs(settings.enabled_module_slugs)
-    return _normalize_catalog_slugs(None)
+        return _normalize_stored_slugs(settings.enabled_module_slugs)
+    return _normalize_stored_slugs(None)
+
+
+def get_enabled_catalog_slugs() -> list[str]:
+    return expand_profile_slugs_to_platform(get_enabled_profile_slugs())
 
 
 def get_enabled_module_slugs() -> list[str]:
@@ -99,8 +99,11 @@ def get_enabled_module_slugs() -> list[str]:
 
 
 def get_enabled_particle_slugs() -> list[str]:
-    known = {p['slug'] for p in PARTICLES}
-    return [s for s in get_enabled_catalog_slugs() if s in known]
+    return [s for s in get_enabled_catalog_slugs() if s.startswith('p.')]
+
+
+def is_profile_app_enabled(slug: str) -> bool:
+    return slug in get_enabled_profile_slugs()
 
 
 def is_module_enabled(slug: str) -> bool:
@@ -114,13 +117,10 @@ def is_particle_enabled(slug: str) -> bool:
 
 
 def is_particle_enabled_for_nav(slug: str) -> bool:
-    """Parçacık açık ve üst modül kurulu."""
     p = particle_by_slug(slug)
     if not p or not is_particle_enabled(slug):
         return False
     parent = p.get('parent_module')
-    if parent == 'agency_suite':
-        return is_module_enabled('agency_suite') or is_particle_enabled('p.agency.retainer')
     if parent and not is_module_enabled(parent):
         return False
     return True
@@ -142,6 +142,20 @@ def resolve_path_particle_slug(path: str) -> str | None:
     return None
 
 
+def user_can_access_profile_app(user, app: dict) -> bool:
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    required_any = app.get('requires_any_perm')
+    if required_any:
+        return user.has_any_perm_codename(*required_any)
+    perm = app.get('access_perm')
+    if not perm:
+        return False
+    return user.has_perm_codename(perm)
+
+
 def user_can_access_module(user, module: dict) -> bool:
     if not user.is_authenticated:
         return False
@@ -156,6 +170,17 @@ def user_can_access_module(user, module: dict) -> bool:
     return user.has_perm_codename(perm)
 
 
+def profile_app_available_for_nav(user, slug: str) -> bool:
+    if not is_profile_app_enabled(slug):
+        return False
+    app = profile_app_by_slug(slug)
+    if not app:
+        return False
+    if app.get('vertical') and app['vertical'] != get_primary_vertical_slug():
+        return False
+    return user_can_access_profile_app(user, app)
+
+
 def module_available_for_nav(user, slug: str) -> bool:
     if not is_module_enabled(slug):
         return False
@@ -165,21 +190,16 @@ def module_available_for_nav(user, slug: str) -> bool:
     return user_can_access_module(user, mod)
 
 
-def integration_available_for_nav(user, slug: str) -> bool:
-    return module_available_for_nav(user, slug)
-
-
 def build_modules_nav_flags(user) -> dict[str, bool]:
-    slugs = {m['slug'] for m in MODULES}
-    return {slug: module_available_for_nav(user, slug) for slug in slugs}
-
-
-def build_particles_nav_flags(user) -> dict[str, bool]:
-    return {p['slug']: is_particle_enabled_for_nav(p['slug']) for p in PARTICLES}
+    flags = {m['slug']: module_available_for_nav(user, m['slug']) for m in MODULES}
+    for item in ALL_PROFILE_ITEMS:
+        for mod_slug in item.get('platform_modules', ()):
+            int_key = mod_slug
+            flags[int_key] = module_available_for_nav(user, mod_slug)
+    return flags
 
 
 def build_particles_nav_short(user) -> dict[str, bool]:
-    """Şablonlar için kısa anahtarlar: contact_teams, accounting_payroll…"""
     mapping = {
         'p.contact.customers': 'contact_customers',
         'p.contact.firms': 'contact_firms',
@@ -192,12 +212,13 @@ def build_particles_nav_short(user) -> dict[str, bool]:
         'p.agency.retainer': 'agency_retainer',
         'p.outreach.campaigns': 'outreach_campaigns',
     }
-    flags = build_particles_nav_flags(user)
-    return {short: flags.get(full, False) for full, short in mapping.items()}
+    return {
+        short: is_particle_enabled_for_nav(full)
+        for full, short in mapping.items()
+    }
 
 
-def _module_hub_url(module: dict) -> str | None:
-    url_name = module.get('hub_url_name')
+def _hub_url(url_name: str | None) -> str | None:
     if not url_name:
         return None
     try:
@@ -206,153 +227,133 @@ def _module_hub_url(module: dict) -> str | None:
         return None
 
 
-def _status_label(status: str) -> str:
-    return {
-        MODULE_STATUS_ACTIVE: 'Aktif',
-        MODULE_STATUS_BETA: 'Beta',
-        MODULE_STATUS_ROADMAP: 'Yakında',
-    }.get(status, status)
-
-
-def _kind_label(kind: str) -> str:
-    return {
-        MODULE_KIND_APP: 'Uygulama',
-        MODULE_KIND_INTEGRATION: 'Entegrasyon',
-        MODULE_KIND_ROADMAP: 'Yol haritası',
-    }.get(kind, kind)
-
-
-def build_module_record(user, module: dict, *, installed: bool) -> dict:
-    record = dict(module)
+def build_profile_app_record(user, app: dict) -> dict:
+    slug = app['slug']
+    installed = is_profile_app_enabled(slug)
+    cat = APP_CATEGORY_LABELS.get(app.get('category', ''), ('', 'puzzle'))
+    record = dict(app)
     record['installed'] = installed
-    record['status_label'] = _status_label(module['status'])
-    record['kind_label'] = _kind_label(module.get('kind', MODULE_KIND_APP))
-    record['hub_url'] = (
-        _module_hub_url(module)
-        if installed and module['status'] in (MODULE_STATUS_ACTIVE, MODULE_STATUS_BETA)
-        else None
-    )
-    record['user_has_access'] = user_can_access_module(user, module) if installed else False
+    record['category_name'] = cat[0]
+    record['category_icon'] = cat[1]
+    record['hub_url'] = _hub_url(app.get('hub_url_name')) if installed else None
+    record['user_has_access'] = user_can_access_profile_app(user, app) if installed else False
     record['can_open'] = bool(record['hub_url'] and record['user_has_access'])
-    record['can_toggle'] = (
-        module['status'] in (MODULE_STATUS_ACTIVE, MODULE_STATUS_BETA)
-        and module.get('can_disable', True)
-    )
-    return record
-
-
-def build_particle_record(particle: dict, *, enabled: bool) -> dict:
-    record = dict(particle)
-    record['enabled'] = enabled
-    cat = category_by_slug(particle['category'])
-    record['category_name'] = cat['name'] if cat else particle['category']
-    record['category_icon'] = cat['icon'] if cat else 'puzzle'
-    parent = module_by_slug(particle.get('parent_module', ''))
-    record['parent_module_name'] = parent['name'] if parent else '—'
     record['can_toggle'] = True
     return record
 
 
-def build_module_hub_context(user, *, vertical_filter: str | None = None, query: str = '') -> dict:
-    enabled = set(get_enabled_catalog_slugs())
-    primary = get_primary_vertical_slug()
-    vf = None
-    if vertical_filter and vertical_filter != 'all':
-        vf = vertical_filter if vertical_by_slug(vertical_filter) else None
-
+def build_profile_hub_context(user, *, query: str = '') -> dict:
+    vertical = get_primary_vertical_slug()
+    vinfo = vertical_by_slug(vertical)
     q = (query or '').strip().lower()
-    modules = []
-    for mod in MODULES:
-        if vf and vf not in mod.get('verticals', ()):
+
+    apps = []
+    for app in profile_apps_for_vertical(vertical):
+        if q and q not in f"{app['name']} {app['summary']}".lower():
             continue
-        if q:
-            hay = f"{mod['name']} {mod['summary']}".lower()
-            if q not in hay:
-                continue
-        installed = mod['slug'] in enabled and mod['status'] in (MODULE_STATUS_ACTIVE, MODULE_STATUS_BETA)
-        modules.append(build_module_record(user, mod, installed=installed))
+        apps.append(build_profile_app_record(user, app))
 
-    modules.sort(key=lambda m: (
-        m['kind'] == MODULE_KIND_INTEGRATION,
-        m['status'] != MODULE_STATUS_ACTIVE,
-        m['sort'],
-        m['name'],
-    ))
-
-    particles = []
-    for p in PARTICLES:
-        if vf and vf not in p.get('vertical_tags', ()):
+    integrations = []
+    for item in profile_integrations_for_vertical(vertical):
+        if q and q not in f"{item['name']} {item['summary']}".lower():
             continue
-        if q:
-            hay = f"{p['name']} {p['summary']}".lower()
-            if q not in hay:
-                continue
-        particles.append(build_particle_record(p, enabled=p['slug'] in enabled))
+        integrations.append(build_profile_app_record(user, item))
 
-    particles.sort(key=lambda p: (p['category'], p['sort'], p['name']))
+    apps.sort(key=lambda a: (a.get('sort', 99), a['name']))
+    integrations.sort(key=lambda a: a.get('sort', 99))
 
-    particle_groups = []
-    for cat_row in PARTICLE_CATEGORIES:
-        cat_slug, cat_name, cat_icon = cat_row
-        items = [p for p in particles if p['category'] == cat_slug]
+    groups: dict[str, list] = {}
+    for a in apps:
+        groups.setdefault(a['category'], []).append(a)
+
+    profile_app_groups = []
+    for cat_slug, (cat_name, cat_icon) in APP_CATEGORY_LABELS.items():
+        if cat_slug == 'entegrasyon':
+            continue
+        items = groups.get(cat_slug, [])
         if items:
-            particle_groups.append({'slug': cat_slug, 'name': cat_name, 'icon': cat_icon, 'items': items})
+            profile_app_groups.append({
+                'slug': cat_slug,
+                'name': cat_name,
+                'icon': cat_icon,
+                'items': items,
+            })
 
-    verticals = [{'slug': 'all', 'name': 'Tüm sektörler', 'tagline': '', 'icon': 'layout-grid', 'color': 'slate'}]
-    verticals.extend(v for v in (vertical_by_slug(row[0]) for row in VERTICALS) if v)
+    roadmap = [
+        dict(m) for m in MODULES
+        if m['status'] == MODULE_STATUS_ROADMAP
+        and vertical in m.get('verticals', ())
+    ]
 
-    apps = [m for m in modules if m.get('kind') == MODULE_KIND_APP and m['status'] != MODULE_STATUS_ROADMAP]
-    integrations = [m for m in modules if m.get('kind') == MODULE_KIND_INTEGRATION]
-    roadmap = [m for m in modules if m['status'] == MODULE_STATUS_ROADMAP]
-
-    preset_slugs = vertical_preset_all_slugs(primary)
-
+    enabled_profile = get_enabled_profile_slugs()
     return {
-        'module_verticals': verticals,
-        'module_vertical_filter': vertical_filter or 'all',
-        'module_primary_vertical': primary,
-        'module_catalog_items': modules,
-        'module_catalog_apps': apps,
-        'module_catalog_integrations': integrations,
+        'module_primary_vertical': vertical,
+        'panel_vertical': vinfo,
+        'module_verticals': all_verticals(),
+        'profile_app_groups': profile_app_groups,
+        'profile_integrations': integrations,
+        'profile_apps_flat': apps + integrations,
         'module_catalog_roadmap': roadmap,
-        'module_particle_groups': particle_groups,
-        'module_particles': particles,
-        'module_installed_count': sum(1 for m in apps if m['installed']) + sum(1 for p in particles if p['enabled']),
+        'module_installed_count': sum(1 for a in apps + integrations if a['installed']),
         'module_roadmap_count': len(roadmap),
         'module_search_query': query,
-        'vertical_preset_slugs': preset_slugs,
+        'vertical_preset_slugs': vertical_profile_preset(vertical),
+        'enabled_profile_slugs': enabled_profile,
     }
+
+
+def build_profile_panel_apps(user) -> list[dict]:
+    """Ana panel — yalnızca kurulum profili uygulamaları."""
+    vertical = get_primary_vertical_slug()
+    items = profile_apps_for_vertical(vertical) + profile_integrations_for_vertical(vertical)
+    records = []
+    for app in items:
+        rec = build_profile_app_record(user, app)
+        if rec['installed'] and rec['can_open']:
+            records.append(rec)
+    records.sort(key=lambda a: (a.get('sort', 99), a['name']))
+    return records
 
 
 def panel_section_visible(section_key: str) -> bool:
+    """Geriye dönük — profil uygulaması eşlemesi."""
+    vertical = get_primary_vertical_slug()
     mapping = {
-        'contact': 'contact',
-        'services': 'services',
-        'accounting': 'accounting',
-        'outreach': 'outreach',
-        'agency': 'agency_suite',
+        'contact': {
+            'kobi': 'app.kobi.customers',
+            'agency': 'app.agency.clients',
+            'retail': 'app.retail.customers',
+            'healthcare': 'app.healthcare.customers',
+            'nonprofit': 'app.nonprofit.members',
+        },
+        'services': {
+            'kobi': 'app.kobi.service_desk',
+            'retail': 'app.retail.service_desk',
+            'healthcare': 'app.healthcare.appointments',
+        },
+        'accounting': {
+            'kobi': 'app.kobi.finance',
+            'agency': 'app.agency.finance',
+            'retail': 'app.retail.finance',
+        },
+        'outreach': {
+            'kobi': 'app.kobi.campaigns',
+            'agency': 'app.agency.campaigns',
+            'healthcare': 'app.healthcare.campaigns',
+            'nonprofit': 'app.nonprofit.campaigns',
+        },
+        'agency': {
+            'agency': 'app.agency.retainer_studio',
+        },
     }
-    slug = mapping.get(section_key)
-    if not slug:
-        return True
-    return is_module_enabled(slug)
-
-
-def recommended_modules_for_vertical(vertical_slug: str) -> list[dict]:
-    preset = set(vertical_preset_all_slugs(vertical_slug))
-    return [
-        dict(m) for m in MODULES
-        if m['slug'] in preset and m['status'] in (MODULE_STATUS_ACTIVE, MODULE_STATUS_BETA)
-    ]
-
-
-def recommended_particles_for_vertical(vertical_slug: str) -> list[dict]:
-    preset = set(vertical_preset_all_slugs(vertical_slug))
-    return [dict(p) for p in PARTICLES if p['slug'] in preset]
+    app_slug = mapping.get(section_key, {}).get(vertical)
+    if not app_slug:
+        return False
+    return is_profile_app_enabled(app_slug)
 
 
 def apply_vertical_preset(vertical_slug: str) -> list[str]:
-    slugs = list(vertical_preset_all_slugs(vertical_slug))
+    slugs = list(vertical_profile_preset(vertical_slug))
     settings = _site_settings()
     if not settings:
         from core_settings.models import SiteSettings
@@ -364,5 +365,17 @@ def apply_vertical_preset(vertical_slug: str) -> list[str]:
 
 
 def vertical_preset_modules(vertical_slug: str) -> tuple[str, ...]:
-    """Geriye dönük uyumluluk."""
-    return vertical_preset_all_slugs(vertical_slug)
+    return vertical_profile_preset(vertical_slug)
+
+
+# Geriye dönük isimler
+def build_module_hub_context(user, *, vertical_filter: str | None = None, query: str = '') -> dict:
+    return build_profile_hub_context(user, query=query)
+
+
+def recommended_modules_for_vertical(vertical_slug: str) -> list[dict]:
+    return profile_apps_for_vertical(vertical_slug)
+
+
+def recommended_particles_for_vertical(vertical_slug: str) -> list[dict]:
+    return []

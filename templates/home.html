@@ -63,102 +63,35 @@
             {% endif %}
             <div class="mb-10">
                 <h2 class="text-2xl font-bold text-slate-900">Hoş geldiniz, {{ user_profile_card.display_name }}</h2>
-                <p class="text-slate-600 mt-2">Modüllerinize ve entegrasyonlara hızlı erişin.</p>
+                <p class="text-slate-600 mt-2">Kurulum profilinize özel uygulamalara hızlı erişin.</p>
             </div>
 
             {% include 'common/panel_vertical_bar.html' %}
+            {% include 'common/panel_profile_apps.html' %}
 
-            {% if modules_nav.agency_suite and panel_show_agency %}
-            {% include 'common/panel_agency_section.html' %}
-            {% endif %}
-
-            {% if modules_nav.contact and panel_show_contact %}
-            {% include 'common/panel_rehber_section.html' %}
-            {% endif %}
-
-            {% if modules_nav.accounting and panel_show_accounting %}
+            {% if user_access.settings %}
             <section class="mb-10">
-                {% include 'common/accounting_panel_section.html' with section_title=gy.muhasebe show_hub_link=True show_hub_card=False card_layout='wide' highlight_payroll=True %}
-                {% if not accounting_show_payroll and not accounting_show_finance and not accounting_show_reports %}
-                <div class="mt-4 p-5 rounded-2xl bg-amber-50 border border-amber-100 text-amber-800 text-sm">
-                    Muhasebe erişiminiz var; maaş, gelir-gider veya rapor izinleri için yöneticinize başvurun.
-                    <a href="{% url 'accounting_hub' %}" class="block mt-2 font-bold text-emerald-700 hover:underline">Muhasebe →</a>
-                </div>
-                {% endif %}
-            </section>
-            {% elif user_perms.contact_personnel and particles_nav.accounting_personnel %}
-            <section class="mb-10">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-4 flex items-center gap-2">
-                    <i data-lucide="calculator" class="w-4 h-4"></i> {{ gy.muhasebe }}
-                </h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <a href="{% url 'accounting_personnel' %}" class="group block bg-white rounded-3xl border border-emerald-200 shadow-sm hover:shadow-lg hover:border-emerald-300 transition-all p-6">
-                        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors"><i data-lucide="id-card" class="w-6 h-6"></i></div>
-                        <h4 class="text-lg font-bold text-slate-900">{{ gy.mh_personel }}</h4>
-                        <p class="text-sm text-slate-500 mt-2">Personel kaydı, ekip ataması ve servis yetkinlikleri.</p>
-                    </a>
-                </div>
-            </section>
-            {% endif %}
-
-            {% if modules_nav.services and panel_show_services %}
-            <section class="mb-10">
-                {% include 'common/panel_services_section.html' %}
-            </section>
-            {% endif %}
-
-            {% if modules_nav.outreach and panel_show_outreach %}
-            {% include 'common/panel_outreach_section.html' %}
-            {% endif %}
-
-            {% if user_perms.tools_media or modules_nav.integration_whatsapp_bridge or modules_nav.integration_whatsapp_api or modules_nav.integration_media or user_access.settings or user_access.admin_panel %}
-            <section class="mb-10">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
-                    <i data-lucide="plug" class="w-4 h-4"></i> Entegrasyonlar & sistem
-                </h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {% if modules_nav.integration_whatsapp_bridge %}
-                    <a href="{% url 'tools_whatsapp_baglan' %}" class="group block bg-white rounded-3xl border border-green-200 shadow-sm hover:shadow-lg p-6">
-                        <div class="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center mb-4"><i data-lucide="message-circle" class="w-6 h-6"></i></div>
-                        <h4 class="text-lg font-bold text-slate-900">WhatsApp Köprüsü</h4>
-                        <p class="text-sm text-slate-500 mt-2">QR bağlantı, hatlar ve senaryolar.</p>
-                    </a>
-                    {% endif %}
-                    {% if modules_nav.integration_whatsapp_api %}
-                    <a href="{% url 'tools_whatsapp_api_settings' %}" class="group block bg-white rounded-3xl border border-violet-200 shadow-sm hover:shadow-lg p-6">
-                        <div class="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4"><i data-lucide="cloud" class="w-6 h-6"></i></div>
-                        <h4 class="text-lg font-bold text-slate-900">WhatsApp Business API</h4>
-                        <p class="text-sm text-slate-500 mt-2">Kampanya ve toplu gönderim ayarları.</p>
-                    </a>
-                    {% endif %}
-                    {% if modules_nav.integration_media and user_perms.tools_media %}
-                    <a href="{% url 'tools_media_library' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg p-6">
-                        <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-4"><i data-lucide="images" class="w-6 h-6"></i></div>
-                        <h4 class="text-lg font-bold text-slate-900">Medya Kütüphanesi</h4>
-                        <p class="text-sm text-slate-500 mt-2">Dosya ve fotoğraf arşivi.</p>
-                    </a>
-                    {% endif %}
-                    {% if user_access.settings %}
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Sistem</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
                     <a href="{% url 'settings_genel' %}" class="group block bg-white rounded-3xl border border-amber-200 shadow-sm hover:shadow-lg p-6">
                         <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4"><i data-lucide="sliders-horizontal" class="w-6 h-6"></i></div>
                         <h4 class="text-lg font-bold text-slate-900">Site Ayarları</h4>
-                        <p class="text-sm text-slate-500 mt-2">Katalog, AI ve firma bilgileri.</p>
+                        <p class="text-sm text-slate-500 mt-2">Katalog, roller, firma bilgileri.</p>
                     </a>
-                    {% endif %}
-                    {% if user_access.admin_panel %}
-                    <a href="{% url 'admin_dashboard' %}" class="group block bg-white rounded-3xl border border-red-200 shadow-sm hover:shadow-lg p-6 bg-red-50/30">
-                        <div class="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4"><i data-lucide="shield" class="w-6 h-6"></i></div>
-                        <h4 class="text-lg font-bold text-slate-900">Süper Admin</h4>
-                        <p class="text-sm text-slate-500 mt-2">Kullanıcılar ve roller.</p>
+                    {% if can_manage_modules %}
+                    <a href="{% url 'module_hub' %}" class="group block bg-white rounded-3xl border border-violet-200 shadow-sm hover:shadow-lg p-6">
+                        <div class="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4"><i data-lucide="layout-grid" class="w-6 h-6"></i></div>
+                        <h4 class="text-lg font-bold text-slate-900">Uygulama Merkezi</h4>
+                        <p class="text-sm text-slate-500 mt-2">Profil uygulamalarını aç/kapa.</p>
                     </a>
                     {% endif %}
                 </div>
             </section>
             {% endif %}
 
-            {% if not user_access.contact and not user_access.services and not user_access.accounting and not user_access.outreach and not user_access.tools and not user_access.admin_panel and not user_access.settings %}
+            {% if not profile_panel_apps and not user_access.settings %}
             <div class="p-6 rounded-2xl bg-amber-50 border border-amber-100 text-amber-800 text-sm">
-                Hesabınıza henüz modül izni atanmamış. Yöneticinizle iletişime geçin.
+                Açık uygulama yok veya rol izniniz tanımlı değil. Yöneticinizle iletişime geçin.
             </div>
             {% endif %}
         </main>
