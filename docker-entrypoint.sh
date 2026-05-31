@@ -13,19 +13,9 @@ fi
 DATA_DIR="${DATA_DIR:-/data}"
 mkdir -p "$DATA_DIR" "${DJANGO_MEDIA_ROOT:-$DATA_DIR/media}"
 
+export DJANGO_DB_PATH="${DJANGO_DB_PATH:-$DATA_DIR/db.sqlite3}"
 export DJANGO_MEDIA_ROOT="${DJANGO_MEDIA_ROOT:-$DATA_DIR/media}"
 export DJANGO_SERVE_MEDIA="${DJANGO_SERVE_MEDIA:-1}"
-
-if [[ -n "${POSTGRES_HOST:-}" ]]; then
-  export POSTGRES_PORT="${POSTGRES_PORT:-5432}"
-  export POSTGRES_DB="${POSTGRES_DB:-kobiops}"
-  export POSTGRES_USER="${POSTGRES_USER:-kobiops}"
-  export POSTGRES_CONN_MAX_AGE="${POSTGRES_CONN_MAX_AGE:-60}"
-  echo "[gy-dashboard] PostgreSQL: ${POSTGRES_USER}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
-else
-  export DJANGO_DB_PATH="${DJANGO_DB_PATH:-$DATA_DIR/db.sqlite3}"
-  echo "[gy-dashboard] SQLite: ${DJANGO_DB_PATH}"
-fi
 
 # Coolify PORT=8000 enjekte eder (panel portu) — uygulama konteyneri her zaman 80 dinler
 if [[ "${KOBIOPS_COMPOSE_STACK:-0}" == "1" ]]; then
@@ -44,12 +34,6 @@ fi
 if [ -n "${DATA_DIR:-}" ] && [ ! -w "$DATA_DIR" ]; then
   echo "[gy-dashboard] HATA: ${DATA_DIR} yazılamıyor — Docker Compose volume (gy_data:/data) bağlı mı?"
   exit 1
-fi
-
-if [[ -n "${POSTGRES_HOST:-}" ]]; then
-  echo "[gy-dashboard] PostgreSQL bekleniyor..."
-  python manage.py wait_for_db --timeout "${POSTGRES_WAIT_TIMEOUT:-90}" \
-    || { echo "[gy-dashboard] HATA: PostgreSQL hazır değil."; exit 1; }
 fi
 
 echo "[gy-dashboard] kalıcı veri kontrolü..."

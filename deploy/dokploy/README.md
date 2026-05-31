@@ -10,7 +10,6 @@
 3. **Environment** (isteğe bağlı, önerilir):
    ```env
    COMPOSE_FILE=docker-compose.yaml:deploy/dokploy/docker-compose.dokploy.yaml
-   POSTGRES_PASSWORD=guclu-bir-sifre
    APP_URL=http://panel.sizin-domain.sslip.io
    ```
    `APP_URL` sonunda `/` olmasın. sslip.io için **http** kullanın (https değil).
@@ -68,7 +67,6 @@ Dokploy → **Deployments** → **Webhook** → GitHub push event.
 |---------|--------|
 | **404 page not found** | Domain servisi **`app`**, port **80**. sslip.io → **http://** (https değil). Overlay'de `traefik.docker.network=dokploy-network` olmalı — redeploy. Dokploy → **Reload Traefik**. Log: `daphne 0.0.0.0:80` |
 | App Restarting / SECRET_KEY | Logs; `/data` volume var mı? Redeploy |
-| App Restarting / PostgreSQL | `POSTGRES_PASSWORD` .env'de tanımlı mı? `postgres` servisi healthy mi? |
 | DisallowedHost | `APP_URL=http://tam-domain.sslip.io` (slash yok) + redeploy |
 | 404 / sslip | `DJANGO_SECURE_SSL` otomatik 0; http:// kullanın |
 | CSRF | Domain ile CSRF otomatik; redeploy |

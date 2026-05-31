@@ -6,13 +6,8 @@
 <div class="mb-6">
     <h1 class="text-2xl font-bold text-slate-900">Sistem Yedekleri</h1>
     <p class="text-slate-600 mt-1">
-        <strong>Tam sistem yedeği</strong>
-        {% if backup_status.sqlite_backup_enabled %}
-        <code class="text-sm bg-slate-100 px-1 rounded">db.sqlite3</code> dosyasıdır —
+        <strong>Tam sistem yedeği</strong> <code class="text-sm bg-slate-100 px-1 rounded">db.sqlite3</code> dosyasıdır —
         tüm tablolar, kayıtlar ve uygulanmış migration geçmişi bu dosyada birebir saklanır.
-        {% else %}
-        PostgreSQL kullanılıyor — tam yedek için <strong>JSON dışa aktarma</strong> kullanın.
-        {% endif %}
         Yüklenen dosyalar için ayrıca <code class="text-sm bg-slate-100 px-1 rounded">media/</code> klasörünü yedekleyin.
     </p>
 </div>
@@ -23,11 +18,7 @@
         Güncel veritabanı
     </p>
     <p class="text-slate-600 mt-1">
-        {% if backup_status.database_engine == 'postgresql' %}
-        <strong>PostgreSQL</strong> — üretim veritabanı
-        {% else %}
         <strong>{{ backup_status.database_size_display }}</strong>
-        {% endif %}
         {% if backup_status.database_exists %}
         · <code class="text-xs bg-white px-1 rounded break-all">{{ backup_status.database_path }}</code>
         {% else %}
@@ -39,7 +30,6 @@
     </p>
 </div>
 
-{% if backup_status.sqlite_backup_enabled %}
 <section class="bg-white p-6 rounded-3xl border-2 border-violet-200 shadow-sm space-y-6 mb-6">
     <div class="flex items-start gap-3">
         <span class="px-2 py-0.5 rounded-lg bg-violet-100 text-violet-800 text-xs font-bold">Tam yedek</span>
@@ -81,7 +71,6 @@
         </form>
     </div>
 </section>
-{% endif %}
 
 <section class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
     <p class="text-xs font-bold text-slate-400 uppercase tracking-wide">İsteğe bağlı — veri dışa aktarma</p>

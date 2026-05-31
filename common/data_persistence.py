@@ -1,4 +1,4 @@
-"""Üretimde veritabanı ve /data volume güvenliğini doğrular; SQLite için otomatik yedek alır."""
+"""Üretimde SQLite verisinin kalıcı volume üzerinde olduğunu doğrular; otomatik yedek alır."""
 
 from __future__ import annotations
 
@@ -11,8 +11,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from django.conf import settings
-
-from common.db import uses_postgresql, uses_sqlite
 
 logger = logging.getLogger(__name__)
 
@@ -31,15 +29,10 @@ def _truthy(name: str, default: str = '0') -> bool:
 
 
 def is_containerized_production() -> bool:
-    if uses_postgresql():
-        return bool(os.environ.get('DATA_DIR', '').strip() or os.environ.get('POSTGRES_HOST', '').strip())
     return bool(os.environ.get('DATA_DIR', '').strip() or os.environ.get('DJANGO_DB_PATH', '').strip())
 
 
 def db_path() -> Path:
-    if uses_postgresql():
-        db = settings.DATABASES['default']
-        return Path(f"postgresql://{db.get('HOST', 'localhost')}/{db.get('NAME', 'postgres')}")
     return Path(settings.DATABASES['default']['NAME'])
 
 
@@ -199,7 +192,7 @@ def _load_marker(root: Path) -> dict | None:
         return None
 
 
-def _sqlite_user_count(path: Path) -> int | None:
+def _db_record_count(path: Path) -> int | None:
     if not path.is_file() or path.stat().st_size < 512:
         return None
     try:
@@ -218,46 +211,24 @@ def _sqlite_user_count(path: Path) -> int | None:
         return None
 
 
-def _auth_user_count() -> int | None:
-    if uses_sqlite():
-        return _sqlite_user_count(Path(settings.DATABASES['default']['NAME']))
-    try:
-        from django.contrib.auth import get_user_model
-
-        return get_user_model().objects.count()
-    except Exception:
-        return None
-
-
 def write_persistence_marker(root: Path | None = None) -> dict:
     root = root or data_root()
     db = db_path()
-    db_bytes = 0
-    if uses_sqlite() and db.is_file():
-        db_bytes = db.stat().st_size
     payload = {
-        'version': 2,
+        'version': 1,
         'updated_at': datetime.now(timezone.utc).isoformat(),
-        'db_engine': 'postgresql' if uses_postgresql() else 'sqlite',
         'db_path': str(db),
-        'db_bytes': db_bytes,
-        'auth_user_count': _auth_user_count(),
+        'db_bytes': db.stat().st_size if db.is_file() else 0,
+        'auth_user_count': _db_record_count(db),
     }
-    if uses_postgresql():
-        db_cfg = settings.DATABASES['default']
-        payload['db_name'] = db_cfg.get('NAME', '')
-        payload['db_host'] = db_cfg.get('HOST', '')
     root.mkdir(parents=True, exist_ok=True)
     marker_path(root).write_text(json.dumps(payload, indent=2), encoding='utf-8')
     return payload
 
 
 def auto_backup_sqlite(root: Path | None = None) -> Path | None:
-    """migrate öncesi mevcut db.sqlite3 kopyası (volume içinde). PostgreSQL'de atlanır."""
-    if not uses_sqlite():
-        return None
-
-    db = Path(settings.DATABASES['default']['NAME'])
+    """migrate öncesi mevcut db.sqlite3 kopyası (volume içinde)."""
+    db = db_path()
     if not db.is_file() or db.stat().st_size < 512:
         return None
 
@@ -290,6 +261,7 @@ def check_before_migrate() -> None:
         return
 
     root = data_root()
+    db = db_path()
     marker = _load_marker(root)
 
     if require_persistent_volume() and data_dir_looks_ephemeral(root):
@@ -303,33 +275,27 @@ def check_before_migrate() -> None:
     if marker:
         prev_bytes = int(marker.get('db_bytes') or 0)
         prev_users = marker.get('auth_user_count')
-        current_bytes = 0
-        if uses_sqlite():
-            db_file = Path(settings.DATABASES['default']['NAME'])
-            current_bytes = db_file.stat().st_size if db_file.is_file() else 0
+        current_bytes = db.stat().st_size if db.is_file() else 0
 
-        if uses_sqlite() and prev_bytes >= MIN_MEANINGFUL_DB_BYTES and current_bytes < MIN_MEANINGFUL_DB_BYTES:
+        if prev_bytes >= MIN_MEANINGFUL_DB_BYTES and current_bytes < MIN_MEANINGFUL_DB_BYTES:
             backup_hint = root / AUTO_BACKUP_SUBDIR / 'latest.sqlite3'
             raise DataPersistenceError(
                 'KRİTİK: Veri kaybı algılandı — önceki db.sqlite3 kayboldu veya boşaltıldı. '
                 f'Önceki boyut: {prev_bytes} bayt, şimdi: {current_bytes}. '
                 f'Volume /data silinmiş olabilir. '
-                f'Yedek varsa geri yükleyin: {backup_hint} → {db_file}'
+                f'Yedek varsa geri yükleyin: {backup_hint} → {db}'
             )
 
-        if prev_users and int(prev_users) > 0:
-            current_users = _auth_user_count()
+        if prev_users and int(prev_users) > 1:
+            current_users = _db_record_count(db)
             if current_users is not None and current_users == 0:
-                engine = 'PostgreSQL' if uses_postgresql() else 'SQLite'
                 raise DataPersistenceError(
-                    f'KRİTİK: {engine} veritabanı boş görünüyor (kullanıcı kaydı yok). '
-                    'Deploy öncesi volume veya DB bağlantısı kaybolmuş olabilir.'
+                    'KRİTİK: Veritabanı boş görünüyor (kullanıcı kaydı yok). '
+                    'Rebuild öncesi /data volume kaybolmuş olabilir.'
                 )
 
-    if uses_sqlite():
-        db_file = Path(settings.DATABASES['default']['NAME'])
-        if db_file.is_file() and db_file.stat().st_size >= MIN_MEANINGFUL_DB_BYTES:
-            auto_backup_sqlite(root)
+    if db.is_file() and db.stat().st_size >= MIN_MEANINGFUL_DB_BYTES:
+        auto_backup_sqlite(root)
 
 
 def check_after_migrate() -> dict | None:

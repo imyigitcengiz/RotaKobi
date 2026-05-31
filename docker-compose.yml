@@ -6,30 +6,6 @@ name: kobi-ops
 x-app-port: &app_port "80"
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-kobiops}
-      POSTGRES_USER: ${POSTGRES_USER:-kobiops}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kobiops_change_me}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U $${POSTGRES_USER:-kobiops} -d $${POSTGRES_DB:-kobiops}",
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 15s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-
   app:
     build:
       context: .
@@ -37,21 +13,13 @@ services:
       args:
         KOBIOPS_BUILD_COMMIT: ${KOBIOPS_BUILD_COMMIT:-unknown}
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     expose:
       - *app_port
     environment:
       PORT: *app_port
       DATA_DIR: /data
       KOBIOPS_SECRETS_DIR: /run/kobiops-secrets
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: "5432"
-      POSTGRES_DB: ${POSTGRES_DB:-kobiops}
-      POSTGRES_USER: ${POSTGRES_USER:-kobiops}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kobiops_change_me}
-      POSTGRES_CONN_MAX_AGE: ${POSTGRES_CONN_MAX_AGE:-60}
+      DJANGO_DB_PATH: /data/db.sqlite3
       DJANGO_MEDIA_ROOT: /data/media
       DJANGO_SERVE_MEDIA: "1"
       DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
@@ -138,8 +106,6 @@ services:
 volumes:
   gy_data:
     name: kobiops_gy_data
-  postgres_data:
-    name: kobiops_postgres_data
   whatsapp_session:
     name: kobiops_whatsapp_session
   kobiops_secrets:

@@ -100,7 +100,6 @@ fi
 
 IP="$(detect_ip)"
 SECRET="$(gen_secret)"
-PG_PASS="$(gen_secret)"
 
 HOSTS="localhost,127.0.0.1,${IP}"
 CSRF="http://127.0.0.1:8080,http://localhost:8080,http://${IP}:8080"
@@ -136,10 +135,6 @@ DJANGO_DEBUG=0
 DJANGO_ENSURE_SUPERADMIN=1
 PORT=80
 KOBIOPS_HTTP_PORT=8080
-
-POSTGRES_DB=kobiops
-POSTGRES_USER=kobiops
-POSTGRES_PASSWORD=${PG_PASS}
 
 WHATSAPP_BRIDGE_URL=http://whatsapp_bridge:3939
 DJANGO_WHATSAPP_BRIDGE_CAN_SPAWN=0

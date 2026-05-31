@@ -15,7 +15,6 @@ from django.db import connections, transaction
 from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 
-from common.db import uses_sqlite
 from common.security_limits import MAX_BACKUP_UPLOAD_BYTES
 
 SQLITE_MAGIC = b'SQLite format 3\x00'
@@ -234,10 +233,7 @@ def import_backup_file(uploaded) -> tuple[bool, str]:
 
 
 def database_path() -> Path:
-    if uses_sqlite():
-        return Path(settings.DATABASES['default']['NAME']).resolve()
-    db = settings.DATABASES['default']
-    return Path(f"postgresql://{db.get('HOST', 'localhost')}/{db.get('NAME', 'postgres')}")
+    return Path(settings.DATABASES['default']['NAME']).resolve()
 
 
 def _close_db_connections():
@@ -276,8 +272,6 @@ def _backup_existing_db(db_path: Path) -> str | None:
 
 
 def export_sqlite_response() -> HttpResponse:
-    if not uses_sqlite():
-        raise RuntimeError('SQLite dışa aktarma yalnızca SQLite modunda kullanılabilir.')
     db_path = database_path()
     if not db_path.is_file():
         raise FileNotFoundError('Veritabanı dosyası bulunamadı.')
@@ -296,8 +290,6 @@ def export_sqlite_response() -> HttpResponse:
 
 
 def import_sqlite_file(uploaded) -> tuple[bool, str]:
-    if not uses_sqlite():
-        return False, 'SQLite içe aktarma yalnızca SQLite modunda kullanılabilir. JSON yedek kullanın.'
     if not uploaded:
         return False, 'Lütfen bir db.sqlite3 dosyası seçin.'
     if _upload_too_large(uploaded):
@@ -361,26 +353,16 @@ def import_sqlite_file(uploaded) -> tuple[bool, str]:
 def backup_status_summary() -> dict:
     migrations = _applied_migrations()
     db_path = database_path()
-    db_size = 0
-    db_exists = False
-    if uses_sqlite():
-        db_exists = db_path.is_file()
-        db_size = db_path.stat().st_size if db_exists else 0
-    else:
-        db_exists = True
+    db_size = db_path.stat().st_size if db_path.is_file() else 0
     return {
         'migration_count': len(migrations),
-        'migrations': migrations[-8:],
+        'migrations': migrations[-8:],  # son 8 satır önizleme
         'format_version': BACKUP_FORMAT_V2,
-        'database_engine': 'postgresql' if not uses_sqlite() else 'sqlite',
         'database_path': str(db_path),
         'database_size': db_size,
         'database_size_display': (
-            'PostgreSQL' if not uses_sqlite() else (
-                f'{db_size / (1024 * 1024):.1f} MB' if db_size >= 1024 * 1024
-                else f'{db_size / 1024:.1f} KB' if db_size else '—'
-            )
+            f'{db_size / (1024 * 1024):.1f} MB' if db_size >= 1024 * 1024
+            else f'{db_size / 1024:.1f} KB' if db_size else '—'
         ),
-        'database_exists': db_exists,
-        'sqlite_backup_enabled': uses_sqlite(),
+        'database_exists': db_path.is_file(),
     }
