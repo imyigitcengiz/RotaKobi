@@ -14,9 +14,11 @@
 
 <div class="flex flex-wrap gap-2 mb-6">
     <a href="{% url 'contact_firmalar' %}" class="panel-tab px-4 py-2 rounded-xl text-sm font-bold border {% if active_panel != 'maps' %}bg-brand-600 text-white border-brand-600{% else %}bg-white text-slate-700 border-slate-200 hover:border-brand-300{% endif %}">Firma rehberi</a>
+    {% if modules_nav.integration_data_harvest %}
     <a href="{% url 'contact_firmalar' %}?view=maps" class="panel-tab px-4 py-2 rounded-xl text-sm font-bold border {% if active_panel == 'maps' %}bg-teal-600 text-white border-teal-600{% else %}bg-white text-slate-700 border-slate-200 hover:border-teal-300{% endif %}">
         <span class="inline-flex items-center gap-1.5"><i data-lucide="map-pin" class="w-4 h-4"></i> Google Maps araması</span>
     </a>
+    {% endif %}
 </div>
 
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6" id="firmStatsRow">
@@ -28,14 +30,17 @@
         <p class="text-xs font-bold text-slate-500 uppercase">Firma mesajı gönderilmiş</p>
         <p class="text-2xl font-bold text-emerald-700" id="messagedTotal">{{ messaged_count }}</p>
     </div>
+    {% if modules_nav.integration_whatsapp_bridge and user_perms.tools_whatsapp %}
     <a href="{% url 'tools_whatsapp_baglan' %}" class="bg-violet-50 rounded-2xl border border-violet-200 p-4 hover:bg-violet-100 transition-colors">
         <p class="text-xs font-bold text-violet-700 uppercase">WhatsApp bağlan</p>
         <p class="text-sm font-semibold text-violet-800 mt-1">Numara bağlantılarını yönet →</p>
     </a>
+    {% endif %}
 </div>
 
 <p id="statusText" class="text-sm text-slate-500 mb-4"></p>
 
+{% if modules_nav.integration_data_harvest %}
 <div id="mapsPanel" class="{% if active_panel != 'maps' %}hidden{% endif %}">
 <p class="text-sm text-slate-500 mb-4">Arama sonuçları otomatik olarak aşağıdaki firma rehberine kaydedilir. Manuel kayıt için <a href="{% url 'contact_firmalar' %}" class="text-brand-600 font-semibold underline">Firma rehberi</a> sekmesini kullanın.</p>
 <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 mb-6">
@@ -106,6 +111,7 @@
     </div>
 </div>
 </div><!-- /mapsPanel -->
+{% endif %}
 
 <div id="rehberPanel" class="{% if active_panel == 'maps' %}hidden{% endif %}">
 {% if kind_counts %}

@@ -4,11 +4,23 @@ from __future__ import annotations
 
 from common.module_catalog import module_by_slug
 from common.module_runtime import (
+    MODULE_PARTICLE_FALLBACK,
     build_module_hub_context,
     build_module_record,
     get_enabled_module_slugs,
     is_module_installed,
 )
+
+
+def _related_slugs_for_disable(mod: dict) -> set[str]:
+    """Modül kapatılırken listeden çıkarılacak slug'lar (parçacık yedekleri dahil)."""
+    slugs = {mod['slug']}
+    for particle in mod.get('particle_slugs', ()):
+        slugs.add(particle)
+    for app_slug, particle_slug in MODULE_PARTICLE_FALLBACK.items():
+        if app_slug == mod['slug'] or particle_slug in mod.get('particle_slugs', ()):
+            slugs.add(particle_slug)
+    return slugs
 
 
 def user_can_manage_modules(user) -> bool:
@@ -44,7 +56,9 @@ def toggle_module_slug(user, slug: str) -> dict:
         ]
         if len(disableable) <= 1:
             return {'ok': False, 'error': 'En az bir modül açık kalmalı.'}
-        enabled.remove(slug)
+        for related in _related_slugs_for_disable(mod):
+            if related in enabled:
+                enabled.remove(related)
         message = f'"{mod["name"]}" kapatıldı.'
         level = 'info'
     else:

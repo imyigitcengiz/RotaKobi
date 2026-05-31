@@ -124,7 +124,7 @@
     </script>
     {% endif %}
     {% block extra_js %}{% endblock %}
-    {% if user_perms.services_whatsapp %}{% include 'services_dashboard/partials/whatsapp_modal.html' %}{% endif %}
+    {% if user_perms.services_whatsapp and modules_nav.integration_whatsapp_bridge %}{% include 'services_dashboard/partials/whatsapp_modal.html' %}{% endif %}
     {% include 'common/whatsapp_scenario_prompt_assets.html' %}
     {% include 'common/team_chat_widget.html' %}
     {% if user_perms.tools_ai and site_settings.ai_chat_enabled %}{% include 'services_dashboard/partials/ai_chat_widget.html' %}{% endif %}

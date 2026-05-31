@@ -5,13 +5,15 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 
 from common.middleware import _is_api_request
+from users.impersonation import get_real_user
 
 
 class SuperuserRequiredMixin(UserPassesTestMixin):
     login_url = reverse_lazy('login')
 
     def test_func(self):
-        return self.request.user.is_authenticated and self.request.user.is_superuser
+        user = get_real_user(self.request)
+        return user.is_authenticated and user.is_superuser
 
     def handle_no_permission(self):
         if not self.request.user.is_authenticated:

@@ -33,6 +33,19 @@ class ModuleToggleApiTests(TestCase):
         self.assertEqual(on.status_code, 200)
         self.assertTrue(on.json()['installed'])
 
+    def test_disable_projects_removes_particle_slug(self):
+        from common.module_runtime import get_enabled_module_slugs
+
+        slug = 'projects'
+        settings = SiteSettings.objects.first()
+        enabled = list(get_enabled_module_slugs())
+        if slug not in enabled:
+            self.client.post('/panel/moduller/toggle/', {'module_slug': slug})
+        off = self.client.post('/panel/moduller/toggle/', {'module_slug': slug})
+        self.assertTrue(off.json()['ok'])
+        settings.refresh_from_db()
+        self.assertNotIn('p.accounting.projects', settings.enabled_module_slugs)
+
     def test_installed_state_ignores_particle_fallback(self):
         from common.module_catalog import module_by_slug
         from common.module_runtime import build_module_record, get_enabled_module_slugs, is_module_installed

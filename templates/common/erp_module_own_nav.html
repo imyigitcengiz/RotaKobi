@@ -48,7 +48,7 @@
 </a>
 {% endif %}
 {% endif %}
-{% if modules_nav.projects or particles_nav.accounting_projects %}
+{% if modules_nav.projects %}
 <a href="{% url 'accounting_projects' %}" class="{% if url_name == 'accounting_projects' or url_name == 'accounting_projects_print' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
     <i data-lucide="calendar-days" class="w-5 h-5"></i><span class="font-medium text-sm">{{ gy.mh_projeler }}</span>
 </a>

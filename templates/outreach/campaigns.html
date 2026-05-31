@@ -8,7 +8,9 @@
 {% csrf_token %}
 <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
     <div></div>
+    {% if modules_nav.integration_data_harvest %}
     <a href="{% url 'contact_firma_bul' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200">Firma kazıma</a>
+    {% endif %}
 </div>
 <div id="apiOfflineBanner" class="hidden mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-center justify-between gap-3">
     <span><strong>WhatsApp API yapılandırılmamış.</strong> <a href="{% url 'tools_whatsapp_api_settings' %}" class="font-semibold underline">{{ gy.entegrasyon_merkezi }} → WhatsApp Business API</a> bölümünden token ve telefon ID girin.</span>

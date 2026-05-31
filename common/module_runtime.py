@@ -178,7 +178,18 @@ def is_particle_enabled_for_nav(slug: str) -> bool:
     parent = p.get('parent_module')
     if parent and not is_module_installed(parent):
         return False
+    for app_slug, particle_slug in MODULE_PARTICLE_FALLBACK.items():
+        if slug == particle_slug and not is_module_installed(app_slug):
+            return False
     return True
+
+
+def integration_nav_visible(user, slug: str) -> bool:
+    """Entegrasyon menü/kart — kurulu, üst modül açık ve kullanıcı yetkisi."""
+    mod = module_by_slug(slug)
+    if not mod or mod['kind'] != MODULE_KIND_INTEGRATION:
+        return False
+    return integration_visible_on_panel(user, mod)
 
 
 def module_route_allowed(slug: str) -> bool:

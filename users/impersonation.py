@@ -4,38 +4,38 @@ from __future__ import annotations
 
 import logging
 
-from django.contrib.auth import get_user_model, login
+from django.contrib.auth import get_user_model
+
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+# Hedef kullanıcı pk — oturum süper admin olarak kalır (login() ile değiştirilmez)
+SESSION_IMPERSONATE_USER_ID = '_impersonate_user_id'
+# Geriye dönük uyumluluk (eski oturum anahtarı)
 SESSION_IMPERSONATOR_KEY = '_impersonator_user_id'
-AUTH_BACKEND = 'django.contrib.auth.backends.ModelBackend'
 
 
 class ImpersonationError(Exception):
     pass
 
 
+def get_real_user(request):
+    """Oturumdaki gerçek kullanıcı; impersonation sırasında süper admin."""
+    actor = getattr(request, 'impersonator', None)
+    if actor is not None and actor.is_authenticated:
+        return actor
+    return request.user
+
+
 def is_impersonating(request) -> bool:
-    return bool(request.session.get(SESSION_IMPERSONATOR_KEY))
-
-
-def get_impersonator_id(request) -> int | None:
-    raw = request.session.get(SESSION_IMPERSONATOR_KEY)
-    if raw is None:
-        return None
-    try:
-        return int(raw)
-    except (TypeError, ValueError):
-        return None
+    return bool(request.session.get(SESSION_IMPERSONATE_USER_ID))
 
 
 def get_impersonator(request):
-    """Gerçek süper admin hesabı; impersonation yoksa None."""
-    pk = get_impersonator_id(request)
-    if not pk:
+    """Impersonation aktifken süper admin; değilse None."""
+    if not is_impersonating(request):
         return None
-    return User.objects.filter(pk=pk, is_active=True, is_superuser=True).first()
+    return get_real_user(request)
 
 
 def can_impersonate(actor, target, *, already_impersonating: bool = False) -> tuple[bool, str]:
@@ -55,7 +55,7 @@ def can_impersonate(actor, target, *, already_impersonating: bool = False) -> tu
 
 
 def start_impersonation(request, target) -> None:
-    actor = request.user
+    actor = get_real_user(request)
     ok, reason = can_impersonate(
         actor,
         target,
@@ -64,8 +64,8 @@ def start_impersonation(request, target) -> None:
     if not ok:
         raise ImpersonationError(reason)
 
-    login(request, target, backend=AUTH_BACKEND)
-    request.session[SESSION_IMPERSONATOR_KEY] = actor.pk
+    request.session.pop(SESSION_IMPERSONATOR_KEY, None)
+    request.session[SESSION_IMPERSONATE_USER_ID] = target.pk
     request.session.modified = True
     logger.info(
         'impersonation_start actor_id=%s target_id=%s target_username=%s',
@@ -76,21 +76,18 @@ def start_impersonation(request, target) -> None:
 
 
 def stop_impersonation(request):
-    """Impersonation oturumunu sonlandırır; süper admin hesabına döner."""
-    actor_id = get_impersonator_id(request)
-    if not actor_id:
+    """Impersonation oturumunu sonlandırır. Dönüş: (actor, previous_target) veya (None, None)."""
+    if not is_impersonating(request):
         return None, None
 
-    actor = User.objects.filter(pk=actor_id, is_active=True, is_superuser=True).first()
-    previous = request.user
+    target = request.user
+    actor = get_real_user(request)
+    request.session.pop(SESSION_IMPERSONATE_USER_ID, None)
     request.session.pop(SESSION_IMPERSONATOR_KEY, None)
-
-    if actor:
-        login(request, actor, backend=AUTH_BACKEND)
-        request.session.cycle_key()
-        logger.info(
-            'impersonation_stop actor_id=%s previous_target_id=%s',
-            actor.pk,
-            getattr(previous, 'pk', None),
-        )
-    return actor, previous
+    request.session.modified = True
+    logger.info(
+        'impersonation_stop actor_id=%s previous_target_id=%s',
+        getattr(actor, 'pk', None),
+        getattr(target, 'pk', None),
+    )
+    return actor, target

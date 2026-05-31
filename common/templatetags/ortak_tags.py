@@ -25,3 +25,14 @@ def dict_get(mapping, key):
     if not mapping or key is None:
         return None
     return mapping.get(key)
+
+
+@register.simple_tag(takes_context=True)
+def integration_nav(context, slug):
+    """Entegrasyon menüde görünsün mü — kurulu + üst modül + yetki."""
+    from common.module_runtime import integration_nav_visible
+
+    request = context.get('request')
+    if not request or not getattr(request.user, 'is_authenticated', False):
+        return False
+    return integration_nav_visible(request.user, slug)

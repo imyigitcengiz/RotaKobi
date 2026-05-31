@@ -24,7 +24,7 @@
         </span>
     </a>
 
-    {% if user_perms.tools_whatsapp %}
+    {% if user_perms.tools_whatsapp and modules_nav.integration_whatsapp_bridge %}
     <a href="{% url 'tools_whatsapp_baglan' %}"
        class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-green-200 transition-all p-6">
         <div class="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center mb-4 group-hover:bg-green-600 group-hover:text-white transition-colors">
@@ -39,6 +39,8 @@
             <i data-lucide="arrow-right" class="w-4 h-4"></i>
         </span>
     </a>
+    {% endif %}
+    {% if user_perms.tools_whatsapp and modules_nav.integration_whatsapp_api %}
     <a href="{% url 'tools_whatsapp_api_settings' %}"
        class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-violet-200 transition-all p-6">
         <div class="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4 group-hover:bg-violet-600 group-hover:text-white transition-colors">
@@ -55,7 +57,7 @@
     </a>
     {% endif %}
 
-    {% if user_perms.tools_media %}
+    {% if user_perms.tools_media and modules_nav.integration_media %}
     <a href="{% url 'tools_media_library' %}"
        class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-sky-200 transition-all p-6">
         <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-4 group-hover:bg-sky-600 group-hover:text-white transition-colors">
@@ -73,7 +75,7 @@
     {% endif %}
 
 </div>
-{% if not user_perms.tools_whatsapp and not user_perms.tools_media %}
+{% if not modules_nav.integration_whatsapp_bridge and not modules_nav.integration_whatsapp_api and not modules_nav.integration_media %}
 <p class="mt-8 text-sm text-slate-500">Bu modülde görüntüleyebileceğiniz araç bulunmuyor.</p>
 {% endif %}
 {% endblock %}

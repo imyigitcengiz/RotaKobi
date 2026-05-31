@@ -56,6 +56,22 @@ class ModuleGateTests(TestCase):
         response = self.client.get('/muhasebe/borclar/')
         self.assertEqual(response.status_code, 302)
 
+    def test_firma_kazi_blocked_when_data_harvest_closed(self):
+        settings = SiteSettings.objects.first()
+        settings.enabled_module_slugs = self._slugs_without('integration_data_harvest')
+        settings.save()
+        response = self.client.get('/contact/firma-kazi/')
+        self.assertEqual(response.status_code, 302)
+        self.assertNotEqual(response.url, '/contact/firma-kazi/')
+
+    def test_contact_sidebar_hides_closed_integration(self):
+        settings = SiteSettings.objects.first()
+        settings.enabled_module_slugs = self._slugs_without('integration_media')
+        settings.save()
+        response = self.client.get('/contact/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Medya Kütüphanesi')
+
     def test_tools_hub_stays_accessible_when_integrations_closed(self):
         settings = SiteSettings.objects.first()
         settings.enabled_module_slugs = self._slugs_without(
