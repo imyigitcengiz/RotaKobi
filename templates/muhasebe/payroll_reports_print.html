@@ -1,0 +1,64 @@
+{% extends 'common/report_print_shell.html' %}
+
+{% block print_title %}Maaş & avans raporu{% endblock %}
+{% block doc_title %}Maaş & avans raporu{% endblock %}
+{% block doc_meta %}
+{{ period_from_str }} — {{ period_to_str }}{% if filter_personnel %} · filtreli personel{% endif %}
+{% endblock %}
+
+{% block print_body %}
+<div class="kpi-row">
+    <div class="kpi">
+        <div class="kpi-label">Brüt toplam</div>
+        <div class="kpi-value">{{ totals.gross }} ₺</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Avans toplam</div>
+        <div class="kpi-value">{{ totals.advances }} ₺</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Ödenen net</div>
+        <div class="kpi-value">{{ totals.net_paid }} ₺</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Bekleyen net</div>
+        <div class="kpi-value">{{ totals.pending_net }} ₺</div>
+    </div>
+</div>
+
+<div class="section-title">Dönem detayı</div>
+<table>
+    <thead>
+        <tr>
+            <th>Dönem</th>
+            <th>Personel</th>
+            <th class="num">Brüt</th>
+            <th class="num">Avans</th>
+            <th class="num">Net (beklenen)</th>
+            <th class="num">Net (ödenen)</th>
+            <th>Durum</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.period_label }}</td>
+            <td>
+                <strong>{{ row.personnel.name }}</strong>
+                {% if row.personnel.team %}<br><span style="font-size:10px;color:#64748b">{{ row.personnel.team.name }}</span>{% endif %}
+            </td>
+            <td class="num">{{ row.gross }} ₺</td>
+            <td class="num">
+                {{ row.advances_all }} ₺
+                {% if row.advances_open %}<br><span style="font-size:10px;color:#b45309">{{ row.advances_open }} ₺ açık</span>{% endif %}
+            </td>
+            <td class="num">{% if row.net_expected is not None %}{{ row.net_expected }} ₺{% else %}—{% endif %}</td>
+            <td class="num">{% if row.net_paid %}{{ row.net_paid }} ₺{% else %}—{% endif %}</td>
+            <td>{{ row.status }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">Seçilen aralıkta kayıt yok.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

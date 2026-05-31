@@ -1,4 +1,4 @@
-﻿{% extends 'crm/base.html' %}
+{% extends 'crm/base.html' %}
 
 {% block title %}Müşteriler{% endblock %}
 
@@ -115,7 +115,11 @@
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="9" class="px-4 py-12 text-center text-slate-400">Henüz müşteri yok.{% if user_perms.sales_manage %} <a href="{% url 'sales_lead_create' %}" class="text-brand-600 font-semibold underline">Yeni satış</a> kaydı oluşturun.{% endif %}</td></tr>
+                    {% if user_perms.sales_manage %}
+                    {% include 'common/empty_table_row.html' with colspan=9 message="Henüz müşteri yok." action_url="/sales-lead/yeni/" action_label="Yeni satış kaydı oluşturun" %}
+                    {% else %}
+                    {% include 'common/empty_table_row.html' with colspan=9 %}
+                    {% endif %}
                     {% endfor %}
                 </tbody>
             </table>
@@ -159,11 +163,11 @@
     customerBulkAction?.addEventListener('change', updateCustomerBulkInputs);
     customerBulkForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!customerBulkAction?.value) return alert('Toplu işlem seçin.');
-        if (!document.querySelectorAll('.row-checkbox:checked').length) return alert('Müşteri seçin.');
+        if (!customerBulkAction?.value) return window.erpNotify?.('Toplu işlem seçin.', 'warn') ?? alert('Toplu işlem seçin.');
+        if (!document.querySelectorAll('.row-checkbox:checked').length) return window.erpNotify?.('Müşteri seçin.', 'warn') ?? alert('Müşteri seçin.');
         const res = await fetch(customerBulkForm.action, { method: 'POST', headers: { 'X-CSRFToken': getCsrfToken() }, body: new FormData(customerBulkForm) });
         const data = await res.json();
-        if (!res.ok || !data.ok) return alert(data.error || 'İşlem başarısız.');
+        if (!res.ok || !data.ok) return window.erpNotify?.(data.error || 'İşlem başarısız.') ?? alert(data.error || 'İşlem başarısız.');
         location.reload();
     });
     updateCustomerBulkInputs();

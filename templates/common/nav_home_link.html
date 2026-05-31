@@ -1,0 +1,6 @@
+{% if user_access.home %}
+<a href="{% url 'home' %}" class="flex items-center gap-3 px-3 py-2 rounded-xl {% if request.resolver_match.url_name == 'home' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+    <i data-lucide="layout-grid" class="w-4 h-4"></i>
+    <span class="font-medium text-sm">{{ gy.ana_panel }}</span>
+</a>
+{% endif %}

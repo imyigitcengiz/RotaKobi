@@ -3,44 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}İletişim Merkezi{% endblock %} | {{ site_settings.site_name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
-                            400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+    <title>{% block title %}{{ gy.iletisim_merkezi }}{% endblock %} | {{ site_settings.site_name }}</title>
+    {% load static %}
+    {% include 'common/erp_head_assets.html' %}
     {% block extra_head %}{% endblock %}
 </head>
-<body class="flex h-screen overflow-hidden bg-slate-50">
-    <aside class="w-60 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col">
+<body class="erp-app erp-theme-blue flex h-screen overflow-hidden bg-slate-50">
+    {% include 'common/erp_mobile_sidebar_start.html' with sidebar_width='w-60' %}
         <div class="p-5 border-b border-slate-800">
             <a href="{% url 'outreach_hub' %}" class="text-lg font-bold text-white flex items-center gap-2">
                 <span class="w-9 h-9 bg-brand-600 rounded-xl flex items-center justify-center">
                     <i data-lucide="messages-square" class="w-5 h-5"></i>
                 </span>
-                İletişim
+                {{ gy.iletisim_merkezi }}
             </a>
-            <p class="text-[11px] text-slate-500 mt-2">Kampanya & mesaj kayıtları</p>
+            <p class="text-[11px] text-slate-500 mt-2">Kampanya ve mesaj kayıtları</p>
         </div>
         <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto text-sm">
-            {% if user_access.home %}
-            <a href="{% url 'home' %}" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800">
-                <i data-lucide="home" class="w-4 h-4"></i> Ana Sayfa
-            </a>
-            {% endif %}
+            {% include 'common/nav_home_link.html' %}
             <a href="{% url 'outreach_hub' %}" class="flex items-center gap-3 px-3 py-2 rounded-xl {% if request.resolver_match.url_name == 'outreach_hub' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
                 <i data-lucide="layout-grid" class="w-4 h-4"></i> Özet
             </a>
@@ -63,33 +43,25 @@
             </a>
             <div class="pt-4 mt-2 border-t border-slate-800">
                 <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Diğer modüller</p>
-                <a href="{% url 'tools_whatsapp_api_settings' %}" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800">
-                    <i data-lucide="key-round" class="w-4 h-4"></i> WhatsApp API ayarları
-                </a>
                 {% include 'common/erp_cross_nav.html' with skip_platform_module='outreach' %}
             </div>
         </nav>
         {% include 'common/profile_sidebar_card.html' %}
-    </aside>
-    <main class="flex-1 overflow-y-auto">
-        {% if messages %}
-        <div class="fixed top-4 right-4 z-[200] space-y-2">
-            {% for message in messages %}
-            <div class="px-4 py-3 rounded-xl shadow-lg text-sm font-semibold {% if message.tags == 'success' %}bg-emerald-600 text-white{% elif message.tags == 'error' %}bg-red-600 text-white{% else %}bg-slate-800 text-white{% endif %}">{{ message }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200 px-6 py-4">
-            {% block header %}{% endblock %}
+    {% include 'common/erp_mobile_sidebar_end.html' %}
+    <main class="flex-1 overflow-y-auto min-w-0">
+        {% include 'common/toast_messages.html' %}
+        <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200 px-4 md:px-6 py-4 flex items-start gap-3">
+            {% include 'common/erp_sidebar_toggle.html' %}
+            <div class="flex-1 min-w-0">{% block header %}{% endblock %}</div>
         </header>
-        <div class="p-6 max-w-[1500px] mx-auto">
+        <div class="p-4 md:p-6 max-w-[1500px] mx-auto">
             {% block content %}{% endblock %}
         </div>
     </main>
-    {% load static %}
     <script src="{% static 'js/live-sync.js' %}" defer></script>
     {% block extra_js %}{% endblock %}
     {% include 'common/team_chat_widget.html' %}
+    {% include 'common/erp_mobile_sidebar_script.html' %}
     <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

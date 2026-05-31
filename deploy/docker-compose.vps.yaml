@@ -1,0 +1,10 @@
+# VPS / SSH kurulum: Traefik yok — uygulama host portuna bağlanır.
+# Kullanım:
+#   COMPOSE_FILE=docker-compose.yaml:deploy/docker-compose.vps.yaml docker compose up -d --build
+# veya: ./deploy/install.sh panel.firma.com
+name: kobi-ops
+
+services:
+  app:
+    ports:
+      - "${KOBIOPS_HTTP_PORT:-8080}:80"

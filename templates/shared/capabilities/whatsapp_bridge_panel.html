@@ -1,11 +1,10 @@
 {% csrf_token %}
-{% csrf_token %}
 <div class="max-w-3xl mx-auto">
     <div class="mb-6">
-        <a href="{% url 'tools_hub' %}" class="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-green-600 mb-3">
-            <i data-lucide="arrow-left" class="w-4 h-4"></i> Tools
+        <a href="{% url 'capabilities_hub' %}" class="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-green-600 mb-3">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> {{ gy.entegrasyon_merkezi }}
         </a>
-        <h1 class="text-2xl font-bold text-slate-900">WhatsApp</h1>
+        <h1 class="text-2xl font-bold text-slate-900">WhatsApp Köprüsü</h1>
         <p class="text-slate-600 mt-1">Hat bağlantıları, yazdırma konum isteme mesajı ve otomatik senaryolar. Toplu kampanya API ayarları <a href="{% url 'tools_whatsapp_api_settings' %}" class="text-violet-600 font-semibold underline">burada</a>.</p>
     </div>
 

@@ -6,8 +6,13 @@ def whatsapp_context(request):
 
 
 def site_settings(request):
-    try:
-        settings = SiteSettings.objects.first()
-    except Exception:
-        settings = None
-    return {'site_settings': settings}
+    from common.request_cache import cache_get
+
+    def _load():
+        try:
+            return SiteSettings.objects.first()
+        except Exception:
+            return None
+
+    return {'site_settings': cache_get(request, 'site_settings', _load)}
+

@@ -84,6 +84,17 @@ def can_manage_payroll_personnel(user):
     return can_manage_payroll(user) or can_manage_personnel(user)
 
 
+def accounting_fallback_redirect(user):
+    """Muhasebe erişimi olmayan kullanıcıları uygun sayfaya yönlendir."""
+    from django.shortcuts import redirect
+
+    if can_access_accounting(user):
+        return redirect('accounting_hub')
+    if can_manage_payroll_personnel(user):
+        return redirect('accounting_personnel')
+    return redirect('home')
+
+
 def can_access_personnel_page(user):
     return can_manage_personnel(user)
 

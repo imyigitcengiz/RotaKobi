@@ -3,13 +3,43 @@
 {% block title %}{{ gy.mh_ozet }}{% endblock %}
 
 {% block header %}
-<h1 class="text-lg font-bold text-slate-900">{{ gy.muhasebe }}</h1>
+<h1 class="text-lg font-bold text-slate-900">{{ gy.mh_ozet }}</h1>
 <p class="text-sm text-slate-500">Personel maaş döngüsü, gelir-gider, satış kayıtları ve raporlar.</p>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-5xl">
     {% include 'common/accounting_panel_section.html' with section_title='' show_hub_link=False show_hub_card=False card_layout='wide' highlight_payroll=False %}
+
+    {% if user_access.accounting %}
+    <section class="mt-8 bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+        <h2 class="text-sm font-bold text-slate-900 mb-1">Muhasebe modül durumu</h2>
+        <p class="text-xs text-slate-500 mb-4">Operasyon / ön muhasebe — resmi defter ve e-Fatura dışarıda kalır.</p>
+        <div class="grid sm:grid-cols-2 gap-4 text-sm">
+            <div>
+                <p class="text-[10px] font-bold uppercase text-emerald-600 mb-2">Aktif</p>
+                <ul class="space-y-1.5 text-slate-700">
+                    <li class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i> Personel, maaş & avans</li>
+                    <li class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i> Gelir/gider + gider kategorileri</li>
+                    <li class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i> Kasa, alacaklar, teklif → satış</li>
+                    <li class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i> Stok (malzeme + ürün reçetesi)</li>
+                    <li class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i> Raporlar, yazdırma, CSV</li>
+                </ul>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase text-violet-600 mb-2">Yol haritası</p>
+                <ul class="space-y-1.5 text-slate-600">
+                    <li>• Tedarikçi borçları & vade</li>
+                    <li>• e-Fatura / mali müşavir köprüsü</li>
+                    <li>• Proje maliyet & kârlılık</li>
+                    <li>• Çoklu kasa & banka mutabakatı</li>
+                </ul>
+                <a href="{% url 'module_hub' %}" class="inline-block mt-3 text-xs font-bold text-brand-700 hover:underline">Modül Merkezi → yol haritası</a>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
     {% if not accounting_show_payroll and not accounting_show_finance and not accounting_show_reports %}
     <div class="mt-6 p-6 rounded-2xl bg-amber-50 border border-amber-100 text-amber-800 text-sm">
         Muhasebe modülüne erişiminiz var ancak alt izinler (maaş, gelir-gider, rapor) henüz tanımlı değil. Yöneticinizden rol güncellemesi isteyin.

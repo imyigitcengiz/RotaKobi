@@ -33,13 +33,15 @@ from .payroll import (
 )
 from common.permissions import (
     can_manage_payroll, can_manage_finance, can_manage_teams, can_manage_personnel,
-    can_access_accounting, can_manage_payroll_personnel,
+    can_access_accounting, can_manage_payroll_personnel, accounting_fallback_redirect,
 )
 from django.http import HttpResponse, JsonResponse
 from common.decorators import json_auth_required, permission_required
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.db.models.deletion import ProtectedError
+from decimal import Decimal
+from core_settings.accounting_summary import _month_bounds
 import os
 import json
 
@@ -478,23 +480,7 @@ class AccountingPersonnelView(TemplateView):
 
         show_skills = self._show_product_groups()
 
-        if 'quick_advance' in request.POST and can_manage_payroll(request.user):
-            form = PayrollQuickAdvanceForm(request.POST)
-            if form.is_valid():
-                pay_period = parse_period(form.cleaned_data['period'])
-                PersonnelPayment.objects.create(
-                    personnel=form.cleaned_data['personnel'],
-                    payment_type=PersonnelPayment.TYPE_ADVANCE,
-                    period=pay_period,
-                    amount=form.cleaned_data['amount'],
-                    payment_date=form.cleaned_data.get('payment_date') or timezone.localdate(),
-                    notes=form.cleaned_data.get('notes') or '',
-                    recorded_by=request.user if request.user.is_authenticated else None,
-                )
-                messages.success(request, f'{form.cleaned_data["personnel"].name} için avans kaydedildi.')
-            else:
-                messages.error(request, 'Avans kaydedilemedi.')
-        elif 'add_personnel' in request.POST:
+        if 'add_personnel' in request.POST:
             form = AccountingPersonnelForm(request.POST, show_product_groups=show_skills)
             if form.is_valid():
                 person = form.save()
@@ -543,7 +529,7 @@ class AccountingReportsHubView(TemplateView):
         can_sales = user.is_superuser or user.has_perm_codename('sales.reports')
         if not can_payroll and not can_sales:
             messages.error(request, 'Raporlar için yetkiniz yok.')
-            return redirect('accounting_hub')
+            return accounting_fallback_redirect(user)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -551,6 +537,7 @@ class AccountingReportsHubView(TemplateView):
         user = self.request.user
         context['show_payroll_report'] = can_manage_payroll(user)
         context['show_sales_report'] = user.is_superuser or user.has_perm_codename('sales.reports')
+        context['show_finance_report'] = can_manage_finance(user)
         return context
 
 
@@ -560,7 +547,7 @@ class AccountingPayrollView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if not can_manage_payroll(request.user):
             messages.error(request, 'Maaş/avans kayıtları için yetkiniz yok.')
-            return redirect('accounting_hub')
+            return accounting_fallback_redirect(request.user)
         return super().dispatch(request, *args, **kwargs)
 
     def _selected_period(self):
@@ -794,7 +781,7 @@ class AccountingPayrollReportsView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if not can_manage_payroll(request.user):
             messages.error(request, 'Maaş raporları için yetkiniz yok.')
-            return redirect('accounting_hub')
+            return accounting_fallback_redirect(request.user)
         return super().dispatch(request, *args, **kwargs)
 
     def _report_params(self):
@@ -859,30 +846,234 @@ class AccountingPayrollExportView(View):
         return response
 
 
+class AccountingPayrollLedgerExportView(View):
+    """Ham maaş/avans hareketleri — içe aktarma formatıyla uyumlu."""
+
+    def get(self, request, *args, **kwargs):
+        if not can_manage_payroll(request.user):
+            messages.error(request, 'Dışa aktarma için yetkiniz yok.')
+            return redirect('accounting_data_exchange')
+        from common.csv_io import csv_response
+        from core_settings.csv_exchange import export_payroll_payments_rows
+
+        default_from, default_to = default_report_range()
+        period_from = parse_period(request.GET.get('period_from') or default_from.strftime('%Y-%m'))
+        period_to = parse_period(request.GET.get('period_to') or default_to.strftime('%Y-%m'))
+        personnel_id = request.GET.get('personnel', '').strip()
+        personnel_qs = ServicePersonnel.objects.filter(is_active=True).order_by('name')
+        if personnel_id.isdigit():
+            personnel_qs = personnel_qs.filter(id=int(personnel_id))
+        rows, _, _ = export_payroll_payments_rows(period_from, period_to, personnel_qs)
+        return csv_response(
+            f'maas-avans-hareketleri-{period_from.strftime("%Y-%m")}.csv',
+            rows,
+            header=['DÖNEM', 'PERSONEL', 'TÜR', 'TUTAR', 'TARİH', 'NOT'],
+        )
+
+
+class AccountingPayrollReportsPrintView(TemplateView):
+    template_name = 'muhasebe/payroll_reports_print.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not can_manage_payroll(request.user):
+            messages.error(request, 'Maaş raporları için yetkiniz yok.')
+            return redirect('accounting_reports')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        view = AccountingPayrollReportsView()
+        view.request = self.request
+        context.update(view.get_context_data())
+        return context
+
+
+class AccountingPayrollImportCsvView(View):
+    def post(self, request, *args, **kwargs):
+        if not can_manage_payroll(request.user):
+            messages.error(request, 'İçe aktarma için yetkiniz yok.')
+            return redirect('accounting_data_exchange')
+        from core_settings.csv_exchange import import_payroll_csv
+
+        uploaded = request.FILES.get('file')
+        if not uploaded:
+            messages.error(request, 'CSV dosyası seçin.')
+            return redirect('accounting_data_exchange')
+        try:
+            result = import_payroll_csv(uploaded, user=request.user)
+            messages.success(request, f'{result["created"]} ödeme kaydı içe aktarıldı.')
+            if result.get('skipped'):
+                messages.warning(request, f'{result["skipped"]} satır atlandı (personel/tür bulunamadı).')
+        except Exception as exc:
+            messages.error(request, f'İçe aktarma başarısız: {exc}')
+        return redirect('accounting_data_exchange')
+
+
+class AccountingFinanceExportView(View):
+    def get(self, request, *args, **kwargs):
+        if not can_manage_finance(request.user):
+            messages.error(request, 'Dışa aktarma için yetkiniz yok.')
+            return redirect('accounting_finance')
+        from common.csv_io import csv_response
+
+        view = AccountingFinanceView()
+        view.request = request
+        ctx = view.get_context_data()
+        rows = []
+        for rec in ctx['recent_records']:
+            rows.append([
+                'gelir' if rec.record_type == FinanceRecord.TYPE_INCOME else 'gider',
+                rec.title,
+                rec.amount,
+                rec.record_date.strftime('%d.%m.%Y'),
+                rec.notes or '',
+            ])
+        return csv_response(
+            f'gelir-gider-{ctx["finance_period_str"]}.csv',
+            rows,
+            header=['TÜR', 'AÇIKLAMA', 'TUTAR', 'TARİH', 'NOT'],
+        )
+
+
+class AccountingFinanceImportCsvView(View):
+    def post(self, request, *args, **kwargs):
+        if not can_manage_finance(request.user):
+            messages.error(request, 'İçe aktarma için yetkiniz yok.')
+            return redirect('accounting_data_exchange')
+        from core_settings.csv_exchange import import_finance_csv
+
+        uploaded = request.FILES.get('file')
+        if not uploaded:
+            messages.error(request, 'CSV dosyası seçin.')
+            return redirect('accounting_data_exchange')
+        try:
+            result = import_finance_csv(uploaded, user=request.user)
+            messages.success(request, f'{result["created"]} gelir/gider kaydı içe aktarıldı.')
+        except Exception as exc:
+            messages.error(request, f'İçe aktarma başarısız: {exc}')
+        period = request.POST.get('_redirect_period', '')
+        suffix = f'?period={period}' if period else ''
+        return redirect(reverse('accounting_finance') + suffix)
+
+
+class AccountingFinancePrintView(TemplateView):
+    template_name = 'muhasebe/finance_report_print.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not can_manage_finance(request.user):
+            messages.error(request, 'Gelir/gider raporu için yetkiniz yok.')
+            return redirect('accounting_finance')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        view = AccountingFinanceView()
+        view.request = self.request
+        context.update(view.get_context_data())
+        return context
+
+
+class AccountingDataExchangeView(TemplateView):
+    template_name = 'muhasebe/data_exchange.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        can_payroll = can_manage_payroll(user)
+        can_finance = can_manage_finance(user)
+        can_sales = (
+            user.has_perm_codename('sales.manage')
+            or user.has_perm_codename('sales.export')
+            or user.has_perm_codename('sales.reports')
+        )
+        if not (can_payroll or can_finance or can_sales):
+            messages.error(request, 'Veri alışverişi için yetkiniz yok.')
+            return accounting_fallback_redirect(request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        context['can_payroll'] = can_manage_payroll(user)
+        context['can_finance'] = can_manage_finance(user)
+        context['can_sales_manage'] = user.has_perm_codename('sales.manage')
+        context['can_sales_export'] = user.has_perm_codename('sales.export')
+        context['can_sales'] = context['can_sales_manage'] or context['can_sales_export'] or user.has_perm_codename('sales.reports')
+        today = timezone.localdate()
+        from core_settings.payroll import period_start
+        period = period_start(today)
+        period_str = period.strftime('%Y-%m')
+        default_from, default_to = default_report_range()
+        context['finance_period_str'] = self.request.GET.get('period') or period_str
+        context['payroll_period_from'] = self.request.GET.get('payroll_from') or default_from.strftime('%Y-%m')
+        context['payroll_period_to'] = self.request.GET.get('payroll_to') or default_to.strftime('%Y-%m')
+        context['payroll_export_query'] = (
+            f'period_from={context["payroll_period_from"]}&period_to={context["payroll_period_to"]}'
+        )
+        return context
+
+
 class AccountingFinanceView(TemplateView):
     template_name = 'muhasebe/finance.html'
 
     def dispatch(self, request, *args, **kwargs):
         if not can_manage_finance(request.user):
             messages.error(request, 'Gelir/gider kayıtları için yetkiniz yok.')
-            return redirect('accounting_hub')
+            return accounting_fallback_redirect(request.user)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         record_type = self.request.GET.get('record_type', '').strip()
-        records = FinanceRecord.objects.select_related('recorded_by').all()
+        period_str = self.request.GET.get('period', '').strip()
+        today = timezone.localdate()
+        if period_str:
+            from core_settings.payroll import parse_period
+            period = parse_period(period_str)
+        else:
+            from core_settings.payroll import period_start
+            period = period_start(today)
+        month_start, month_end = _month_bounds(period)
+
+        records = FinanceRecord.objects.select_related('recorded_by').filter(
+            record_date__gte=month_start,
+            record_date__lte=month_end,
+        )
         if record_type in (FinanceRecord.TYPE_INCOME, FinanceRecord.TYPE_EXPENSE):
             records = records.filter(record_type=record_type)
+
+        income = records.filter(record_type=FinanceRecord.TYPE_INCOME).aggregate(
+            total=Sum('amount'),
+        )['total'] or Decimal('0')
+        expense = records.filter(record_type=FinanceRecord.TYPE_EXPENSE).aggregate(
+            total=Sum('amount'),
+        )['total'] or Decimal('0')
+
         context['finance_form'] = FinanceRecordForm()
         context['recent_records'] = records.order_by('-record_date', '-created_at')[:100]
+        context['finance_period_str'] = period.strftime('%Y-%m')
+        context['finance_period_label'] = period_label(period)
+        context['finance_income_total'] = income
+        context['finance_expense_total'] = expense
+        context['finance_net_total'] = income - expense
+        context['finance_filter_type'] = record_type
         return context
+
+    def _finance_redirect(self, request):
+        period = request.POST.get('_redirect_period') or request.GET.get('period', '')
+        record_type = request.POST.get('_redirect_record_type') or request.GET.get('record_type', '')
+        qs = []
+        if period:
+            qs.append(f'period={period}')
+        if record_type:
+            qs.append(f'record_type={record_type}')
+        suffix = ('?' + '&'.join(qs)) if qs else ''
+        return redirect(reverse('accounting_finance') + suffix)
 
     def post(self, request, *args, **kwargs):
         if 'add_finance' in request.POST:
             if not can_manage_finance(request.user):
                 messages.error(request, 'Gelir/gider kaydı için yetkiniz yok.')
-                return redirect('accounting_finance')
+                return self._finance_redirect(request)
             form = FinanceRecordForm(request.POST)
             if form.is_valid():
                 record = form.save(commit=False)
@@ -895,10 +1086,10 @@ class AccountingFinanceView(TemplateView):
         elif 'delete_finance' in request.POST:
             if not can_manage_finance(request.user):
                 messages.error(request, 'Gelir/gider kaydı için yetkiniz yok.')
-                return redirect('accounting_finance')
+                return self._finance_redirect(request)
             FinanceRecord.objects.filter(id=request.POST.get('id')).delete()
             messages.info(request, 'Kayıt silindi.')
-        return redirect('accounting_finance')
+        return self._finance_redirect(request)
 
 
 @json_auth_required
@@ -1089,3 +1280,233 @@ def quick_option_update_api(request):
         user_id=getattr(request.user, 'id', None),
     )
     return JsonResponse({'ok': True, 'item': payload})
+
+
+class AccountingCashView(TemplateView):
+    template_name = 'muhasebe/cash.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not can_manage_finance(request.user):
+            messages.error(request, 'Kasa görüntüleme için yetkiniz yok.')
+            return accounting_fallback_redirect(request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        from core_settings.cash import save_cash_settings
+
+        if not can_manage_finance(request.user):
+            return accounting_fallback_redirect(request.user)
+        try:
+            opening = Decimal(str(request.POST.get('opening_balance', '0')).replace(',', '.'))
+        except Exception:
+            opening = Decimal('0')
+        raw_date = (request.POST.get('opening_date') or '').strip()
+        opening_date = date.fromisoformat(raw_date) if raw_date else None
+        save_cash_settings(
+            opening_balance=opening,
+            opening_date=opening_date,
+            include_payroll=request.POST.get('include_payroll') == 'on',
+            include_sales=request.POST.get('include_sales') == 'on',
+        )
+        messages.success(request, 'Kasa ayarları kaydedildi.')
+        return redirect('accounting_cash')
+
+    def get_context_data(self, **kwargs):
+        from core_settings.cash import build_cash_snapshot, get_cash_settings
+
+        context = super().get_context_data(**kwargs)
+        context['cash_snapshot'] = build_cash_snapshot()
+        context['cash_settings'] = get_cash_settings()
+        return context
+
+
+class AccountingReceivablesView(TemplateView):
+    template_name = 'muhasebe/receivables.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        allowed = (
+            user.is_superuser
+            or user.has_perm_codename('sales.reports')
+            or user.has_perm_codename('sales.manage')
+            or user.has_perm_codename('sales.export')
+        )
+        if not allowed:
+            messages.error(request, 'Alacak listesi için yetkiniz yok.')
+            return accounting_fallback_redirect(user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        from sales_leads.receivables import build_receivables_context
+
+        context = super().get_context_data(**kwargs)
+        overdue_days = 30
+        raw = self.request.GET.get('overdue_days', '')
+        if raw.isdigit():
+            overdue_days = max(1, int(raw))
+        context.update(build_receivables_context(overdue_days=overdue_days))
+        return context
+
+
+class AccountingStockView(TemplateView):
+    template_name = 'muhasebe/stock.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not can_manage_finance(request.user):
+            messages.error(request, 'Stok görüntüleme için yetkiniz yok.')
+            return accounting_fallback_redirect(request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def _redirect_stock(self, request):
+        product = request.POST.get('product') or request.GET.get('product', '')
+        low = request.GET.get('low') or request.POST.get('low', '')
+        url = reverse('accounting_stock')
+        params = []
+        if product and str(product).isdigit():
+            params.append(f'product={product}')
+        if low == '1':
+            params.append('low=1')
+        if params:
+            url += '?' + '&'.join(params)
+        return redirect(url)
+
+    def post(self, request, *args, **kwargs):
+        from decimal import Decimal, InvalidOperation
+
+        from core_settings.models import Material, ProductOption, ProductRecipeLine, StockMovement
+        from core_settings.stock import (
+            InsufficientStockError,
+            apply_movement,
+            save_stock_settings,
+        )
+
+        if not can_manage_finance(request.user):
+            return accounting_fallback_redirect(request.user)
+
+        if request.POST.get('save_stock_settings'):
+            save_stock_settings(
+                auto_deduct_on_sale=request.POST.get('auto_deduct_on_sale') == 'on',
+                auto_deduct_on_service=request.POST.get('auto_deduct_on_service') == 'on',
+                block_negative_stock=request.POST.get('block_negative_stock') == 'on',
+            )
+            messages.success(request, 'Stok ayarları kaydedildi.')
+            return self._redirect_stock(request)
+
+        if request.POST.get('add_material'):
+            name = (request.POST.get('name') or '').strip()
+            if not name:
+                messages.error(request, 'Malzeme adı gerekli.')
+                return self._redirect_stock(request)
+            unit = request.POST.get('unit', Material.UNIT_PIECE)
+            if unit not in dict(Material.UNIT_CHOICES):
+                unit = Material.UNIT_PIECE
+            Material.objects.create(
+                name=name,
+                unit=unit,
+                sku=(request.POST.get('sku') or '').strip(),
+            )
+            messages.success(request, f'Malzeme eklendi: {name}')
+            return self._redirect_stock(request)
+
+        if request.POST.get('update_material'):
+            material_id = request.POST.get('material_id', '')
+            if material_id.isdigit():
+                material = Material.objects.filter(pk=int(material_id)).first()
+                if material:
+                    raw = (request.POST.get('min_stock_level') or '0').replace(',', '.')
+                    try:
+                        material.min_stock_level = Decimal(raw)
+                    except InvalidOperation:
+                        material.min_stock_level = Decimal('0')
+                    material.save(update_fields=['min_stock_level', 'updated_at'])
+                    messages.success(request, f'{material.name} kritik seviye güncellendi.')
+            return self._redirect_stock(request)
+
+        if request.POST.get('add_recipe_line'):
+            product_id = request.POST.get('product', '')
+            material_id = request.POST.get('material_id', '')
+            raw_qty = (request.POST.get('quantity') or '1').replace(',', '.')
+            if not product_id.isdigit() or not material_id.isdigit():
+                messages.error(request, 'Ürün ve malzeme seçin.')
+                return self._redirect_stock(request)
+            try:
+                qty = Decimal(raw_qty)
+            except InvalidOperation:
+                qty = Decimal('1')
+            if qty <= 0:
+                messages.error(request, 'Miktar 0\'dan büyük olmalı.')
+                return self._redirect_stock(request)
+            product = ProductOption.objects.filter(pk=int(product_id)).first()
+            material = Material.objects.filter(pk=int(material_id), is_active=True).first()
+            if not product or not material:
+                messages.error(request, 'Ürün veya malzeme bulunamadı.')
+                return self._redirect_stock(request)
+            ProductRecipeLine.objects.update_or_create(
+                product=product,
+                material=material,
+                defaults={'quantity': qty},
+            )
+            messages.success(request, f'{product.name} reçetesine {material.name} eklendi.')
+            return self._redirect_stock(request)
+
+        if request.POST.get('delete_recipe_line'):
+            line_id = request.POST.get('line_id', '')
+            if line_id.isdigit():
+                ProductRecipeLine.objects.filter(pk=int(line_id)).delete()
+                messages.success(request, 'Reçete satırı silindi.')
+            return self._redirect_stock(request)
+
+        if request.POST.get('add_movement'):
+            material_id = request.POST.get('material_id', '')
+            movement_kind = request.POST.get('movement_kind', 'in')
+            raw_qty = (request.POST.get('quantity') or '').replace(',', '.')
+            note = (request.POST.get('note') or '').strip()
+            if not material_id.isdigit() or not raw_qty:
+                messages.error(request, 'Malzeme ve miktar gerekli.')
+                return self._redirect_stock(request)
+            try:
+                quantity = Decimal(raw_qty)
+            except InvalidOperation:
+                messages.error(request, 'Geçerli miktar girin.')
+                return self._redirect_stock(request)
+            if quantity <= 0:
+                messages.error(request, 'Miktar 0\'dan büyük olmalı.')
+                return self._redirect_stock(request)
+            delta = quantity if movement_kind == 'in' else -quantity
+            reason = (
+                StockMovement.REASON_PURCHASE
+                if movement_kind == 'in'
+                else StockMovement.REASON_MANUAL
+            )
+            material = Material.objects.filter(pk=int(material_id), is_active=True).first()
+            if not material:
+                messages.error(request, 'Malzeme bulunamadı.')
+                return self._redirect_stock(request)
+            try:
+                apply_movement(
+                    material,
+                    delta,
+                    reason=reason,
+                    note=note,
+                    recorded_by=request.user,
+                    force=True,
+                )
+                messages.success(request, f'{material.name}: {delta:+} kaydedildi.')
+            except InsufficientStockError as exc:
+                messages.error(request, str(exc))
+            return self._redirect_stock(request)
+
+        return self._redirect_stock(request)
+
+    def get_context_data(self, **kwargs):
+        from core_settings.stock import build_stock_context
+
+        context = super().get_context_data(**kwargs)
+        low_only = self.request.GET.get('low') == '1'
+        product_raw = self.request.GET.get('product', '')
+        recipe_product_id = int(product_raw) if product_raw.isdigit() else None
+        context.update(build_stock_context(
+            low_only=low_only,
+            recipe_product_id=recipe_product_id,
+        ))
+        return context

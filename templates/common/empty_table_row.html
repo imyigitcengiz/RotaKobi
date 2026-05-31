@@ -1,0 +1,8 @@
+<tr>
+    <td colspan="{{ colspan|default:1 }}" class="px-6 py-12 text-center text-slate-400 text-sm">
+        {% if message %}{{ message }}{% else %}Henüz kayıt yok.{% endif %}
+        {% if action_url and action_label %}
+        <a href="{{ action_url }}" class="text-brand-600 font-semibold underline ml-1">{{ action_label }}</a>
+        {% endif %}
+    </td>
+</tr>

@@ -1,6 +1,7 @@
 from decimal import Decimal, InvalidOperation
 
 from django import forms
+from django.utils.dateparse import parse_date
 
 from core_settings.models import ProductColorOption, ProductOption
 from customers.models import Customer
@@ -145,7 +146,10 @@ class SalesLeadForm(forms.Form):
         if not self.instance:
             return []
         return [
-            {'amount': p.amount}
+            {
+                'amount': p.amount,
+                'payment_date': p.payment_date.isoformat() if p.payment_date else '',
+            }
             for p in self.instance.interim_payments.all()
         ]
 
@@ -169,13 +173,8 @@ class SalesLeadForm(forms.Form):
         existing = cleaned.get('existing_customer')
 
         if self.instance:
-            customer = self.instance.customer
-            cleaned['name'] = customer.name
-            cleaned['phone'] = customer.phone
-            cleaned['region'] = customer.region
-            cleaned['address'] = customer.address
-            cleaned['location_link'] = customer.location_link
-            cleaned['contract_date'] = customer.contract_date
+            if not (cleaned.get('name') or '').strip():
+                self.add_error('name', 'Ad soyad zorunludur.')
         elif use_existing and existing:
             cleaned['name'] = existing.name
             cleaned['phone'] = existing.phone
@@ -211,11 +210,18 @@ class SalesLeadForm(forms.Form):
 
     def _parse_interim_payments(self):
         amounts = _post_list(self.data, 'interim_payment_amount')
+        dates = _post_list(self.data, 'interim_payment_date')
         payments = []
-        for raw in amounts:
+        for idx, raw in enumerate(amounts):
             amount = _parse_decimal(raw)
-            if amount is not None and amount > 0:
-                payments.append(amount)
+            if amount is None or amount <= 0:
+                continue
+            pay_date = None
+            if idx < len(dates):
+                raw_date = (dates[idx] or '').strip()
+                if raw_date:
+                    pay_date = parse_date(raw_date)
+            payments.append({'amount': amount, 'payment_date': pay_date})
         return payments
 
     def _parse_product_lines(self):
@@ -291,10 +297,12 @@ class SalesLeadForm(forms.Form):
         lead.save()
 
         lead.interim_payments.all().delete()
-        for order, amount in enumerate(self._parse_interim_payments()):
+        default_interim_date = self.cleaned_data.get('sale_date')
+        for order, payment in enumerate(self._parse_interim_payments()):
             SalesLeadInterimPayment.objects.create(
                 sales_lead=lead,
-                amount=amount,
+                amount=payment['amount'],
+                payment_date=payment.get('payment_date') or default_interim_date,
                 sort_order=order,
             )
 

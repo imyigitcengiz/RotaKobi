@@ -94,5 +94,15 @@ def build_accounting_panel_context(user) -> dict:
             'accounting_finance_expense': expense,
             'accounting_finance_net': income - expense,
         })
+        from core_settings.cash import build_cash_snapshot
+        snap = build_cash_snapshot()
+        ctx.update({
+            'accounting_cash_balance': snap.current_balance,
+            'accounting_cash_opening': snap.opening_balance,
+        })
+        from core_settings.models import Material
+        from core_settings.stock import is_low_stock
+        materials = Material.objects.filter(is_active=True)
+        ctx['accounting_stock_low_count'] = sum(1 for m in materials if is_low_stock(m))
 
     return ctx

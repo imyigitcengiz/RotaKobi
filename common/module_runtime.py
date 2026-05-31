@@ -208,6 +208,9 @@ def build_particles_nav_short(user) -> dict[str, bool]:
         'p.accounting.payroll': 'accounting_payroll',
         'p.accounting.finance': 'accounting_finance',
         'p.accounting.sales': 'accounting_sales',
+        'p.accounting.cash': 'accounting_cash',
+        'p.accounting.receivables': 'accounting_receivables',
+        'p.accounting.stock': 'accounting_stock',
         'p.outreach.campaigns': 'outreach_campaigns',
     }
     return {

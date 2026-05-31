@@ -1,0 +1,88 @@
+{% extends 'muhasebe/base.html' %}
+
+{% block title %}{{ gy.mh_alacaklar }}{% endblock %}
+
+{% block header %}
+<h1 class="text-lg font-bold text-slate-900">{{ gy.mh_alacaklar }}</h1>
+<p class="text-sm text-slate-500">Satış kayıtlarındaki kalan bakiyeler — ürün odaklı liste.</p>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="rounded-2xl bg-amber-50 border border-amber-100 px-5 py-4">
+            <p class="text-[10px] font-bold uppercase text-amber-700">Toplam alacak</p>
+            <p class="text-2xl font-black text-amber-900 mt-1">{{ receivable_total|floatformat:2 }} ₺</p>
+            <p class="text-xs text-amber-700/80">{{ receivable_count }} kayıt</p>
+        </div>
+        <div class="rounded-2xl bg-red-50 border border-red-100 px-5 py-4">
+            <p class="text-[10px] font-bold uppercase text-red-700">{{ receivable_overdue_days }}+ gün geciken</p>
+            <p class="text-2xl font-black text-red-900 mt-1">{{ receivable_overdue_total|floatformat:2 }} ₺</p>
+            <p class="text-xs text-red-700/80">{{ receivable_overdue_count }} kayıt</p>
+        </div>
+        <div class="rounded-2xl bg-white border border-slate-200 px-5 py-4">
+            <form method="get" class="flex items-end gap-2">
+                <div class="flex-1 space-y-1">
+                    <label class="text-xs font-bold text-slate-600 uppercase">Gecikme eşiği (gün)</label>
+                    <input type="number" min="1" name="overdue_days" value="{{ receivable_overdue_days }}" class="acct-input w-full px-3 py-2 border border-slate-200 rounded-xl text-sm">
+                </div>
+                <button type="submit" class="px-3 py-2 bg-slate-800 text-white rounded-xl text-sm font-bold">Uygula</button>
+            </form>
+        </div>
+    </div>
+
+    {% if receivable_customer_totals %}
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
+        <h2 class="font-bold text-slate-900 mb-3">Müşteri bazlı alacak</h2>
+        <div class="flex flex-wrap gap-2">
+            {% for row in receivable_customer_totals|slice:":12" %}
+            <a href="{% url 'customer_overview' row.customer.id %}" class="px-3 py-2 rounded-xl bg-slate-50 border border-slate-100 text-sm hover:bg-slate-100">
+                <span class="font-semibold">{{ row.customer.name }}</span>
+                <span class="text-amber-800 font-bold ml-1">{{ row.total|floatformat:2 }} ₺</span>
+                <span class="text-slate-400 text-xs">({{ row.count }})</span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Müşteri</th>
+                        <th class="px-4 py-3 text-left min-w-[180px]">Ürünler</th>
+                        <th class="px-4 py-3 text-right">Kalan</th>
+                        <th class="px-4 py-3 text-left">Satış tarihi</th>
+                        <th class="px-4 py-3 text-left">Durum</th>
+                        <th class="px-4 py-3 text-right">İşlem</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for row in receivable_rows %}
+                    <tr class="{% if row.is_overdue %}bg-red-50/40{% endif %}">
+                        <td class="px-4 py-3 font-semibold">{{ row.lead.customer.name }}</td>
+                        <td class="px-4 py-3">
+                            <p class="font-bold text-slate-900">{{ row.products_primary }}</p>
+                            {% if row.lead.project %}<p class="text-xs text-slate-400">{{ row.lead.project }}</p>{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right font-black text-amber-800">{{ row.remaining|floatformat:2 }} ₺</td>
+                        <td class="px-4 py-3">{{ row.lead.sale_date|date:"d.m.Y" }} <span class="text-xs text-slate-400">({{ row.days_since }} gün)</span></td>
+                        <td class="px-4 py-3">{% if row.is_overdue %}<span class="text-xs font-bold text-red-700">Gecikmiş</span>{% else %}<span class="text-xs text-slate-500">Bekliyor</span>{% endif %}</td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <a href="{% url 'sales_lead_edit' row.lead.id %}" class="text-brand-600 font-semibold text-xs hover:underline mr-2">Düzenle</a>
+                            {% if row.lead.customer.whatsapp_link %}
+                            <a href="{{ row.lead.customer.whatsapp_link }}?text={{ row.whatsapp_text|urlencode }}" target="_blank" rel="noopener" class="text-emerald-700 font-bold text-xs hover:underline">WhatsApp</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="px-4 py-12 text-center text-slate-400">Açık alacak yok.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

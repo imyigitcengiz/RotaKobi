@@ -67,6 +67,13 @@ def _products_catalog():
     ]
 
 
+def _flash_stock_warnings(request, lead):
+    from core_settings.stock import sync_sale_stock
+
+    for warning in sync_sale_stock(lead, recorded_by=request.user):
+        messages.warning(request, warning)
+
+
 class SalesLeadDashboardView(PermissionRequiredMixin, TemplateView):
     permission_required = 'access.accounting'
     template_name = 'sales_lead/dashboard.html'
@@ -173,6 +180,7 @@ class SalesLeadCreateView(PermissionRequiredMixin, View):
         form = SalesLeadForm(request.POST, add_project_for_customer=customer)
         if form.is_valid():
             lead = form.save()
+            _flash_stock_warnings(request, lead)
             prompt = build_whatsapp_sales_created_prompt(lead)
             queue_whatsapp_status_prompts(request, prompt)
             messages.success(request, f'Proje kaydı oluşturuldu: {lead.customer.name} — {lead.project}')
@@ -215,6 +223,7 @@ class SalesLeadUpdateView(PermissionRequiredMixin, View):
         form = SalesLeadForm(request.POST, instance=lead)
         if form.is_valid():
             lead = form.save()
+            _flash_stock_warnings(request, lead)
             if prev_status != lead.status:
                 prompt = build_whatsapp_sales_status_prompt(lead, prev_status)
                 queue_whatsapp_status_prompts(request, prompt)
@@ -259,49 +268,43 @@ class SalesLeadReportsView(PermissionRequiredMixin, TemplateView):
     template_name = 'sales_lead/reports.html'
 
     def get_context_data(self, **kwargs):
+        from sales_leads.report_data import build_sales_report_context
+
         context = super().get_context_data(**kwargs)
-        completed = _completed_leads()
-        today = timezone.localdate()
-
-        monthly = []
-        month_cursor = today.replace(day=1)
-        for i in range(5, -1, -1):
-            month = month_cursor - relativedelta(months=i)
-            next_month = month + relativedelta(months=1)
-            qs = completed.filter(sale_date__gte=month, sale_date__lt=next_month)
-            monthly.append({
-                'label': month.strftime('%m.%Y'),
-                'count': qs.count(),
-                'amount': qs.aggregate(total=Sum('sale_amount'))['total'] or Decimal('0'),
-            })
-        context['monthly_stats'] = monthly
-
-        context['region_stats'] = (
-            completed.exclude(customer__region__isnull=True)
-            .exclude(customer__region='')
-            .values('customer__region')
-            .annotate(total=Count('id'), amount=Sum('sale_amount'))
-            .order_by('-total')[:10]
-        )
-        context['status_breakdown'] = (
-            SalesLead.objects.values('status')
-            .annotate(total=Count('id'))
-            .order_by('-total')
-        )
-        report_leads = list(_lead_queryset().order_by('-sale_date', '-created_at'))
-        max_interim = max((lead.interim_payments.count() for lead in report_leads), default=0)
-        col_count = max(max_interim, 1)
-        for lead in report_leads:
-            payments = list(lead.interim_payments.all())
-            lead.report_interim_cells = [
-                payments[i].amount if i < len(payments) else None
-                for i in range(col_count)
-            ]
-        context['report_leads'] = report_leads
-        context['max_interim_count'] = max_interim
-        context['interim_column_count'] = col_count
-        context['interim_column_indices'] = list(range(col_count))
+        context.update(build_sales_report_context(self.request))
         return context
+
+
+class SalesLeadReportsPrintView(PermissionRequiredMixin, TemplateView):
+    permission_required = SALES_REPORTS_PERM
+    template_name = 'sales_lead/reports_print.html'
+
+    def get_context_data(self, **kwargs):
+        from sales_leads.report_data import build_sales_report_context
+
+        context = super().get_context_data(**kwargs)
+        context.update(build_sales_report_context(self.request))
+        return context
+
+
+class SalesLeadImportCsvView(PermissionRequiredMixin, View):
+    permission_required = SALES_MANAGE_PERM
+
+    def post(self, request):
+        from sales_leads.csv_import import import_sales_csv
+
+        uploaded = request.FILES.get('file')
+        if not uploaded:
+            messages.error(request, 'CSV dosyası seçin.')
+            return redirect('accounting_data_exchange')
+        try:
+            result = import_sales_csv(uploaded, user=request.user)
+            messages.success(request, f'{result["created"]} satış kaydı içe aktarıldı.')
+            if result.get('skipped'):
+                messages.warning(request, f'{result["skipped"]} satır atlandı.')
+        except Exception as exc:
+            messages.error(request, f'İçe aktarma başarısız: {exc}')
+        return redirect('accounting_data_exchange')
 
 
 class SalesLeadExportCsvView(PermissionRequiredMixin, View):
@@ -326,6 +329,7 @@ class SalesLeadExportCsvView(PermissionRequiredMixin, View):
                 'TOPLAM', 'PEŞİNAT',
             ]
             for i in range(1, max(max_interim, 1) + 1):
+                header.append(f'ARA ÖDEME TARİH {i}' if max_interim > 1 else 'ARA ÖDEME TARİH')
                 header.append(f'ARA ÖDEME {i}' if max_interim > 1 else 'ARA ÖDEME')
             header.extend(['KALAN', 'NOT', 'ÜRÜNLER'])
             writer.writerow(header)
@@ -356,8 +360,11 @@ class SalesLeadExportCsvView(PermissionRequiredMixin, View):
             if report_mode:
                 for i in range(max(max_interim, 1)):
                     if i < len(payments):
-                        row.append(payments[i].amount)
+                        pay = payments[i]
+                        row.append(pay.payment_date.strftime('%d.%m.%Y') if pay.payment_date else '-')
+                        row.append(pay.amount)
                     else:
+                        row.append('-')
                         row.append('-')
             else:
                 row.append(lead.interim_payments_total or '-')

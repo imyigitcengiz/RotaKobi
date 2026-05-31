@@ -12,6 +12,13 @@ def healthz(request):
 class ContactHubView(TemplateView):
     template_name = 'crm/index.html'
 
+    def get_context_data(self, **kwargs):
+        from customers.customer_overview import build_rehber_hub_stats
+
+        context = super().get_context_data(**kwargs)
+        context.update(build_rehber_hub_stats())
+        return context
+
 
 class CrmHubView(ContactHubView):
     """Geriye dönük uyumluluk."""

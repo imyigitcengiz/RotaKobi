@@ -10,12 +10,14 @@ DOMAIN="${DOMAIN:-}"
 
 usage() {
   cat <<'EOF'
-Kullanım: ./deploy/install.sh [domain] [--force]
+Kullanım: ./deploy/install.sh [domain] [--force] [--panel PANEL]
 
   domain   Opsiyonel. Örn: panel.firma.com (HTTPS/CSRF buna göre ayarlanır)
   --force  Var olan .env dosyasının üzerine yazar
+  --panel  coolify | dokploy | 1panel | portainer | plesk | vps (COMPOSE_FILE overlay)
 
 Ortam: DOMAIN=panel.firma.com ./deploy/install.sh
+       PANEL=dokploy ./deploy/install.sh
 
 Örnek (sadece IP — domain yazmadan):
   git clone https://github.com/imyigitcengiz/kobi-ops.git /opt/kobi-ops
@@ -23,13 +25,23 @@ Ortam: DOMAIN=panel.firma.com ./deploy/install.sh
 EOF
 }
 
+PANEL="${PANEL:-vps}"
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     -f|--force) FORCE=1; shift ;;
+    --panel)
+      PANEL="${2:-}"
+      shift 2
+      ;;
     *) DOMAIN="$1"; shift ;;
   esac
 done
+
+if [[ -x "$ROOT/deploy/panel-compose.sh" ]]; then
+  export COMPOSE_FILE="$("$ROOT/deploy/panel-compose.sh" "$PANEL")"
+fi
 
 gen_secret() {
   if command -v openssl >/dev/null 2>&1; then
@@ -121,7 +133,8 @@ DJANGO_CSRF_TRUSTED_ORIGINS=${CSRF}
 DJANGO_SECURE_SSL=${SECURE_SSL}
 DJANGO_DEBUG=0
 DJANGO_ENSURE_SUPERADMIN=1
-PORT=8080
+PORT=80
+KOBIOPS_HTTP_PORT=8080
 
 WHATSAPP_BRIDGE_URL=http://whatsapp_bridge:3939
 DJANGO_WHATSAPP_BRIDGE_CAN_SPAWN=0
@@ -139,6 +152,7 @@ echo "  ALLOWED_HOSTS: ${HOSTS}"
 echo "  CSRF: ${CSRF}"
 echo ""
 echo "Docker build + başlatılıyor (ilk sefer 5–15 dk sürebilir)..."
+echo "  Panel profili: ${PANEL}"
 if [[ -n "${COMPOSE_FILE:-}" ]]; then
   echo "  COMPOSE_FILE=$COMPOSE_FILE"
 fi

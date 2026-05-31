@@ -3,18 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yetenek Merkezi | {{ site_settings.site_name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+    <title>{{ gy.entegrasyon_merkezi }} | {{ site_settings.site_name }}</title>
+    {% load static %}
+    {% include 'common/erp_head_assets.html' %}
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-900 flex">
+<body class="erp-app erp-theme-sky min-h-screen bg-slate-100 text-slate-900 flex">
     <aside class="w-64 shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col min-h-screen text-slate-100">
         <div class="p-4 border-b border-slate-800">
-            <a href="{% url 'home' %}" class="text-xs font-semibold text-slate-500 hover:text-white">← Panel</a>
+            <a href="{% url 'home' %}" class="text-xs font-semibold text-slate-500 hover:text-white">← {{ gy.ana_panel }}</a>
             <h1 class="text-lg font-bold text-white mt-2 flex items-center gap-2">
-                <i data-lucide="zap" class="w-5 h-5 text-amber-400"></i> Entegrasyonlar
+                <i data-lucide="zap" class="w-5 h-5 text-amber-400"></i> {{ gy.entegrasyon_merkezi }}
             </h1>
             <p class="text-xs text-slate-500 mt-1">WhatsApp, firma kazıma, medya</p>
         </div>
@@ -25,17 +23,11 @@
     </aside>
     <main class="flex-1 min-w-0 overflow-y-auto">
         <header class="bg-white border-b border-slate-200 sticky top-0 z-10 px-8 py-5">
-            <h2 class="text-2xl font-bold text-slate-900">Entegrasyon Merkezi</h2>
+            <h2 class="text-2xl font-bold text-slate-900">{{ gy.entegrasyon_merkezi }}</h2>
             <p class="text-sm text-slate-500 mt-1">WhatsApp, firma kazıma ve medya kütüphanesi.</p>
         </header>
         <div class="p-8 space-y-10 max-w-5xl">
-            {% if messages %}
-            <div class="space-y-2">
-                {% for message in messages %}
-                <div class="px-4 py-3 rounded-xl text-sm font-semibold {% if message.tags == 'error' %}bg-red-50 text-red-700{% else %}bg-emerald-50 text-emerald-800{% endif %}">{{ message }}</div>
-                {% endfor %}
-            </div>
-            {% endif %}
+            {% include 'common/toast_messages.html' %}
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div class="rounded-2xl bg-amber-50 border border-amber-200 p-4">

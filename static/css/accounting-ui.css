@@ -1,0 +1,28 @@
+/* Muhasebe modülü — panel, modal ve form yardımcıları */
+.acct-sheet-backdrop {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.acct-sheet-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.acct-sheet-panel {
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+.acct-sheet-panel.is-open {
+  transform: translateX(0);
+}
+.acct-kpi-value {
+  font-variant-numeric: tabular-nums;
+}
+.acct-field-hint {
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  color: rgb(100 116 139);
+}
+.acct-preview-box {
+  font-variant-numeric: tabular-nums;
+}

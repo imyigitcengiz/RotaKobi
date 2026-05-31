@@ -1,0 +1,71 @@
+{% extends 'muhasebe/base.html' %}
+
+{% block title %}{{ gy.mh_kasa }}{% endblock %}
+
+{% block header %}
+<h1 class="text-lg font-bold text-slate-900">{{ gy.mh_kasa }}</h1>
+<p class="text-sm text-slate-500">Açılış bakiyesi, gelir/gider ve isteğe bağlı maaş ile satış tahsilatları.</p>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="rounded-2xl bg-sky-50 border border-sky-100 px-5 py-4 sm:col-span-1">
+            <p class="text-[10px] font-bold uppercase text-sky-700">Güncel kasa</p>
+            <p class="acct-kpi-value text-3xl font-black text-sky-900 mt-1">{{ cash_snapshot.current_balance|floatformat:2 }} ₺</p>
+        </div>
+        <div class="rounded-2xl bg-white border border-slate-200 px-5 py-4">
+            <p class="text-[10px] font-bold uppercase text-slate-500">Gelir/gider net</p>
+            <p class="text-xl font-bold text-emerald-700 mt-1">+ {{ cash_snapshot.finance_income|floatformat:2 }} ₺</p>
+            <p class="text-xl font-bold text-red-700">− {{ cash_snapshot.finance_expense|floatformat:2 }} ₺</p>
+        </div>
+        <div class="rounded-2xl bg-white border border-slate-200 px-5 py-4">
+            <p class="text-[10px] font-bold uppercase text-slate-500">Otomatik kalemler</p>
+            {% if cash_snapshot.include_sales %}
+            <p class="text-sm font-semibold text-emerald-700 mt-1">+ Satış tahsilat {{ cash_snapshot.sales_in|floatformat:2 }} ₺</p>
+            {% endif %}
+            {% if cash_snapshot.include_payroll %}
+            <p class="text-sm font-semibold text-amber-800">− Maaş/avans {{ cash_snapshot.payroll_out|floatformat:2 }} ₺</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <h2 class="font-bold text-slate-900">Kasa ayarları</h2>
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-slate-600 uppercase">Açılış bakiyesi (₺)</label>
+                        <input type="number" step="0.01" name="opening_balance" value="{{ cash_settings.opening_balance }}" class="acct-input w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-slate-600 uppercase">Açılış tarihi</label>
+                        <input type="date" name="opening_date" value="{% if cash_settings.opening_date %}{{ cash_settings.opening_date|date:'Y-m-d' }}{% endif %}" class="acct-input w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm">
+                    </div>
+                </div>
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input type="checkbox" name="include_payroll" class="rounded" {% if cash_settings.include_payroll_in_balance %}checked{% endif %}>
+                    Maaş/avans ödemelerini kasadan düş
+                </label>
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input type="checkbox" name="include_sales" class="rounded" {% if cash_settings.include_sales_collections_in_balance %}checked{% endif %}>
+                    Satış peşinat ve ara ödemeleri kasaya ekle
+                </label>
+                <button type="submit" class="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-900">Kaydet</button>
+            </form>
+        </section>
+
+        <section class="bg-slate-50 rounded-3xl border border-slate-200 p-6 text-sm text-slate-600 space-y-2">
+            <p class="font-bold text-slate-800">Hesaplama</p>
+            <p>Kasa = Açılış + Gelir/gider gelirleri − Giderler{% if cash_snapshot.include_sales %} + Satış tahsilatları{% endif %}{% if cash_snapshot.include_payroll %} − Maaş/avans{% endif %}</p>
+            <p class="text-xs">Manuel gelir/gider kayıtları için <a href="{% url 'accounting_finance' %}" class="text-brand-600 font-semibold underline">{{ gy.mh_gelir_gider }}</a>.</p>
+            <div class="flex flex-wrap gap-2 pt-2">
+                <a href="{% url 'accounting_receivables' %}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-semibold hover:bg-slate-50">{{ gy.mh_alacaklar }}</a>
+                <a href="{% url 'accounting_finance' %}" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-semibold hover:bg-slate-50">{{ gy.mh_gelir_gider }}</a>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

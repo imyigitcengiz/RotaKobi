@@ -87,6 +87,26 @@
         <span class="inline-flex mt-3 px-2.5 py-1 rounded-lg {% if accounting_finance_net >= 0 %}bg-emerald-100 text-emerald-800{% else %}bg-red-100 text-red-800{% endif %} text-[11px] font-bold">Net {{ accounting_finance_net }} ₺</span>
         {% endif %}
     </a>
+    <a href="{% url 'accounting_cash' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-emerald-300 transition-all p-6">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+            <i data-lucide="landmark" class="w-6 h-6"></i>
+        </div>
+        <h4 class="text-lg font-bold text-slate-900">{{ gy.mh_kasa }}</h4>
+        <p class="text-sm text-slate-500 mt-2">Açılış bakiyesi, gelir-gider ve tahsilatlarla güncel kasa.</p>
+        {% if accounting_cash_balance is not None %}
+        <span class="inline-flex mt-3 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-bold">Bakiye {{ accounting_cash_balance }} ₺</span>
+        {% endif %}
+    </a>
+    <a href="{% url 'accounting_stock' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-violet-300 transition-all p-6">
+        <div class="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4 group-hover:bg-violet-600 group-hover:text-white transition-colors">
+            <i data-lucide="package" class="w-6 h-6"></i>
+        </div>
+        <h4 class="text-lg font-bold text-slate-900">{{ gy.mh_stok }}</h4>
+        <p class="text-sm text-slate-500 mt-2">Malzeme stoku, reçeteler ve kritik seviye uyarısı.</p>
+        {% if accounting_stock_low_count %}
+        <span class="inline-flex mt-3 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-bold">{{ accounting_stock_low_count }} kritik malzeme</span>
+        {% endif %}
+    </a>
     {% endif %}
 
     {% if accounting_show_sales and user_access.sales %}
@@ -104,6 +124,24 @@
         <h4 class="text-lg font-bold text-slate-900">{{ gy.sb_kayitlar }}</h4>
         <p class="text-sm text-slate-500 mt-2">Proje ve satış kayıtları listesi.</p>
     </a>
+    {% if user_perms.sales_manage %}
+    <a href="{% url 'sales_quote_list' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-all p-6">
+        <div class="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4">
+            <i data-lucide="file-text" class="w-6 h-6"></i>
+        </div>
+        <h4 class="text-lg font-bold text-slate-900">{{ gy.sb_teklifler }}</h4>
+        <p class="text-sm text-slate-500 mt-2">Teklif hazırlama ve satışa dönüştürme.</p>
+    </a>
+    {% endif %}
+    {% if user_perms.sales_reports or user_perms.sales_manage %}
+    <a href="{% url 'accounting_receivables' %}" class="group block bg-white rounded-3xl border border-amber-200 shadow-sm hover:shadow-lg hover:border-amber-300 transition-all p-6">
+        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
+            <i data-lucide="hand-coins" class="w-6 h-6"></i>
+        </div>
+        <h4 class="text-lg font-bold text-slate-900">{{ gy.mh_alacaklar }}</h4>
+        <p class="text-sm text-slate-500 mt-2">Bekleyen tahsilatlar ve WhatsApp hatırlatma.</p>
+    </a>
+    {% endif %}
     {% endif %}
 
     {% if accounting_show_reports %}

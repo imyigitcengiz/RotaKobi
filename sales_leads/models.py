@@ -118,6 +118,11 @@ class SalesLeadInterimPayment(models.Model):
         decimal_places=2,
         verbose_name='Tutar (₺)',
     )
+    payment_date = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name='Ödeme tarihi',
+    )
     sort_order = models.PositiveSmallIntegerField(default=0, verbose_name='Sıra')
 
     class Meta:
@@ -164,3 +169,87 @@ class SalesLeadProductLine(models.Model):
         if self.color:
             parts.append(self.color.name)
         return ' — '.join(parts)
+
+
+class SalesQuote(models.Model):
+    STATUS_DRAFT = 'draft'
+    STATUS_SENT = 'sent'
+    STATUS_ACCEPTED = 'accepted'
+    STATUS_REJECTED = 'rejected'
+    STATUS_CONVERTED = 'converted'
+    STATUS_CHOICES = (
+        (STATUS_DRAFT, 'Taslak'),
+        (STATUS_SENT, 'Gönderildi'),
+        (STATUS_ACCEPTED, 'Kabul'),
+        (STATUS_REJECTED, 'Red'),
+        (STATUS_CONVERTED, 'Satışa dönüştü'),
+    )
+
+    customer = models.ForeignKey(
+        'customers.Customer',
+        on_delete=models.CASCADE,
+        related_name='sales_quotes',
+        verbose_name='Müşteri',
+    )
+    quote_date = models.DateField(verbose_name='Teklif tarihi')
+    valid_until = models.DateField(null=True, blank=True, verbose_name='Geçerlilik')
+    project = models.CharField(max_length=255, blank=True, verbose_name='Proje referansı')
+    sale_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='Toplam (₺)',
+    )
+    down_payment = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='Peşinat (₺)',
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_DRAFT)
+    notes = models.TextField(blank=True, null=True, verbose_name='Not')
+    converted_lead = models.ForeignKey(
+        SalesLead,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='source_quote',
+        verbose_name='Dönüşen satış',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-quote_date', '-created_at']
+        verbose_name = 'Teklif'
+        verbose_name_plural = 'Teklifler'
+
+    @property
+    def products_primary(self) -> str:
+        lines = list(self.lines.select_related('product').all())
+        if lines:
+            return ', '.join(f'{line.product.name}×{line.quantity}' for line in lines)
+        return self.project or '—'
+
+
+class SalesQuoteLine(models.Model):
+    quote = models.ForeignKey(
+        SalesQuote,
+        on_delete=models.CASCADE,
+        related_name='lines',
+        verbose_name='Teklif',
+    )
+    product = models.ForeignKey(
+        'core_settings.ProductOption',
+        on_delete=models.PROTECT,
+        related_name='quote_lines',
+        verbose_name='Ürün',
+    )
+    quantity = models.PositiveIntegerField(default=1, verbose_name='Adet')
+    color = models.ForeignKey(
+        'core_settings.ProductColorOption',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='quote_lines',
+        verbose_name='Renk',
+    )
+    note = models.CharField(max_length=500, blank=True, null=True, verbose_name='Not')
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['sort_order', 'id']

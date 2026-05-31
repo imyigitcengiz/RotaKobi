@@ -1,4 +1,4 @@
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView, TemplateView
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import redirect, render, get_object_or_404
 from django.db.models import Q, Min, Case, When, IntegerField
@@ -461,6 +461,11 @@ class ServiceCreateView(PermissionRequiredMixin, CreateView):
         )
         _create_service_history(self.object, "Servis kaydı oluşturuldu.", self.request.user)
         _ingest_service_media_uploads(self.request, self.object)
+
+        from core_settings.stock import sync_service_stock
+
+        for warning in sync_service_stock(self.object, recorded_by=self.request.user):
+            messages.warning(self.request, warning)
 
         service = ServiceRecord.objects.select_related(
             'customer', 'status', 'priority',
@@ -1379,3 +1384,45 @@ def service_whatsapp_status_confirm_api(request):
         'results': results,
         'error': failed[0]['error'] if len(failed) == 1 and sent == 0 else None,
     })
+
+
+class ServiceScheduleView(PermissionRequiredMixin, TemplateView):
+    permission_required = 'access.services'
+    template_name = 'services_dashboard/services/schedule.html'
+
+    def get_context_data(self, **kwargs):
+        from datetime import date, datetime, timedelta
+
+        context = super().get_context_data(**kwargs)
+        today = timezone.localdate()
+        day_raw = self.request.GET.get('day')
+        if day_raw:
+            try:
+                focus_day = date.fromisoformat(day_raw)
+            except ValueError:
+                focus_day = today
+        else:
+            focus_day = today
+
+        start = timezone.make_aware(datetime.combine(focus_day, datetime.min.time()))
+        end = start + timedelta(days=1)
+        scheduled = (
+            ServiceRecord.objects.filter(scheduled_at__gte=start, scheduled_at__lt=end)
+            .select_related('customer', 'status', 'service_personnel', 'service_personnel__team')
+            .prefetch_related('products')
+            .order_by('scheduled_at')
+        )
+        unscheduled = (
+            ServiceRecord.objects.filter(scheduled_at__isnull=True)
+            .select_related('customer', 'status')
+            .order_by('-created_at')[:15]
+        )
+        context.update({
+            'focus_day': focus_day,
+            'focus_day_str': focus_day.isoformat(),
+            'prev_day': (focus_day - timedelta(days=1)).isoformat(),
+            'next_day': (focus_day + timedelta(days=1)).isoformat(),
+            'scheduled_services': scheduled,
+            'unscheduled_services': unscheduled,
+        })
+        return context

@@ -18,6 +18,7 @@ from services.views import (
     service_whatsapp_status_confirm_api,
     customer_service_summary_api,
     service_reopen_api,
+    ServiceScheduleView,
 )
 
 urlpatterns = [
@@ -32,6 +33,7 @@ urlpatterns = [
     path('services/<int:pk>/delete/', ServiceDeleteView.as_view(), name='service_delete'),
     path('services/<int:pk>/print/', ServicePrintView.as_view(), name='service_print'),
     path('services/<int:pk>/history/<int:history_id>/restore/', restore_service_history_entry, name='service_restore_history'),
+    path('services/takvim/', ServiceScheduleView.as_view(), name='service_schedule'),
     path('services/bulk-print/', ServiceBulkPrintView.as_view(), name='service_bulk_print'),
     path('services/bulk-delete/', bulk_delete_services, name='service_bulk_delete'),
     path('services/bulk-manage/', bulk_manage_services, name='service_bulk_manage'),

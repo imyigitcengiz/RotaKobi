@@ -1,4 +1,4 @@
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, TemplateView
 from django.urls import reverse_lazy
 from django.shortcuts import redirect, get_object_or_404
 from django.db.models import Count, Max, Q
@@ -351,3 +351,18 @@ def customers_picker_api(request):
             'contract_date': c.contract_date.strftime('%d.%m.%Y') if c.contract_date else '',
         })
     return JsonResponse({'ok': True, 'results': results, 'count': len(results)})
+
+
+class CustomerOverviewView(PermissionRequiredMixin, TemplateView):
+    permission_required = (CUSTOMERS_VIEW_PERM, CUSTOMERS_EDIT_PERM)
+    permission_any = True
+    template_name = 'crm/customers/customer_overview.html'
+
+    def get_context_data(self, **kwargs):
+        from customers.customer_overview import build_customer_overview
+
+        context = super().get_context_data(**kwargs)
+        customer = get_object_or_404(Customer, pk=self.kwargs['pk'])
+        context['customer'] = customer
+        context.update(build_customer_overview(customer))
+        return context

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block print_title %}Rapor{% endblock %} | {{ site_settings.site_name }}</title>
+    <style>
+        @page { size: A4; margin: 12mm; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 32px;
+            color: #1e293b;
+            line-height: 1.5;
+            --print-font-size: 13px;
+            font-size: var(--print-font-size);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+            gap: 16px;
+        }
+        .logo { font-size: 22px; font-weight: 800; color: #0f172a; }
+        .logo img { height: 48px; object-fit: contain; }
+        .doc-title { font-size: 18px; font-weight: 800; text-align: right; }
+        .doc-meta { font-size: 11px; color: #64748b; text-align: right; margin-top: 4px; }
+        .section-title {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: #f1f5f9;
+            padding: 8px 12px;
+            margin: 20px 0 12px;
+            border-radius: 6px;
+            color: #475569;
+        }
+        .kpi-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+        .kpi {
+            flex: 1 1 140px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: #fafafa;
+        }
+        .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+        .kpi-value { font-size: 16px; font-weight: 800; margin-top: 2px; font-variant-numeric: tabular-nums; }
+        table { width: 100%; border-collapse: collapse; font-size: var(--print-font-size); }
+        th, td { border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; vertical-align: top; }
+        th { background: #f8fafc; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #475569; }
+        td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .footer {
+            margin-top: 36px;
+            padding-top: 12px;
+            border-top: 1px solid #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #64748b;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; }
+        }
+        .toolbar {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .btn-primary { background: #0284c7; color: #fff; }
+        .btn-muted { background: #64748b; color: #fff; }
+        .input { width: 54px; padding: 7px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; }
+        .label { font-size: 12px; color: #475569; font-weight: 700; }
+    </style>
+    {% block print_extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="no-print toolbar">
+        <span class="label">Sayfa</span>
+        <input id="targetPages" type="number" min="1" value="1" class="input">
+        <button type="button" onclick="fitToPages()" class="btn btn-muted">SIĞDIR</button>
+        <span class="label">Punto</span>
+        <input id="fontSizeRange" type="range" min="10" max="16" step="1" value="13" oninput="applyFontSize(this.value)">
+        <span id="fontSizeValue" class="label">13px</span>
+        <button type="button" onclick="window.print()" class="btn btn-primary">YAZDIR</button>
+        <button type="button" onclick="window.close()" class="btn btn-muted">KAPAT</button>
+    </div>
+
+    <div class="header">
+        <div class="logo">
+            {% if site_settings.logo %}
+            <img src="{{ site_settings.logo.url }}" alt="">
+            {% else %}
+            {{ site_settings.site_name }}
+            {% endif %}
+        </div>
+        <div>
+            <div class="doc-title">{% block doc_title %}Rapor{% endblock %}</div>
+            <div class="doc-meta">{% block doc_meta %}{% endblock %}</div>
+        </div>
+    </div>
+
+    {% block print_body %}{% endblock %}
+
+    <div class="footer">
+        <div>
+            <strong>{{ site_settings.site_name }}</strong><br>
+            {{ site_settings.company_address|default:"" }}<br>
+            {% if site_settings.company_phone %}Tel: {{ site_settings.company_phone }}{% endif %}
+        </div>
+        <div style="text-align:right;">
+            {% block footer_note %}Bu belge sistemden otomatik üretilmiştir.{% endblock %}
+        </div>
+    </div>
+
+    <script>
+        function applyFontSize(sizePx) {
+            const value = parseInt(sizePx, 10) || 13;
+            document.body.style.setProperty('--print-font-size', value + 'px');
+            const text = document.getElementById('fontSizeValue');
+            if (text) text.textContent = value + 'px';
+        }
+        function getMmPxRatio() {
+            const probe = document.createElement('div');
+            probe.style.width = '100mm';
+            probe.style.position = 'absolute';
+            probe.style.visibility = 'hidden';
+            document.body.appendChild(probe);
+            const px = probe.getBoundingClientRect().width;
+            document.body.removeChild(probe);
+            return px / 100;
+        }
+        function fitToPages() {
+            document.body.style.zoom = '1';
+            requestAnimationFrame(function () {
+                const target = Math.max(1, parseInt(document.getElementById('targetPages')?.value || '1', 10));
+                const mmToPx = getMmPxRatio();
+                const maxHeightPx = (297 - 24) * mmToPx * target;
+                const scale = Math.min(1, maxHeightPx / document.body.scrollHeight);
+                if (scale < 0.99) document.body.style.zoom = String(scale);
+            });
+        }
+    </script>
+    {% block print_extra_js %}{% endblock %}
+</body>
+</html>

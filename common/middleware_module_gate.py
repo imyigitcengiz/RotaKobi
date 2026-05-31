@@ -34,7 +34,7 @@ class ModuleInstallMiddleware:
             if p and not is_particle_enabled(particle_slug):
                 messages.warning(
                     request,
-                    f'"{p["name"]}" özelliği kapalı. Uygulama Merkezi\'nden açabilirsiniz.',
+                    f'"{p["name"]}" özelliği kapalı. Modül Merkezi\'nden açabilirsiniz.',
                 )
                 return redirect(reverse('module_hub'))
 
@@ -48,7 +48,7 @@ class ModuleInstallMiddleware:
             return None
         messages.warning(
             request,
-            f'{mod["name"]} modülü kurulu değil. Uygulama Merkezi\'nden açabilirsiniz.',
+            f'{mod["name"]} modülü kurulu değil. Modül Merkezi\'nden açabilirsiniz.',
         )
         try:
             return redirect(reverse('module_hub') + f'?highlight={slug}')

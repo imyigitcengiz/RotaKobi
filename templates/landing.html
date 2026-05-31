@@ -5,24 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ gy.app_name }} — Operasyon paneli</title>
     <meta name="description" content="KOBİ ve saha servis ekipleri için modüler operasyon paneli — tek kurulumda.">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    {% load static %}
+    {% include 'common/erp_head_assets.html' %}
     <style>
-        body { font-family: 'Inter', sans-serif; }
         .hero-glow {
             background:
                 radial-gradient(ellipse 80% 60% at 50% -10%, rgba(14, 165, 233, 0.18), transparent),
@@ -30,7 +15,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+<body class="erp-app erp-theme-sky min-h-screen bg-slate-950 text-slate-100 antialiased">
     <header class="border-b border-white/10 bg-slate-950/80 backdrop-blur sticky top-0 z-20">
         <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
             <a href="{% url 'landing' %}" class="flex items-center gap-3">

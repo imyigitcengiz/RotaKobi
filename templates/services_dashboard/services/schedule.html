@@ -1,0 +1,68 @@
+{% extends 'services_dashboard/base.html' %}
+
+{% block title %}Saha planı{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Saha planı</h1>
+            <p class="text-sm text-slate-500">{{ focus_day|date:"d F Y, l" }}</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="?day={{ prev_day }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">← Önceki</a>
+            <a href="?day={{ next_day }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Sonraki →</a>
+            <a href="{% url 'services' %}" class="px-3 py-2 rounded-xl bg-slate-800 text-white text-sm font-bold">Tüm kayıtlar</a>
+        </div>
+    </div>
+
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 bg-brand-50">
+            <h2 class="font-bold text-brand-900">Planlanan randevular ({{ scheduled_services|length }})</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Saat</th>
+                        <th class="px-4 py-3 text-left">Müşteri</th>
+                        <th class="px-4 py-3 text-left">Ürün / durum</th>
+                        <th class="px-4 py-3 text-left">Personel</th>
+                        <th class="px-4 py-3 text-right">Kayıt</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for s in scheduled_services %}
+                    <tr>
+                        <td class="px-4 py-3 font-bold text-brand-700">{{ s.scheduled_at|date:"H:i" }}</td>
+                        <td class="px-4 py-3 font-semibold">{{ s.customer.name }}<br><span class="text-xs text-slate-500 font-normal">{{ s.customer.region|default:"" }}</span></td>
+                        <td class="px-4 py-3">
+                            {% for p in s.products.all %}<span class="font-semibold">{{ p.name }}</span>{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}
+                            <br><span class="text-xs text-slate-500">{{ s.status.name }}</span>
+                        </td>
+                        <td class="px-4 py-3">{{ s.service_personnel.name|default:"-" }}</td>
+                        <td class="px-4 py-3 text-right"><a href="{% url 'service_update' s.pk %}" class="text-brand-600 font-bold hover:underline">Aç</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="px-4 py-10 text-center text-slate-400">Bu gün için planlanmış randevu yok. Servis kaydında “Planlanan randevu” alanını doldurun.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    {% if unscheduled_services %}
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
+        <h2 class="font-bold text-slate-900 mb-3">Randevu atanmamış açık kayıtlar</h2>
+        <ul class="space-y-2 text-sm">
+            {% for s in unscheduled_services %}
+            <li class="flex justify-between gap-3 p-3 rounded-xl bg-slate-50">
+                <span class="font-semibold">{{ s.customer.name }} — {{ s.status.name }}</span>
+                <a href="{% url 'service_update' s.pk %}" class="text-brand-600 font-bold hover:underline shrink-0">Randevu ekle</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

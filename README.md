@@ -20,16 +20,16 @@ Django tabanlı, self-host edilebilir hafif ERP/CRM: müşteri rehberi, yardım 
 | **Muhasebe** | Personel yönetimi, maaş & avans (döngü işlem, net = brüt − avans), gelir-gider, satış kayıtları, raporlar |
 | **Yardım Masası** | Servis kayıtları, durum/öncelik, toplu işlem, yazdırma, WhatsApp dağıtım |
 | **İletişim Merkezi** | Kampanyalar, toplu WhatsApp, mesaj geçmişi |
-| **Tools** | WhatsApp köprüsü, medya kütüphanesi, AI ayarları, yedekleme |
-| **Modül Merkezi** (`/panel/moduller/`) | Sektör profili (KOBİ, ajans, …), modül kur/kapat, URL kilidi |
-| **Ajans Çalışma Alanı** (`/panel/ajans/`) | Retainer/proje panosu — ajans paketi ile (beta) |
+| **Araçlar** (`/tools/`) | WhatsApp köprüsü, medya kütüphanesi — entegrasyon merkezi üzerinden erişilir |
+| **Modül Merkezi** (`/panel/moduller/`) | Modül aç/kapa, kurulum listesi |
+| **Entegrasyon Merkezi** (`/panel/yetenekler/`) | WhatsApp, firma kazıma, medya entegrasyonları |
 
 ### Öne çıkan özellikler
 
 - **Personel & maaş:** `/muhasebe/personel/` — kayıt, ekip, maaş tarihi; `/muhasebe/maas-avans/` — avans mahsubu ve aylık net ödeme  
 - **RBAC:** Muhasebe, satış, servis, operasyon rolleri; `python manage.py test_rbac` ile senaryo testleri  
 - **WhatsApp:** Ayrı `whatsapp_bridge` servisi (Docker) veya yerel otomatik köprü  
-- **Deploy:** Docker Compose; Coolify, Dokploy, 1Panel, **Plesk Git** ([deploy/plesk/README.md](deploy/plesk/README.md))
+- **Deploy:** Docker Compose; [deploy/README.md](deploy/README.md) — Coolify, Dokploy, 1Panel, Portainer, Easypanel, Plesk
 
 ## Hızlı başlangıç (Docker — önerilen)
 
@@ -45,10 +45,13 @@ Detaylı üretim rehberi: **[DEPLOY.md](DEPLOY.md)**
 
 | Platform | Rehber |
 |----------|--------|
+| **Panel uyumluluk (özet)** | [deploy/README.md](deploy/README.md) |
 | Plesk (Git) | [deploy/plesk/README.md](deploy/plesk/README.md) |
 | Dokploy | [deploy/dokploy/README.md](deploy/dokploy/README.md) |
 | Coolify | [deploy/coolify/README.md](deploy/coolify/README.md) |
 | 1Panel | [deploy/1panel/README.md](deploy/1panel/README.md) |
+| Portainer | [deploy/portainer/README.md](deploy/portainer/README.md) |
+| Easypanel | [deploy/easypanel/README.md](deploy/easypanel/README.md) |
 
 İlk giriş (varsayılan üretim): `admin` / `admin` — hemen değiştirin.
 
@@ -60,6 +63,7 @@ cd kobi-ops
 python3 -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+npm install && npm run build:css
 python manage.py migrate
 python manage.py sync_permissions --reset-system-roles
 python manage.py runserver
@@ -98,7 +102,7 @@ Kapatmak: `DJANGO_WHATSAPP_BRIDGE_AUTO_START=0`.
 
 - Python 3 / Django 5  
 - SQLite (tek kiracı), medya `/data/media`  
-- Tailwind (CDN), Docker Compose  
+- Tailwind (derlenmiş CSS — `npm run build:css`), Docker Compose  
 - Node.js WhatsApp köprüsü (Chromium)  
 
 ## Katkı ve lisans

@@ -1,0 +1,11 @@
+# Coolify: Build Pack = Docker Compose, compose path docker-compose.yaml (repo kökü).
+# Domain → servis "app" → port 80 (container içi). Tarayıcıda :8000 = Coolify paneli, uygulama değil.
+#
+# Bu overlay isteğe bağlıdır; ana compose zaten expose + traefik.enable kullanır.
+# Coolify'da port çakışması yaşarsanız COMPOSE_FILE ile bu dosyayı ekleyin.
+name: kobi-ops
+
+services:
+  app:
+    environment:
+      KOBIOPS_COMPOSE_STACK: "1"

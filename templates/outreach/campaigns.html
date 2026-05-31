@@ -11,7 +11,7 @@
     <a href="{% url 'contact_firma_bul' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200">Firma kazıma</a>
 </div>
 <div id="apiOfflineBanner" class="hidden mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-center justify-between gap-3">
-    <span><strong>WhatsApp API yapılandırılmamış.</strong> <a href="{% url 'tools_whatsapp_api_settings' %}" class="font-semibold underline">Tools → WhatsApp Business API</a> bölümünden token ve telefon ID girin.</span>
+    <span><strong>WhatsApp API yapılandırılmamış.</strong> <a href="{% url 'tools_whatsapp_api_settings' %}" class="font-semibold underline">{{ gy.entegrasyon_merkezi }} → WhatsApp Business API</a> bölümünden token ve telefon ID girin.</span>
     <button type="button" id="retryApiBtn" class="shrink-0 px-3 py-1 bg-amber-700 text-white rounded-lg text-xs font-bold">Tekrar dene</button>
 </div>
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">

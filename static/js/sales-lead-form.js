@@ -20,13 +20,16 @@
         }
     }
 
-    function createInterimRow(amount) {
+    function createInterimRow(amount, paymentDate) {
         const row = document.createElement('div');
-        row.className = 'flex items-center gap-2 interim-payment-row';
+        row.className = 'flex flex-wrap items-center gap-2 interim-payment-row';
         row.innerHTML = `
+            <input type="date" name="interim_payment_date"
+                   value="${paymentDate ? escapeHtml(paymentDate) : ''}"
+                   class="${INPUT} w-[9.5rem] shrink-0" title="Ödeme tarihi">
             <input type="number" name="interim_payment_amount" step="0.01" min="0"
                    value="${amount != null && amount !== '' ? amount : ''}"
-                   placeholder="0,00" class="${MONEY} flex-1">
+                   placeholder="0,00" class="${MONEY} flex-1 min-w-[7rem]">
             <span class="text-xs text-slate-500 shrink-0">₺</span>
             <button type="button" class="remove-interim p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Kaldır">
                 <i data-lucide="x" class="w-4 h-4"></i>
@@ -110,7 +113,9 @@
     function initInterimPayments() {
         const items = cfg.interimPayments || [];
         if (items.length) {
-            items.forEach(item => interimContainer.appendChild(createInterimRow(item.amount)));
+            items.forEach(item => interimContainer.appendChild(
+                createInterimRow(item.amount, item.payment_date || '')
+            ));
         }
     }
 
@@ -123,7 +128,9 @@
 
     if (addInterimBtn) {
         addInterimBtn.addEventListener('click', () => {
-            interimContainer.appendChild(createInterimRow(''));
+            const saleDateInput = document.querySelector('input[name="sale_date"]');
+            const defaultDate = saleDateInput && saleDateInput.value ? saleDateInput.value : '';
+            interimContainer.appendChild(createInterimRow('', defaultDate));
             refreshIcons();
         });
     }

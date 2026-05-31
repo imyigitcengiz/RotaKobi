@@ -1,0 +1,21 @@
+# Dokploy: Traefik domain yönetimi — host ports açmayın.
+# Dokploy UI → Domains → servis "app" → container port 80, HTTPS isteğe bağlı.
+#
+# Kullanım (SSH test):
+#   COMPOSE_FILE=docker-compose.yaml:deploy/dokploy/docker-compose.dokploy.yaml docker compose up -d --build
+#
+# Dokploy Compose projesinde ortam değişkeni (isteğe bağlı):
+#   COMPOSE_FILE=docker-compose.yaml:deploy/dokploy/docker-compose.dokploy.yaml
+name: kobi-ops
+
+services:
+  app:
+    networks:
+      - default
+      - dokploy-network
+    environment:
+      KOBIOPS_COMPOSE_STACK: "1"
+
+networks:
+  dokploy-network:
+    external: true

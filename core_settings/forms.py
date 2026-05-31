@@ -18,6 +18,12 @@ from .models import (
 )
 
 INPUT = 'w-full p-3 bg-slate-50 border-none rounded-xl text-sm'
+ACCOUNTING_INPUT = (
+    'acct-input w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm '
+    'text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 '
+    'focus:ring-brand-500/25 focus:border-brand-500'
+)
+ACCOUNTING_SELECT = ACCOUNTING_INPUT + ' pr-8'
 
 
 class SiteSettingsForm(forms.ModelForm):
@@ -222,7 +228,7 @@ class PayrollPersonnelQuickForm(forms.ModelForm):
     salary_pay_date = forms.DateField(
         required=False,
         label='Maaş tarihi',
-        widget=forms.DateInput(attrs={'class': INPUT, 'type': 'date'}),
+        widget=forms.DateInput(attrs={'class': ACCOUNTING_INPUT, 'type': 'date'}),
     )
 
     class Meta:
@@ -250,20 +256,20 @@ class AccountingPersonnelForm(forms.ModelForm):
     salary_pay_date = forms.DateField(
         required=False,
         label='Maaş tarihi',
-        widget=forms.DateInput(attrs={'class': INPUT, 'type': 'date'}),
+        widget=forms.DateInput(attrs={'class': ACCOUNTING_INPUT, 'type': 'date'}),
     )
 
     class Meta:
         model = ServicePersonnel
         fields = ['name', 'team', 'company_phone', 'monthly_salary', 'product_groups', 'notes', 'is_active']
         widgets = {
-            'name': forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Ad Soyad'}),
-            'team': forms.Select(attrs={'class': INPUT}),
-            'company_phone': forms.TextInput(attrs={'class': INPUT, 'placeholder': '+905…'}),
-            'monthly_salary': forms.NumberInput(attrs={'class': INPUT, 'step': '0.01', 'min': '0', 'placeholder': 'Aylık maaş'}),
-            'product_groups': forms.SelectMultiple(attrs={'class': INPUT, 'size': 4}),
-            'notes': forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Not (opsiyonel)'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'w-4 h-4 accent-brand-600 rounded'}),
+            'name': forms.TextInput(attrs={'class': ACCOUNTING_INPUT, 'placeholder': 'Ad Soyad'}),
+            'team': forms.Select(attrs={'class': ACCOUNTING_SELECT}),
+            'company_phone': forms.TextInput(attrs={'class': ACCOUNTING_INPUT, 'placeholder': '+905…'}),
+            'monthly_salary': forms.NumberInput(attrs={'class': ACCOUNTING_INPUT, 'step': '0.01', 'min': '0', 'inputmode': 'decimal', 'placeholder': '0,00'}),
+            'product_groups': forms.SelectMultiple(attrs={'class': ACCOUNTING_INPUT, 'size': 4}),
+            'notes': forms.TextInput(attrs={'class': ACCOUNTING_INPUT, 'placeholder': 'Not (opsiyonel)'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'w-4 h-4 accent-emerald-600 rounded'}),
         }
 
     def __init__(self, *args, show_product_groups=False, **kwargs):
@@ -294,17 +300,17 @@ class PayrollQuickAdvanceForm(forms.Form):
         min_value=Decimal('0.01'),
         max_digits=12,
         decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': INPUT, 'step': '0.01', 'min': '0.01'}),
+        widget=forms.NumberInput(attrs={'class': ACCOUNTING_INPUT, 'step': '0.01', 'min': '0.01', 'inputmode': 'decimal'}),
         label='Tutar',
     )
     payment_date = forms.DateField(
         required=False,
-        widget=forms.DateInput(attrs={'class': INPUT, 'type': 'date'}),
+        widget=forms.DateInput(attrs={'class': ACCOUNTING_INPUT, 'type': 'date'}),
         label='Tarih',
     )
     notes = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Not'}),
+        widget=forms.TextInput(attrs={'class': ACCOUNTING_INPUT, 'placeholder': 'Not'}),
         label='Not',
     )
 
@@ -315,7 +321,7 @@ class PayrollQuickAdvanceForm(forms.Form):
 
 class PersonnelAdvanceForm(forms.ModelForm):
     period = forms.CharField(
-        widget=forms.TextInput(attrs={'class': INPUT, 'type': 'month'}),
+        widget=forms.TextInput(attrs={'class': ACCOUNTING_INPUT, 'type': 'month'}),
         label='Dönem',
     )
 
@@ -323,10 +329,10 @@ class PersonnelAdvanceForm(forms.ModelForm):
         model = PersonnelPayment
         fields = ['personnel', 'amount', 'payment_date', 'notes']
         widgets = {
-            'personnel': forms.Select(attrs={'class': INPUT}),
-            'amount': forms.NumberInput(attrs={'class': INPUT, 'step': '0.01', 'min': '0.01', 'placeholder': '0.00'}),
-            'payment_date': forms.DateInput(attrs={'class': INPUT, 'type': 'date'}),
-            'notes': forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Opsiyonel not'}),
+            'personnel': forms.Select(attrs={'class': ACCOUNTING_SELECT}),
+            'amount': forms.NumberInput(attrs={'class': ACCOUNTING_INPUT, 'step': '0.01', 'min': '0.01', 'inputmode': 'decimal', 'placeholder': '0,00'}),
+            'payment_date': forms.DateInput(attrs={'class': ACCOUNTING_INPUT, 'type': 'date'}),
+            'notes': forms.TextInput(attrs={'class': ACCOUNTING_INPUT, 'placeholder': 'Opsiyonel not'}),
         }
 
     def __init__(self, *args, period_default: str = '', **kwargs):
@@ -353,16 +359,16 @@ class PersonnelAdvanceForm(forms.ModelForm):
 class PersonnelSalaryAddForm(forms.Form):
     personnel = forms.ModelChoiceField(
         queryset=ServicePersonnel.objects.none(),
-        widget=forms.Select(attrs={'class': INPUT}),
+        widget=forms.Select(attrs={'class': ACCOUNTING_SELECT}),
         label='Personel',
         empty_label='Personel seçin',
     )
     period = forms.CharField(
-        widget=forms.TextInput(attrs={'class': INPUT, 'type': 'month'}),
+        widget=forms.TextInput(attrs={'class': ACCOUNTING_INPUT, 'type': 'month'}),
         label='Dönem',
     )
     payment_date = forms.DateField(
-        widget=forms.DateInput(attrs={'class': INPUT, 'type': 'date'}),
+        widget=forms.DateInput(attrs={'class': ACCOUNTING_INPUT, 'type': 'date'}),
         label='Ödeme tarihi',
     )
     gross_amount = forms.DecimalField(
@@ -370,12 +376,12 @@ class PersonnelSalaryAddForm(forms.Form):
         min_value=Decimal('0.01'),
         max_digits=12,
         decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': INPUT, 'step': '0.01', 'min': '0', 'placeholder': 'Boş = aylık maaş'}),
+        widget=forms.NumberInput(attrs={'class': ACCOUNTING_INPUT, 'step': '0.01', 'min': '0', 'inputmode': 'decimal', 'placeholder': 'Boş bırakılırsa aylık maaş'}),
         label='Brüt maaş (opsiyonel)',
     )
     notes = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Not (opsiyonel)'}),
+        widget=forms.TextInput(attrs={'class': ACCOUNTING_INPUT, 'placeholder': 'Not (opsiyonel)'}),
         label='Not',
     )
 
@@ -398,7 +404,7 @@ class PersonnelSalaryPayForm(forms.Form):
     )
     period = forms.CharField(widget=forms.HiddenInput())
     payment_date = forms.DateField(
-        widget=forms.DateInput(attrs={'class': INPUT, 'type': 'date'}),
+        widget=forms.DateInput(attrs={'class': ACCOUNTING_INPUT, 'type': 'date'}),
         label='Ödeme tarihi',
     )
     notes = forms.CharField(
@@ -422,7 +428,7 @@ class PersonnelMonthlySalaryForm(forms.Form):
         max_digits=12,
         decimal_places=2,
         required=False,
-        widget=forms.NumberInput(attrs={'class': INPUT, 'step': '0.01', 'min': '0', 'placeholder': '0.00'}),
+        widget=forms.NumberInput(attrs={'class': ACCOUNTING_INPUT, 'step': '0.01', 'min': '0', 'inputmode': 'decimal', 'placeholder': '0,00'}),
         label='Aylık maaş',
     )
 
@@ -453,12 +459,18 @@ class PersonnelPaymentForm(forms.ModelForm):
 class FinanceRecordForm(forms.ModelForm):
     class Meta:
         model = FinanceRecord
-        fields = ['record_type', 'title', 'amount', 'record_date', 'notes']
+        fields = ['record_type', 'category', 'title', 'amount', 'record_date', 'notes']
         widgets = {
-            'record_type': forms.Select(attrs={'class': INPUT}),
-            'title': forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Örn: Ofis kirası'}),
-            'amount': forms.NumberInput(attrs={'class': INPUT, 'step': '0.01', 'min': '0', 'placeholder': '0.00'}),
-            'record_date': forms.DateInput(attrs={'class': INPUT, 'type': 'date'}),
-            'notes': forms.TextInput(attrs={'class': INPUT, 'placeholder': 'Opsiyonel not'}),
+            'record_type': forms.Select(attrs={'class': ACCOUNTING_SELECT}),
+            'category': forms.Select(attrs={'class': ACCOUNTING_SELECT}),
+            'title': forms.TextInput(attrs={'class': ACCOUNTING_INPUT, 'placeholder': 'Örn: Ofis kirası, tahsilat'}),
+            'amount': forms.NumberInput(attrs={'class': ACCOUNTING_INPUT, 'step': '0.01', 'min': '0.01', 'inputmode': 'decimal', 'placeholder': '0,00'}),
+            'record_date': forms.DateInput(attrs={'class': ACCOUNTING_INPUT, 'type': 'date'}),
+            'notes': forms.TextInput(attrs={'class': ACCOUNTING_INPUT, 'placeholder': 'Opsiyonel not'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].required = False
+        self.fields['category'].choices = FinanceRecord.EXPENSE_CATEGORY_CHOICES
 

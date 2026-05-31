@@ -1,6 +1,8 @@
 # KobiOps — üretim kurulumu
 
-Her müşteri kendi VPS / panelinde bağımsız kurulum. **Coolify, Dokploy, 1Panel, Portainer** veya `docker compose` ile dağıtılır.
+Her müşteri kendi VPS / panelinde bağımsız kurulum. **Coolify, Dokploy, 1Panel, Portainer, Easypanel, Plesk** veya `docker compose` ile dağıtılır.
+
+**Panel uyumluluk tablosu:** [deploy/README.md](deploy/README.md)
 
 ## Tak-çalıştır (Ghost gibi)
 
@@ -40,10 +42,13 @@ cd /opt/kobi-ops && ./deploy/install.sh panel.firma.com
 
 | Platform | Rehber |
 |----------|--------|
+| **Tüm paneller (özet)** | [deploy/README.md](deploy/README.md) |
 | **Plesk (Git auto-deploy)** | [deploy/plesk/README.md](deploy/plesk/README.md) |
 | Coolify | [deploy/coolify/README.md](deploy/coolify/README.md) |
 | Dokploy | [deploy/dokploy/README.md](deploy/dokploy/README.md) |
 | 1Panel | [deploy/1panel/README.md](deploy/1panel/README.md) |
+| Portainer | [deploy/portainer/README.md](deploy/portainer/README.md) |
+| Easypanel | [deploy/easypanel/README.md](deploy/easypanel/README.md) |
 
 ## Ortam değişkenleri
 

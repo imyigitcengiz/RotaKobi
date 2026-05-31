@@ -147,7 +147,12 @@ def _persistence_error_message(root: Path) -> str:
         or os.environ.get('COOLIFY_FQDN')
         or os.environ.get('SERVICE_FQDN_APP')
     )
-    in_dokploy = bool(os.environ.get('DOKPLOY_DEPLOY_URL') or os.environ.get('DOKPLOY_IS_PREVIEW'))
+    in_dokploy = bool(
+        os.environ.get('DOKPLOY_DEPLOY_URL')
+        or os.environ.get('DOKPLOY_IS_PREVIEW')
+        or os.environ.get('DOKPLOY_FQDN')
+    )
+    in_1panel = bool(os.environ.get('KOBIOPS_COMPOSE_STACK') == '1' and os.environ.get('KOBIOPS_HTTP_PORT'))
 
     base = (
         'KRİTİK: /data kalıcı volume olarak bağlı değil — rebuild/deploy tüm kayıtları siler.\n'
@@ -163,7 +168,13 @@ def _persistence_error_message(root: Path) -> str:
     if in_dokploy:
         return base + (
             '  Dokploy çözümü: Docker Compose modu, compose path docker-compose.yaml.\n'
-            '  Named volume gy_data otomatik oluşur; deploy sırasında volume silmeyin.'
+            '  İsteğe bağlı overlay: COMPOSE_FILE=...:deploy/dokploy/docker-compose.dokploy.yaml\n'
+            '  Domains → servis app, container port 80. Named volume gy_data silmeyin.'
+        )
+    if in_1panel:
+        return base + (
+            '  1Panel: COMPOSE_FILE=docker-compose.yaml:deploy/1panel/docker-compose.1panel.yaml\n'
+            '  Reverse proxy → 127.0.0.1:8080. Bkz. deploy/1panel/README.md'
         )
     return base + (
         '  Çözüm: docker compose up ile gy_data:/data volume bağlayın.\n'

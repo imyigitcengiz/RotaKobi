@@ -1,4 +1,4 @@
-{# Kurulu modüller — panel kısayolları #}
+{# Kurulu modüller — panel kısayolları (muhasebe/servis KPI tekrarı modül kartlarında) #}
 {% if panel_modules %}
 <section class="mb-10">
     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
@@ -16,16 +16,5 @@
         </a>
         {% endfor %}
     </div>
-</section>
-{% endif %}
-
-{% if accounting_show_payroll or accounting_show_finance %}
-<section class="mb-10">
-    {% include 'common/accounting_panel_section.html' with section_title=gy.muhasebe show_hub_link=True show_hub_card=False card_layout='wide' highlight_payroll=True %}
-</section>
-{% endif %}
-{% if user_access.services %}
-<section class="mb-10">
-    {% include 'common/panel_services_section.html' %}
 </section>
 {% endif %}

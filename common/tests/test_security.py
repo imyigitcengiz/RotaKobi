@@ -71,8 +71,8 @@ class SecurityApiTests(TestCase):
             password='test-pass-123',
             role=limited_role,
         )
+        self.client.get('/giris/')
         self.client.login(username='limited', password='test-pass-123')
-        self.client.get('/tools/')
         csrf = self.client.cookies['csrftoken'].value
         res = self.client.post(
             '/tools/whatsapp/kopru/baslat/',

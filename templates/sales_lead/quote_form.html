@@ -1,0 +1,97 @@
+{% extends 'sales_lead/base.html' %}
+
+{% block title %}Yeni teklif{% endblock %}
+
+{% block header_title %}
+<h1 class="text-lg font-bold text-slate-900">Yeni teklif</h1>
+<p class="text-sm text-slate-500">Ürün satırları zorunlu — proje adı isteğe bağlı referans.</p>
+{% endblock %}
+
+{% block content %}
+<form method="post" class="max-w-4xl space-y-6">
+    {% csrf_token %}
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1.5 md:col-span-2">
+                <label class="text-sm font-semibold text-slate-700">Müşteri</label>
+                {% if customer %}
+                <input type="hidden" name="customer" value="{{ customer.id }}">
+                <p class="p-3 bg-slate-50 rounded-xl font-semibold">{{ customer.name }}</p>
+                {% else %}
+                <select name="customer" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                    <option value="">Seçin</option>
+                    {% for c in customers %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-sm font-semibold">Teklif tarihi</label>
+                <input type="date" name="quote_date" value="{{ today }}" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-sm font-semibold">Geçerlilik</label>
+                <input type="date" name="valid_until" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-sm font-semibold">Toplam (₺)</label>
+                <input type="number" step="0.01" name="sale_amount" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-sm font-semibold">Peşinat (₺)</label>
+                <input type="number" step="0.01" name="down_payment" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+            </div>
+            <div class="space-y-1.5 md:col-span-2">
+                <label class="text-sm font-semibold text-slate-500">Proje referansı (isteğe bağlı)</label>
+                <input type="text" name="project" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="İç referans">
+            </div>
+            <div class="space-y-1.5 md:col-span-2">
+                <label class="text-sm font-semibold">Not</label>
+                <textarea name="notes" rows="3" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"></textarea>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-3">
+        <div class="flex items-center justify-between">
+            <h2 class="font-bold text-slate-900">Ürün satırları</h2>
+            <button type="button" id="addQuoteLine" class="text-xs font-bold text-brand-700 bg-brand-50 px-3 py-1.5 rounded-lg">+ Ürün</button>
+        </div>
+        <div id="quoteLines" class="space-y-3"></div>
+    </section>
+
+    <button type="submit" class="px-6 py-3 bg-brand-600 text-white rounded-2xl font-bold hover:bg-brand-700">Teklifi kaydet</button>
+</form>
+{% endblock %}
+
+{% block sales_extra_js %}
+{{ products|json_script:"quoteProductsData" }}
+<script>
+window.QUOTE_PRODUCTS = JSON.parse(document.getElementById('quoteProductsData').textContent);
+</script>
+<script>
+(function () {
+    const products = window.QUOTE_PRODUCTS || [];
+    const container = document.getElementById('quoteLines');
+    const addBtn = document.getElementById('addQuoteLine');
+    function row() {
+        const div = document.createElement('div');
+        div.className = 'grid grid-cols-1 md:grid-cols-4 gap-2 p-3 bg-slate-50 rounded-xl';
+        let opts = '<option value="">Ürün</option>';
+        products.forEach(p => { opts += `<option value="${p.id}">${p.name}</option>`; });
+        div.innerHTML = `
+            <select name="product_line_product" required class="md:col-span-2 p-2.5 border border-slate-200 rounded-xl text-sm">${opts}</select>
+            <input type="number" name="product_line_quantity" value="1" min="1" class="p-2.5 border border-slate-200 rounded-xl text-sm" placeholder="Adet">
+            <input type="text" name="product_line_note" class="p-2.5 border border-slate-200 rounded-xl text-sm" placeholder="Not">
+            <input type="hidden" name="product_line_color" value="">
+        `;
+        return div;
+    }
+    if (addBtn && container) {
+        addBtn.addEventListener('click', () => container.appendChild(row()));
+        container.appendChild(row());
+    }
+})();
+</script>
+{% endblock %}

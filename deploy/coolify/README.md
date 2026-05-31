@@ -16,6 +16,11 @@ Tarayıcıda **asla `:8000` veya `:8080` yazmayın** — sunucunun 8000 portu Co
 | Build Pack | **Docker Compose** |
 | Compose path | `docker-compose.yaml` |
 | Domain servisi | **`app`** |
+| Container port | **80** |
+
+İsteğe bağlı ortam: `COMPOSE_FILE=docker-compose.yaml:deploy/coolify/docker-compose.coolify.yaml`
+
+Tüm paneller: [deploy/README.md](../README.md)
 
 ## Domain kurulumu (404 çözümü)
 

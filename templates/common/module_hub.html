@@ -3,18 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modül Merkezi | {{ site_settings.site_name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+    <title>{{ gy.modul_merkezi }} | {{ site_settings.site_name }}</title>
+    {% load static %}
+    {% include 'common/erp_head_assets.html' %}
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-900">
+<body class="erp-app erp-theme-sky min-h-screen bg-slate-100 text-slate-900">
     <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div class="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
             <div>
-                <a href="{% url 'home' %}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">← Panel</a>
-                <h1 class="text-xl font-bold text-slate-900 mt-1">Modül Merkezi</h1>
+                <a href="{% url 'home' %}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">← {{ gy.ana_panel }}</a>
+                <h1 class="text-xl font-bold text-slate-900 mt-1">{{ gy.modul_merkezi }}</h1>
                 <p class="text-sm text-slate-500">Kurulumda hangi modüllerin açık olacağını yönetin.</p>
             </div>
             <span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold">{{ module_installed_count }} açık</span>
@@ -22,13 +20,7 @@
     </header>
 
     <main class="max-w-6xl mx-auto px-6 py-8 space-y-10">
-        {% if messages %}
-        <div class="space-y-2">
-            {% for message in messages %}
-            <div class="px-4 py-3 rounded-xl text-sm font-semibold {% if message.tags == 'error' %}bg-red-50 text-red-700{% elif message.tags == 'success' %}bg-emerald-50 text-emerald-800{% else %}bg-slate-100 text-slate-700{% endif %}">{{ message }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
+        {% include 'common/toast_messages.html' %}
 
         {% if can_manage_modules %}
         <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">

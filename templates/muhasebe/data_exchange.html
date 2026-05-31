@@ -1,0 +1,101 @@
+{% extends 'muhasebe/base.html' %}
+
+{% block title %}{{ gy.mh_veri_alisverisi }}{% endblock %}
+
+{% block header %}
+<h1 class="text-lg font-bold text-slate-900">{{ gy.mh_veri_alisverisi }}</h1>
+<p class="text-sm text-slate-500">CSV ile toplu dışa aktarma ve içe aktarma — Excel uyumlu (; ayraç, UTF-8).</p>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    {% if can_sales %}
+    <section class="bg-white rounded-3xl border border-amber-200 shadow-sm p-6 space-y-4">
+        <div class="flex items-start gap-3">
+            <span class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0"><i data-lucide="badge-dollar-sign" class="w-5 h-5"></i></span>
+            <div>
+                <h2 class="font-bold text-slate-900">Satış kayıtları</h2>
+                <p class="text-sm text-slate-500 mt-1">AD SOYAD; TELEFON; YER; PROJE; TARİH; TOPLAM; PEŞİNAT; ARA ÖDEME…; NOT</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {% if can_sales_export %}
+            <a href="{% url 'sales_lead_export_csv' %}?format=report" class="px-4 py-2 rounded-xl bg-slate-800 text-white text-sm font-bold hover:bg-slate-900">CSV indir</a>
+            <a href="{% url 'sales_lead_export_csv' %}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Liste CSV</a>
+            {% endif %}
+            {% if can_sales_manage %}
+            <a href="{% url 'sales_lead_reports_print' %}" target="_blank" class="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> Rapor yazdır</a>
+            {% endif %}
+        </div>
+        {% if can_sales_manage %}
+        <form method="post" enctype="multipart/form-data" action="{% url 'sales_lead_import_csv' %}" class="pt-4 border-t border-slate-100 space-y-3">
+            {% csrf_token %}
+            <label class="block text-xs font-bold text-slate-600 uppercase">CSV yükle (içe aktar)</label>
+            <input type="file" name="file" accept=".csv,text/csv" required class="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-amber-50 file:text-amber-800 file:font-bold">
+            <button type="submit" class="px-5 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-amber-700">Satışları içe aktar</button>
+        </form>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if can_payroll %}
+    <section class="bg-white rounded-3xl border border-violet-200 shadow-sm p-6 space-y-4">
+        <div class="flex items-start gap-3">
+            <span class="w-10 h-10 rounded-xl bg-violet-50 text-violet-700 flex items-center justify-center shrink-0"><i data-lucide="wallet" class="w-5 h-5"></i></span>
+            <div>
+                <h2 class="font-bold text-slate-900">Maaş & avans hareketleri</h2>
+                <p class="text-sm text-slate-500 mt-1">DÖNEM; PERSONEL; TÜR (avans/maaş); TUTAR; TARİH; NOT</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'accounting_payroll_ledger_export' %}?{{ payroll_export_query }}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Hareket CSV</a>
+            <a href="{% url 'accounting_payroll_export' %}?{{ payroll_export_query }}" class="px-4 py-2 rounded-xl bg-slate-800 text-white text-sm font-bold hover:bg-slate-900">Özet CSV</a>
+            <a href="{% url 'accounting_payroll_reports_print' %}?{{ payroll_export_query }}" target="_blank" class="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold inline-flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> Yazdır</a>
+        </div>
+        <form method="post" enctype="multipart/form-data" action="{% url 'accounting_payroll_import_csv' %}" class="pt-4 border-t border-slate-100 space-y-3">
+            {% csrf_token %}
+            <label class="block text-xs font-bold text-slate-600 uppercase">CSV yükle</label>
+            <input type="file" name="file" accept=".csv,text/csv" required class="block w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-violet-50 file:text-violet-800 file:font-bold">
+            <button type="submit" class="px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700">Maaş/avans içe aktar</button>
+        </form>
+    </section>
+    {% endif %}
+
+    {% if can_finance %}
+    <section class="bg-white rounded-3xl border border-emerald-200 shadow-sm p-6 space-y-4">
+        <div class="flex items-start gap-3">
+            <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0"><i data-lucide="receipt" class="w-5 h-5"></i></span>
+            <div>
+                <h2 class="font-bold text-slate-900">Gelir & gider</h2>
+                <p class="text-sm text-slate-500 mt-1">TÜR (gelir/gider); AÇIKLAMA; TUTAR; TARİH; NOT</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'accounting_finance_export' %}?period={{ finance_period_str }}" class="px-4 py-2 rounded-xl bg-slate-800 text-white text-sm font-bold hover:bg-slate-900">CSV indir</a>
+            <a href="{% url 'accounting_finance_print' %}?period={{ finance_period_str }}" target="_blank" class="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold inline-flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> Yazdır</a>
+        </div>
+        <form method="post" enctype="multipart/form-data" action="{% url 'accounting_finance_import_csv' %}" class="pt-4 border-t border-slate-100 space-y-3">
+            {% csrf_token %}
+            <input type="hidden" name="_redirect_period" value="{{ finance_period_str }}">
+            <label class="block text-xs font-bold text-slate-600 uppercase">CSV yükle</label>
+            <input type="file" name="file" accept=".csv,text/csv" required class="block w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-emerald-50 file:text-emerald-800 file:font-bold">
+            <button type="submit" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700">Gelir/gider içe aktar</button>
+        </form>
+    </section>
+    {% endif %}
+
+    {% if not can_sales and not can_payroll and not can_finance %}
+    <p class="text-sm text-slate-500">Veri alışverişi için yetkiniz yok.</p>
+    {% endif %}
+
+    <section class="rounded-2xl bg-slate-50 border border-slate-200 p-5 text-sm text-slate-600 space-y-2">
+        <p class="font-bold text-slate-800">CSV ipuçları</p>
+        <ul class="list-disc pl-5 space-y-1">
+            <li>Ayraç: noktalı virgül (;) — Excel Türkiye uyumlu</li>
+            <li>Tarih: 31.05.2025 veya 2025-05-31</li>
+            <li>Tutar: 1500,50 veya 1500.50</li>
+            <li>İçe aktarma mevcut kayıtları silmez; yeni satır ekler</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}

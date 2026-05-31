@@ -18,14 +18,14 @@ _strip_url_host() {
 
 _detect_fqdn() {
   local fqdn=""
-  for key in SERVICE_FQDN_APP SERVICE_FQDN COOLIFY_FQDN DOMAIN APP_DOMAIN HOSTNAME; do
+  for key in SERVICE_FQDN_APP SERVICE_FQDN COOLIFY_FQDN DOMAIN APP_DOMAIN HOSTNAME DOKPLOY_FQDN; do
     fqdn="${!key:-}"
     if [[ -n "$fqdn" ]]; then
       _strip_url_host "$fqdn"
       return 0
     fi
   done
-  for key in SERVICE_URL_APP SERVICE_URL DOKPLOY_DEPLOY_URL APP_URL WEBSITE_URL; do
+  for key in SERVICE_URL_APP SERVICE_URL DOKPLOY_DEPLOY_URL DOKPLOY_URL APP_URL WEBSITE_URL; do
     local url="${!key:-}"
     if [[ -n "$url" ]]; then
       _strip_url_host "$url"
@@ -37,7 +37,7 @@ _detect_fqdn() {
 
 _detect_url() {
   local url=""
-  for key in SERVICE_URL_APP SERVICE_URL DOKPLOY_DEPLOY_URL APP_URL WEBSITE_URL; do
+  for key in SERVICE_URL_APP SERVICE_URL DOKPLOY_DEPLOY_URL DOKPLOY_URL APP_URL WEBSITE_URL; do
     url="${!key:-}"
     if [[ -n "$url" ]]; then
       echo "$url"

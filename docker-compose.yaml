@@ -1,5 +1,6 @@
-# KobiOps — production Docker Compose (Coolify / Dokploy / 1Panel)
-# Coolify: Domains → servis "app" → Generate Domain → tarayıcıda http://xxx.sslip.io (port YAZMAYIN)
+# KobiOps — production Docker Compose (Coolify / Dokploy / 1Panel / Portainer)
+# Panel deploy: yalnızca expose (Traefik/domain). VPS için: deploy/docker-compose.vps.yaml overlay
+# Coolify: Domains → servis "app" → Generate Domain → http://xxx.sslip.io (port YAZMAYIN)
 name: kobi-ops
 
 x-app-port: &app_port "80"
@@ -12,8 +13,6 @@ services:
       args:
         KOBIOPS_BUILD_COMMIT: ${KOBIOPS_BUILD_COMMIT:-unknown}
     restart: unless-stopped
-    ports:
-      - *app_port
     expose:
       - *app_port
     environment:

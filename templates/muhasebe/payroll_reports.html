@@ -1,16 +1,18 @@
 {% extends 'muhasebe/base.html' %}
 
-{% block title %}Maaş & avans raporu{% endblock %}
+{% block title %}{{ gy.mh_maas_raporu }}{% endblock %}
 
 {% block header %}
 <div class="flex flex-wrap items-start justify-between gap-4">
     <div>
-        <h1 class="text-lg font-bold text-slate-900">Maaş & avans raporu</h1>
+        <h1 class="text-lg font-bold text-slate-900">{{ gy.mh_maas_raporu }}</h1>
         <p class="text-sm text-slate-500">Dönem bazlı brüt, avans ve net maaş özeti.</p>
     </div>
     <div class="flex flex-wrap gap-2">
         <a href="{% url 'accounting_reports' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200">← {{ gy.mh_raporlar }}</a>
+        <a href="{% url 'accounting_payroll_reports_print' %}?{{ export_query }}" target="_blank" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 inline-flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> Yazdır</a>
         <a href="{% url 'accounting_payroll_export' %}?{{ export_query }}" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700">CSV indir</a>
+        <a href="{% url 'accounting_data_exchange' %}" class="px-4 py-2 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-2"><i data-lucide="arrow-up-down" class="w-4 h-4"></i> {{ gy.mh_veri_alisverisi }}</a>
     </div>
 </div>
 {% endblock %}
@@ -21,22 +23,22 @@
         <form method="get" class="flex flex-wrap items-end gap-4">
             <div class="space-y-1">
                 <label class="text-xs font-bold text-slate-500 uppercase">Başlangıç</label>
-                <input type="month" name="period_from" value="{{ period_from_str }}" class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                <input type="month" name="period_from" value="{{ period_from_str }}" class="acct-input p-2.5 bg-white border border-slate-200 rounded-xl text-sm">
             </div>
             <div class="space-y-1">
-                <label class="text-xs font-bold text-slate-500 uppercase">Bitiş</label>
-                <input type="month" name="period_to" value="{{ period_to_str }}" class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                <label class="text-xs font-bold text-slate-600 uppercase">Bitiş</label>
+                <input type="month" name="period_to" value="{{ period_to_str }}" class="acct-input p-2.5 bg-white border border-slate-200 rounded-xl text-sm">
             </div>
             <div class="space-y-1">
-                <label class="text-xs font-bold text-slate-500 uppercase">Personel</label>
-                <select name="personnel" class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm min-w-[180px]">
+                <label class="text-xs font-bold text-slate-600 uppercase">Personel</label>
+                <select name="personnel" class="acct-input p-2.5 bg-white border border-slate-200 rounded-xl text-sm min-w-[180px]">
                     <option value="">Tümü</option>
                     {% for p in all_personnel %}
                     <option value="{{ p.id }}" {% if filter_personnel == p.id|stringformat:"i" %}selected{% endif %}>{{ p.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit" class="px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold">Raporla</button>
+            <button type="submit" class="px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-900">Göster</button>
         </form>
         <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="p-3 rounded-xl bg-brand-50 border border-brand-100">
@@ -91,7 +93,7 @@
                             {% if row.status == 'Ödendi' %}
                             <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700">{{ row.status }}</span>
                             {% elif row.status == 'Bekliyor' %}
-                            <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-600">{{ row.status }}</span>
+                            <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-amber-100 text-amber-900">{{ row.status }}</span>
                             {% else %}
                             <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-red-50 text-red-700">{{ row.status }}</span>
                             {% endif %}

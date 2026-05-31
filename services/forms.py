@@ -12,7 +12,7 @@ class ServiceRecordForm(forms.ModelForm):
         fields = [
             'customer', 'solution_partner', 'status', 'priority', 'products',
             'service_types', 'notes', 'assigned_to', 'service_personnel',
-            'warranty_status', 'list_price', 'discounted_price',
+            'warranty_status', 'list_price', 'discounted_price', 'scheduled_at',
         ]
         widgets = {
             'customer': forms.Select(attrs={'class': 'w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500'}),
@@ -36,6 +36,10 @@ class ServiceRecordForm(forms.ModelForm):
                 'step': '0.01',
                 'min': '0',
                 'placeholder': '0,00',
+            }),
+            'scheduled_at': forms.DateTimeInput(attrs={
+                'class': 'w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500',
+                'type': 'datetime-local',
             }),
         }
 

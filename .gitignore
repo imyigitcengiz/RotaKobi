@@ -28,7 +28,8 @@ media/
 .DS_Store
 Thumbs.db
 
-# Node (WhatsApp köprüsü)
+# Node (WhatsApp köprüsü + Tailwind derlemesi)
+node_modules/
 tools/whatsapp_bridge/node_modules/
 tools/whatsapp_bridge/.wwebjs_cache/
 tools/whatsapp_bridge/session/

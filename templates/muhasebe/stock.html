@@ -1,0 +1,247 @@
+{% extends 'muhasebe/base.html' %}
+
+{% block title %}{{ gy.mh_stok }}{% endblock %}
+
+{% block header %}
+<h1 class="text-lg font-bold text-slate-900">{{ gy.mh_stok }}</h1>
+<p class="text-sm text-slate-500">Malzeme stoku ve ürün reçeteleri — satış/serviste malzeme düşülür, satış ürünü stoklanmaz.</p>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="rounded-2xl bg-violet-50 border border-violet-100 px-5 py-4">
+            <p class="text-[10px] font-bold uppercase text-violet-700">Malzeme</p>
+            <p class="text-3xl font-black text-violet-900 mt-1">{{ stock_tracked_count }}</p>
+        </div>
+        <div class="rounded-2xl bg-white border border-slate-200 px-5 py-4">
+            <p class="text-[10px] font-bold uppercase text-slate-500">Toplam stok birimi</p>
+            <p class="text-2xl font-black text-slate-900 mt-1">{{ stock_total_units|floatformat:2 }}</p>
+        </div>
+        <div class="rounded-2xl {% if stock_low_count %}bg-amber-50 border-amber-200{% else %}bg-emerald-50 border-emerald-100{% endif %} border px-5 py-4">
+            <p class="text-[10px] font-bold uppercase {% if stock_low_count %}text-amber-800{% else %}text-emerald-700{% endif %}">Kritik malzeme</p>
+            <p class="text-2xl font-black mt-1 {% if stock_low_count %}text-amber-900{% else %}text-emerald-900{% endif %}">{{ stock_low_count }}</p>
+            {% if stock_low_count %}
+            <a href="?low=1" class="text-xs font-bold text-amber-700 hover:underline mt-1 inline-block">Düşük stok →</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if products_without_recipe_count %}
+    <div class="rounded-2xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-amber-900">
+        <strong>{{ products_without_recipe_count }}</strong> satış ürününün reçetesi henüz tanımlı değil — otomatik düşüm yapılmaz.
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <h2 class="font-bold text-slate-900">Stok ayarları</h2>
+            <form method="post" class="space-y-3">
+                {% csrf_token %}
+                <input type="hidden" name="save_stock_settings" value="1">
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input type="checkbox" name="auto_deduct_on_sale" class="rounded" {% if stock_settings.auto_deduct_on_sale %}checked{% endif %}>
+                    Tamamlanan satışta reçeteye göre malzeme düş
+                </label>
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input type="checkbox" name="auto_deduct_on_service" class="rounded" {% if stock_settings.auto_deduct_on_service %}checked{% endif %}>
+                    Servis kaydında ürün reçetesine göre malzeme düş
+                </label>
+                <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input type="checkbox" name="block_negative_stock" class="rounded" {% if stock_settings.block_negative_stock %}checked{% endif %}>
+                    Stok eksiye düşmesin
+                </label>
+                <button type="submit" class="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700">Kaydet</button>
+            </form>
+        </section>
+
+        <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <h2 class="font-bold text-slate-900">Yeni malzeme</h2>
+            <form method="post" class="space-y-3">
+                {% csrf_token %}
+                <input type="hidden" name="add_material" value="1">
+                <input type="text" name="name" required placeholder="Malzeme adı" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm">
+                <div class="grid grid-cols-2 gap-3">
+                    <select name="unit" class="px-3 py-2.5 border border-slate-200 rounded-xl text-sm">
+                        <option value="piece">Adet</option>
+                        <option value="m">Metre</option>
+                        <option value="kg">Kg</option>
+                        <option value="l">Litre</option>
+                    </select>
+                    <input type="text" name="sku" placeholder="Stok kodu (ops.)" class="px-3 py-2.5 border border-slate-200 rounded-xl text-sm">
+                </div>
+                <button type="submit" class="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-900">Malzeme ekle</button>
+            </form>
+        </section>
+    </div>
+
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <h2 class="font-bold text-slate-900">Malzeme hareketi</h2>
+        <form method="post" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+            {% csrf_token %}
+            <input type="hidden" name="add_movement" value="1">
+            <div class="md:col-span-2 space-y-1">
+                <label class="text-xs font-bold text-slate-600 uppercase">Malzeme</label>
+                <select name="material_id" required class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm">
+                    <option value="">Seçin</option>
+                    {% for m in stock_materials %}
+                    <option value="{{ m.id }}">{{ m.name }} ({{ m.stock_quantity|floatformat:2 }} {{ m.get_unit_display }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-600 uppercase">Tür</label>
+                <select name="movement_kind" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm">
+                    <option value="in">Giriş (+)</option>
+                    <option value="out">Çıkış (−)</option>
+                </select>
+            </div>
+            <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-600 uppercase">Miktar</label>
+                <input type="number" name="quantity" step="0.01" min="0.01" value="1" required class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm">
+            </div>
+            <button type="submit" class="px-4 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700">Kaydet</button>
+            <input type="text" name="note" placeholder="Not" class="md:col-span-5 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm">
+        </form>
+    </section>
+
+    <section class="bg-white rounded-3xl border border-indigo-200 shadow-sm p-6 space-y-4">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+                <h2 class="font-bold text-slate-900">Ürün reçeteleri</h2>
+                <p class="text-xs text-slate-500 mt-1">Satış ürünü başına hangi malzemeden ne kadar kullanılır.</p>
+            </div>
+            <form method="get" class="flex items-center gap-2">
+                {% if request.GET.low %}<input type="hidden" name="low" value="1">{% endif %}
+                <select name="product" onchange="this.form.submit()" class="px-3 py-2 border border-slate-200 rounded-xl text-sm min-w-[12rem]">
+                    <option value="">Ürün seçin</option>
+                    {% for p in recipe_products %}
+                    <option value="{{ p.id }}" {% if recipe_product and recipe_product.id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        {% if recipe_product %}
+        <div class="rounded-2xl bg-indigo-50/50 border border-indigo-100 p-4">
+            <p class="font-bold text-indigo-900 mb-3">{{ recipe_product.name }} — 1 adet için malzemeler</p>
+            {% if recipe_lines %}
+            <ul class="space-y-2 mb-4">
+                {% for line in recipe_lines %}
+                <li class="flex flex-wrap items-center justify-between gap-2 text-sm bg-white rounded-xl px-3 py-2 border border-slate-100">
+                    <span><strong>{{ line.material.name }}</strong> × {{ line.quantity|floatformat:2 }} {{ line.material.get_unit_display }}</span>
+                    <form method="post" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="delete_recipe_line" value="1">
+                        <input type="hidden" name="line_id" value="{{ line.id }}">
+                        <input type="hidden" name="product" value="{{ recipe_product.id }}">
+                        <button type="submit" class="text-red-600 text-xs font-bold hover:underline">Sil</button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-sm text-slate-500 mb-4">Bu ürün için henüz reçete satırı yok.</p>
+            {% endif %}
+            <form method="post" class="flex flex-wrap items-end gap-2">
+                {% csrf_token %}
+                <input type="hidden" name="add_recipe_line" value="1">
+                <input type="hidden" name="product" value="{{ recipe_product.id }}">
+                <select name="material_id" required class="px-3 py-2 border border-slate-200 rounded-xl text-sm">
+                    <option value="">Malzeme</option>
+                    {% for m in stock_materials %}
+                    <option value="{{ m.id }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+                <input type="number" name="quantity" step="0.01" min="0.01" value="1" required class="w-24 px-3 py-2 border border-slate-200 rounded-xl text-sm" title="1 ürün başına">
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700">Reçeteye ekle</button>
+            </form>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-500">Reçete düzenlemek için yukarıdan bir satış ürünü seçin.</p>
+        {% endif %}
+    </section>
+
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+            <h2 class="font-bold text-slate-900">Malzeme stokları</h2>
+            {% if not stock_show_all and stock_low_count %}
+            <a href="{% url 'accounting_stock' %}" class="text-xs font-bold text-brand-700 hover:underline">Tümünü göster</a>
+            {% elif stock_show_all and stock_low_count %}
+            <a href="?low=1" class="text-xs font-bold text-amber-700 hover:underline">Kritik seviye</a>
+            {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                        <th class="px-4 py-3 font-bold text-slate-700">Malzeme</th>
+                        <th class="px-4 py-3 font-bold text-slate-700">Stok</th>
+                        <th class="px-4 py-3 font-bold text-slate-700">Kritik</th>
+                        <th class="px-4 py-3 font-bold text-slate-700 text-right">Ayar</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for m in stock_materials %}
+                    <tr class="hover:bg-slate-50 {% if m.min_stock_level and m.stock_quantity <= m.min_stock_level %}bg-amber-50/50{% endif %}">
+                        <td class="px-4 py-3">
+                            <span class="font-semibold">{{ m.name }}</span>
+                            {% if m.sku %}<span class="text-xs text-slate-400 block">{{ m.sku }}</span>{% endif %}
+                        </td>
+                        <td class="px-4 py-3 font-bold {% if m.min_stock_level and m.stock_quantity <= m.min_stock_level %}text-amber-800{% endif %}">
+                            {{ m.stock_quantity|floatformat:2 }} {{ m.get_unit_display }}
+                        </td>
+                        <td class="px-4 py-3">{{ m.min_stock_level|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-right">
+                            <form method="post" class="inline-flex items-center gap-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="update_material" value="1">
+                                <input type="hidden" name="material_id" value="{{ m.id }}">
+                                <input type="number" name="min_stock_level" step="0.01" min="0" value="{{ m.min_stock_level }}" class="w-20 px-2 py-1 border border-slate-200 rounded-lg text-xs">
+                                <button type="submit" class="text-xs font-bold text-brand-700 hover:underline">Kaydet</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="px-4 py-10 text-center text-slate-400">Henüz malzeme yok — yukarıdan ekleyin.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+            <h2 class="font-bold text-slate-900">Son hareketler</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                        <th class="px-4 py-3 font-bold text-slate-700">Tarih</th>
+                        <th class="px-4 py-3 font-bold text-slate-700">Malzeme</th>
+                        <th class="px-4 py-3 font-bold text-slate-700">Değişim</th>
+                        <th class="px-4 py-3 font-bold text-slate-700">Sonra</th>
+                        <th class="px-4 py-3 font-bold text-slate-700">Neden</th>
+                        <th class="px-4 py-3 font-bold text-slate-700">Not</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for mov in stock_recent_movements %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 whitespace-nowrap">{{ mov.created_at|date:"d.m.Y H:i" }}</td>
+                        <td class="px-4 py-3 font-semibold">{{ mov.material.name }}</td>
+                        <td class="px-4 py-3 font-bold {% if mov.delta >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">{{ mov.delta|floatformat:2 }}</td>
+                        <td class="px-4 py-3">{{ mov.quantity_after|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-xs">{{ mov.get_reason_display }}</td>
+                        <td class="px-4 py-3 text-xs text-slate-500">{{ mov.note|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Henüz hareket yok.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

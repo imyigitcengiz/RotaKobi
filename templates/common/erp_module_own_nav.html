@@ -2,7 +2,6 @@
 {% with url_name=request.resolver_match.url_name %}
 {% with inactive="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800" %}
 {% with active="flex items-center gap-3 px-3 py-2 rounded-xl bg-brand-600 text-white shadow-lg shadow-brand-900/20" %}
-{% with reports_active="accounting_reports,accounting_payroll_reports,accounting_payroll_export,sales_lead_reports" %}
 
 {% if module == 'accounting' %}
 {% if user_access.accounting or user_perms.contact_personnel or user_perms.contact_payroll %}
@@ -24,8 +23,14 @@
 {% endif %}
 {% if user_access.accounting %}
 {% if user_perms.accounting_finance %}
-<a href="{% url 'accounting_finance' %}" class="{% if url_name == 'accounting_finance' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
+<a href="{% url 'accounting_finance' %}" class="{% if url_name == 'accounting_finance' or url_name == 'accounting_finance_print' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
     <i data-lucide="receipt" class="w-5 h-5"></i><span class="font-medium text-sm">{{ gy.mh_gelir_gider }}</span>
+</a>
+<a href="{% url 'accounting_cash' %}" class="{% if url_name == 'accounting_cash' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
+    <i data-lucide="landmark" class="w-5 h-5"></i><span class="font-medium text-sm">{{ gy.mh_kasa }}</span>
+</a>
+<a href="{% url 'accounting_stock' %}" class="{% if url_name == 'accounting_stock' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
+    <i data-lucide="package" class="w-5 h-5"></i><span class="font-medium text-sm">{{ gy.mh_stok }}</span>
 </a>
 {% endif %}
 {% if user_access.sales %}
@@ -35,10 +40,25 @@
 <a href="{% url 'sales_lead_list' %}" class="{% if url_name == 'sales_lead_list' or url_name == 'sales_lead_create' or url_name == 'sales_lead_edit' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
     <i data-lucide="list" class="w-5 h-5"></i><span class="font-medium text-sm">{{ gy.sb_kayitlar }}</span>
 </a>
+{% if user_perms.sales_manage %}
+<a href="{% url 'sales_quote_list' %}" class="{% if url_name == 'sales_quote_list' or url_name == 'sales_quote_create' or url_name == 'sales_quote_convert' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
+    <i data-lucide="file-text" class="w-5 h-5"></i><span class="font-medium text-sm">{{ gy.sb_teklifler }}</span>
+</a>
+{% endif %}
+{% if user_perms.sales_reports or user_perms.sales_manage %}
+<a href="{% url 'accounting_receivables' %}" class="{% if url_name == 'accounting_receivables' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
+    <i data-lucide="hand-coins" class="w-5 h-5"></i><span class="font-medium text-sm">{{ gy.mh_alacaklar }}</span>
+</a>
+{% endif %}
 {% endif %}
 {% if user_perms.contact_payroll or user_perms.sales_reports %}
-<a href="{% url 'accounting_reports' %}" class="{% if url_name == 'accounting_reports' or url_name == 'accounting_payroll_reports' or url_name == 'accounting_payroll_export' or url_name == 'sales_lead_reports' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
+<a href="{% url 'accounting_reports' %}" class="{% if url_name == 'accounting_reports' or url_name == 'accounting_payroll_reports' or url_name == 'accounting_payroll_export' or url_name == 'accounting_payroll_reports_print' or url_name == 'accounting_finance_print' or url_name == 'sales_lead_reports' or url_name == 'sales_lead_reports_print' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
     <i data-lucide="bar-chart-3" class="w-5 h-5"></i><span class="font-medium text-sm">{{ gy.mh_raporlar }}</span>
+</a>
+{% endif %}
+{% if user_perms.contact_payroll or user_perms.accounting_finance or user_perms.sales_manage or user_perms.sales_export or user_perms.sales_reports %}
+<a href="{% url 'accounting_data_exchange' %}" class="{% if url_name == 'accounting_data_exchange' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
+    <i data-lucide="arrow-up-down" class="w-5 h-5"></i><span class="font-medium text-sm">{{ gy.mh_veri_alisverisi }}</span>
 </a>
 {% endif %}
 {% endif %}
@@ -53,6 +73,9 @@
 <a href="{% url 'services' %}" class="{% if url_name == 'services' or url_name == 'service_create' or url_name == 'service_update' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
     <i data-lucide="clipboard-list" class="w-5 h-5"></i><span class="font-medium text-sm">{{ gy.ym_kayitlar }}</span>
 </a>
+<a href="{% url 'service_schedule' %}" class="{% if url_name == 'service_schedule' %}{{ active }}{% else %}{{ inactive }}{% endif %}">
+    <i data-lucide="calendar-days" class="w-5 h-5"></i><span class="font-medium text-sm">{{ gy.ym_saha_plani }}</span>
+</a>
 {% endif %}
 
-{% endwith %}{% endwith %}{% endwith %}{% endwith %}
+{% endwith %}{% endwith %}{% endwith %}

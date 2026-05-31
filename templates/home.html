@@ -3,26 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ana Sayfa | {{ site_settings.site_name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+    <title>{{ gy.ana_panel }} | {{ site_settings.site_name }}</title>
+    {% load static %}
+    {% include 'common/erp_head_assets.html' %}
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-900">
+<body class="erp-app erp-theme-sky min-h-screen bg-slate-100 text-slate-900">
     <div class="min-h-screen flex flex-col">
         <header class="bg-white border-b border-slate-200">
             <div class="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
@@ -53,26 +38,26 @@
             </div>
         </header>
 
-        <main class="flex-1 max-w-5xl mx-auto w-full px-6 py-12">
-            {% if messages %}
-            <div class="mb-6 space-y-2">
-                {% for message in messages %}
-                <div class="px-4 py-3 rounded-xl text-sm font-semibold {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-100{% else %}bg-blue-50 text-blue-700 border border-blue-100{% endif %}">{{ message }}</div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            <div class="mb-10">
+        <main class="flex-1 max-w-5xl mx-auto w-full px-4 md:px-6 py-8 md:py-12">
+            {% include 'common/toast_messages.html' %}
+            <div class="mb-8">
                 <h2 class="text-2xl font-bold text-slate-900">Hoş geldiniz, {{ user_profile_card.display_name }}</h2>
                 <p class="text-slate-600 mt-2">Kurulu modüllere ve entegrasyonlara hızlı erişin.</p>
             </div>
 
-            {% if can_manage_modules %}
-            <div class="mb-8">
-                <a href="{% url 'module_hub' %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 shadow-sm">
-                    <i data-lucide="layout-grid" class="w-4 h-4"></i> Modül Merkezi
+            <nav class="mb-8 flex flex-wrap gap-2" aria-label="Platform">
+                <a href="{% url 'module_hub' %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-semibold text-slate-700 hover:border-violet-300 hover:text-violet-700">
+                    <i data-lucide="puzzle" class="w-4 h-4"></i> {{ gy.modul_merkezi }}
                 </a>
-            </div>
-            {% endif %}
+                <a href="{% url 'capabilities_hub' %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-amber-200 text-sm font-semibold text-amber-800 hover:bg-amber-50">
+                    <i data-lucide="zap" class="w-4 h-4"></i> {{ gy.entegrasyon_merkezi }}
+                </a>
+                {% if user_access.settings %}
+                <a href="{% url 'settings_genel' %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-semibold text-slate-700 hover:border-amber-300">
+                    <i data-lucide="sliders-horizontal" class="w-4 h-4"></i> {{ gy.site_ayarlari }}
+                </a>
+                {% endif %}
+            </nav>
 
             {% include 'common/panel_capabilities.html' %}
             {% include 'common/panel_profile_apps.html' %}
@@ -83,13 +68,13 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
                     <a href="{% url 'settings_genel' %}" class="group block bg-white rounded-3xl border border-amber-200 shadow-sm hover:shadow-lg p-6">
                         <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4"><i data-lucide="sliders-horizontal" class="w-6 h-6"></i></div>
-                        <h4 class="text-lg font-bold text-slate-900">Site Ayarları</h4>
+                        <h4 class="text-lg font-bold text-slate-900">{{ gy.site_ayarlari }}</h4>
                         <p class="text-sm text-slate-500 mt-2">Katalog, roller, firma bilgileri.</p>
                     </a>
                     {% if can_manage_modules %}
                     <a href="{% url 'module_hub' %}" class="group block bg-white rounded-3xl border border-violet-200 shadow-sm hover:shadow-lg p-6">
                         <div class="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4"><i data-lucide="layout-grid" class="w-6 h-6"></i></div>
-                        <h4 class="text-lg font-bold text-slate-900">Modül Merkezi</h4>
+                        <h4 class="text-lg font-bold text-slate-900">{{ gy.modul_merkezi }}</h4>
                         <p class="text-sm text-slate-500 mt-2">Modülleri aç/kapa.</p>
                     </a>
                     {% endif %}

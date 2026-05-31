@@ -118,7 +118,11 @@
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="9" class="px-4 py-12 text-center text-slate-400">Henüz müşteri yok.{% if user_perms.sales_manage %} <a href="{% url 'sales_lead_create' %}" class="text-brand-600 font-semibold underline">Yeni satış</a> kaydı oluşturun.{% endif %}</td></tr>
+                    {% if user_perms.sales_manage %}
+                    {% include 'common/empty_table_row.html' with colspan=9 message="Henüz müşteri yok." action_url="/sales-lead/yeni/" action_label="Yeni satış kaydı oluşturun" %}
+                    {% else %}
+                    {% include 'common/empty_table_row.html' with colspan=9 %}
+                    {% endif %}
                     {% endfor %}
                 </tbody>
             </table>

@@ -8,6 +8,31 @@
 {% endblock %}
 
 {% block content %}
+{% if customer_count is not None %}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+    <div class="rounded-2xl bg-brand-50 border border-brand-100 px-4 py-3">
+        <p class="text-[10px] font-bold uppercase text-brand-700">Müşteri</p>
+        <p class="text-xl font-black text-brand-900">{{ customer_count }}</p>
+    </div>
+    <div class="rounded-2xl bg-sky-50 border border-sky-100 px-4 py-3">
+        <p class="text-[10px] font-bold uppercase text-sky-700">Servis kaydı</p>
+        <p class="text-xl font-black text-sky-900">{{ open_service_count|default:0 }}</p>
+    </div>
+    {% if user_access.sales or user_access.accounting %}
+    <div class="rounded-2xl bg-amber-50 border border-amber-100 px-4 py-3">
+        <p class="text-[10px] font-bold uppercase text-amber-700">Toplam alacak</p>
+        <p class="text-xl font-black text-amber-900">{{ total_receivable|floatformat:2|default:"0" }} ₺</p>
+    </div>
+    {% if user_perms.sales_reports or user_perms.sales_manage %}
+    <a href="{% url 'accounting_receivables' %}" class="rounded-2xl bg-amber-50/80 border border-amber-200 px-4 py-3 hover:border-amber-400 transition-colors">
+        <p class="text-[10px] font-bold uppercase text-amber-700">Alacak listesi →</p>
+        <p class="text-sm font-semibold text-amber-900 mt-1">Detaylı takip</p>
+    </a>
+    {% endif %}
+    {% endif %}
+</div>
+{% endif %}
+
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     {% if user_perms.tools_media %}
     <a href="{% url 'tools_media_library' %}" class="group bg-white rounded-3xl border border-slate-200 shadow-sm p-6 hover:border-sky-300 hover:shadow-md transition-all">

@@ -410,8 +410,26 @@ class FinanceRecord(models.Model):
         (TYPE_INCOME, 'Gelir'),
         (TYPE_EXPENSE, 'Gider'),
     )
+    EXPENSE_CATEGORY_CHOICES = (
+        ('', 'Genel'),
+        ('rent', 'Kira'),
+        ('fuel', 'Yakıt'),
+        ('material', 'Malzeme'),
+        ('office', 'Ofis'),
+        ('marketing', 'Pazarlama'),
+        ('payroll_other', 'Personel (diğer)'),
+        ('other', 'Diğer'),
+    )
 
     record_type = models.CharField(max_length=20, choices=TYPE_CHOICES, verbose_name='Tür')
+    category = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        choices=EXPENSE_CATEGORY_CHOICES,
+        verbose_name='Gider kategorisi',
+        help_text='Yalnızca gider kayıtlarında anlamlıdır.',
+    )
     title = models.CharField(max_length=120, verbose_name='Açıklama')
     amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Tutar')
     record_date = models.DateField(verbose_name='Tarih')
@@ -433,6 +451,206 @@ class FinanceRecord(models.Model):
 
     def __str__(self):
         return f'{self.get_record_type_display()} — {self.title} ({self.amount})'
+
+
+class CashSettings(models.Model):
+    """Tekil kasa ayarları — açılış bakiyesi ve otomatik dahil etme kuralları."""
+
+    opening_balance = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=0,
+        verbose_name='Açılış bakiyesi (₺)',
+    )
+    opening_date = models.DateField(null=True, blank=True, verbose_name='Açılış tarihi')
+    include_payroll_in_balance = models.BooleanField(
+        default=True,
+        verbose_name='Maaş/avans ödemelerini kasadan düş',
+    )
+    include_sales_collections_in_balance = models.BooleanField(
+        default=True,
+        verbose_name='Satış tahsilatlarını (peşinat + ara ödeme) kasaya ekle',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Kasa ayarları'
+        verbose_name_plural = 'Kasa ayarları'
+
+    def __str__(self):
+        return f'Kasa (açılış {self.opening_balance} ₺)'
+
+
+class StockSettings(models.Model):
+    """Tekil stok ayarları — otomatik düşüm kuralları."""
+
+    auto_deduct_on_sale = models.BooleanField(
+        default=True,
+        verbose_name='Tamamlanan satışta stok düş',
+    )
+    auto_deduct_on_service = models.BooleanField(
+        default=False,
+        verbose_name='Servis kaydında stok düş (ürün başına 1 adet)',
+    )
+    block_negative_stock = models.BooleanField(
+        default=True,
+        verbose_name='Stok eksiye düşmesin',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Stok ayarları'
+        verbose_name_plural = 'Stok ayarları'
+
+    def __str__(self):
+        return 'Stok ayarları'
+
+
+class Material(models.Model):
+    """Stokta tutulan ham malzeme / parça — satış ürününden ayrı."""
+
+    UNIT_PIECE = 'piece'
+    UNIT_METER = 'm'
+    UNIT_KG = 'kg'
+    UNIT_LITER = 'l'
+    UNIT_CHOICES = (
+        (UNIT_PIECE, 'Adet'),
+        (UNIT_METER, 'Metre'),
+        (UNIT_KG, 'Kg'),
+        (UNIT_LITER, 'Litre'),
+    )
+
+    name = models.CharField(max_length=120, verbose_name='Malzeme adı')
+    unit = models.CharField(
+        max_length=10,
+        choices=UNIT_CHOICES,
+        default=UNIT_PIECE,
+        verbose_name='Birim',
+    )
+    stock_quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        verbose_name='Mevcut stok',
+    )
+    min_stock_level = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        verbose_name='Kritik seviye',
+    )
+    sku = models.CharField(max_length=64, blank=True, verbose_name='Stok kodu')
+    notes = models.CharField(max_length=255, blank=True, verbose_name='Not')
+    is_active = models.BooleanField(default=True, verbose_name='Aktif')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Malzeme'
+        verbose_name_plural = 'Malzemeler'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class ProductRecipeLine(models.Model):
+    """Ürün reçetesi — 1 satış ürünü için gerekli malzemeler."""
+
+    product = models.ForeignKey(
+        ProductOption,
+        on_delete=models.CASCADE,
+        related_name='recipe_lines',
+        verbose_name='Satış ürünü',
+    )
+    material = models.ForeignKey(
+        Material,
+        on_delete=models.PROTECT,
+        related_name='recipe_lines',
+        verbose_name='Malzeme',
+    )
+    quantity = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=1,
+        verbose_name='Miktar (1 ürün başına)',
+    )
+
+    class Meta:
+        verbose_name = 'Reçete satırı'
+        verbose_name_plural = 'Reçete satırları'
+        ordering = ['material__name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['product', 'material'],
+                name='uniq_product_recipe_material',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.product.name} → {self.material.name} × {self.quantity}'
+
+
+class StockMovement(models.Model):
+    REASON_PURCHASE = 'purchase'
+    REASON_SALE = 'sale'
+    REASON_SALE_CANCEL = 'sale_cancel'
+    REASON_SERVICE = 'service'
+    REASON_COUNT = 'count'
+    REASON_MANUAL = 'manual'
+    REASON_CHOICES = (
+        (REASON_PURCHASE, 'Alış / giriş'),
+        (REASON_SALE, 'Satış'),
+        (REASON_SALE_CANCEL, 'Satış iptali'),
+        (REASON_SERVICE, 'Servis'),
+        (REASON_COUNT, 'Sayım'),
+        (REASON_MANUAL, 'Manuel'),
+    )
+
+    material = models.ForeignKey(
+        Material,
+        on_delete=models.CASCADE,
+        related_name='stock_movements',
+        verbose_name='Malzeme',
+    )
+    delta = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Değişim (+/−)')
+    quantity_after = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Sonraki stok')
+    reason = models.CharField(max_length=20, choices=REASON_CHOICES, verbose_name='Neden')
+    note = models.CharField(max_length=255, blank=True, verbose_name='Not')
+    sales_lead = models.ForeignKey(
+        'sales_leads.SalesLead',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_movements',
+        verbose_name='Satış kaydı',
+    )
+    service_record = models.ForeignKey(
+        'services.ServiceRecord',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_movements',
+        verbose_name='Servis kaydı',
+    )
+    recorded_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_movements',
+        verbose_name='Kaydeden',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Stok hareketi'
+        verbose_name_plural = 'Stok hareketleri'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        sign = '+' if self.delta >= 0 else ''
+        return f'{self.material.name} {sign}{self.delta} ({self.get_reason_display()})'
 
 
 class SolutionPartner(models.Model):

@@ -117,7 +117,7 @@
                         </button>
                     </div>
                     <div id="interimPaymentsContainer" class="space-y-2"></div>
-                    <p class="text-xs text-slate-500">İstediğiniz kadar ara ödeme ekleyebilirsiniz.</p>
+                    <p class="text-xs text-slate-500">Her ara ödeme için tarih ve tutar girin.</p>
                 </div>
 
                 <div class="space-y-3">
@@ -195,7 +195,7 @@ window.SALES_LEAD_FORM = JSON.parse(document.getElementById('salesLeadFormData')
     function toggleCustomerMode() {
         const use = useExisting && useExisting.checked && useExisting.type !== 'hidden';
         if (existingBlock) existingBlock.classList.toggle('hidden', !use);
-        setCustomerFieldsDisabled(use || addProjectMode || isEdit);
+        setCustomerFieldsDisabled(use || addProjectMode);
     }
 
     if (useExisting && useExisting.type !== 'hidden') {

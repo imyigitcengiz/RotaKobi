@@ -1,9 +1,9 @@
-{# Profil uygulamaları — skip_platform_module ile bulunulan backend alanı gizlenir #}
+{# Modül katalogu — sol menüde diğer modüller #}
 {% with inactive_class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800" %}
 {% with active_class="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-700 text-white" %}
 
 <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
-    <i data-lucide="layout-grid" class="w-4 h-4"></i><span class="font-medium text-sm">Panel</span>
+    <i data-lucide="layout-grid" class="w-4 h-4"></i><span class="font-medium text-sm">{{ gy.ana_panel }}</span>
 </a>
 
 {% for group in profile_sidebar.groups %}
@@ -20,7 +20,7 @@
 {% endfor %}
 
 {% if profile_sidebar.capabilities %}
-<p class="px-3 pt-3 text-[10px] font-bold uppercase tracking-wider text-amber-500/90">Entegrasyonlar</p>
+<p class="px-3 pt-3 text-[10px] font-bold uppercase tracking-wider text-amber-500/90">{{ gy.entegrasyon_merkezi }}</p>
 {% for app in profile_sidebar.capabilities %}
 {% if not skip_platform_module or skip_platform_module not in app.platform_modules %}
 <a href="{{ app.url }}" class="{% if app.active %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
@@ -32,7 +32,7 @@
     <i data-lucide="zap" class="w-4 h-4 inline"></i> Tüm entegrasyonlar
 </a>
 {% elif profile_sidebar.integrations %}
-<p class="px-3 pt-3 text-[10px] font-bold uppercase tracking-wider text-amber-500/90">Entegrasyonlar</p>
+<p class="px-3 pt-3 text-[10px] font-bold uppercase tracking-wider text-amber-500/90">{{ gy.entegrasyon_merkezi }}</p>
 {% for app in profile_sidebar.integrations %}
 {% if not skip_platform_module or skip_platform_module not in app.platform_modules %}
 <a href="{{ app.url }}" class="{% if app.active %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
@@ -43,7 +43,7 @@
 {% endif %}
 
 <a href="{% url 'module_hub' %}" class="{% if request.resolver_match.url_name == 'module_hub' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %} mt-2">
-    <i data-lucide="puzzle" class="w-4 h-4"></i><span class="font-medium text-sm">Modül Merkezi</span>
+    <i data-lucide="puzzle" class="w-4 h-4"></i><span class="font-medium text-sm">{{ gy.modul_merkezi }}</span>
 </a>
 
 {% endwith %}{% endwith %}

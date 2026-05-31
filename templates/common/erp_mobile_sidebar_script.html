@@ -1,0 +1,32 @@
+<script>
+(function () {
+    const sidebar = document.getElementById('appSidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const toggle = document.getElementById('sidebarToggle');
+    if (!sidebar || !toggle) return;
+    const setExpanded = (open) => {
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.setAttribute('aria-label', open ? 'Menüyü kapat' : 'Menüyü aç');
+    };
+    const open = () => {
+        sidebar.classList.remove('-translate-x-full');
+        sidebar.classList.add('erp-sidebar-open');
+        backdrop?.classList.remove('hidden');
+        setExpanded(true);
+    };
+    const close = () => {
+        sidebar.classList.add('-translate-x-full');
+        sidebar.classList.remove('erp-sidebar-open');
+        backdrop?.classList.add('hidden');
+        setExpanded(false);
+    };
+    toggle.addEventListener('click', () => {
+        if (sidebar.classList.contains('-translate-x-full')) open();
+        else close();
+    });
+    backdrop?.addEventListener('click', close);
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 1024) close();
+    });
+})();
+</script>

@@ -1,0 +1,149 @@
+{% extends 'common/report_print_shell.html' %}
+
+{% block print_title %}Satış raporu{% endblock %}
+{% block doc_title %}Satış raporu{% endblock %}
+{% block doc_meta %}
+Oluşturma: {{ report_generated_at|date:"d.m.Y H:i" }} · {{ report_totals.count }} kayıt
+{% if report_status_filter %} · Filtre: {{ report_status_filter }}{% endif %}
+{% endblock %}
+
+{% block print_extra_head %}
+<style>
+    .col-products { min-width: 11rem; max-width: 16rem; vertical-align: top; }
+    .product-line { display: block; margin-bottom: 4px; }
+    .product-line:last-child { margin-bottom: 0; }
+    .product-headline { font-weight: 800; color: #0f172a; line-height: 1.35; }
+    .product-detail { font-size: 10px; color: #64748b; margin-top: 1px; }
+    .col-project-ref { max-width: 5.5rem; font-size: 10px; color: #94a3b8; vertical-align: top; }
+    .col-customer strong { display: block; }
+    .col-customer .customer-meta { font-size: 10px; color: #64748b; font-weight: 400; margin-top: 2px; }
+    .product-summary-table td.num { font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block print_body %}
+<div class="kpi-row">
+    {% for row in monthly_stats|slice:":3" %}
+    <div class="kpi">
+        <div class="kpi-label">{{ row.label }} (tamamlanan)</div>
+        <div class="kpi-value">{{ row.count }} satış · {{ row.amount|floatformat:2 }} ₺</div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if product_summary %}
+<div class="section-title">Ürün özeti</div>
+<table class="product-summary-table">
+    <thead>
+        <tr><th>Ürün</th><th class="num">Toplam adet</th><th class="num">Satış sayısı</th></tr>
+    </thead>
+    <tbody>
+        {% for row in product_summary %}
+        <tr>
+            <td><strong>{{ row.name }}</strong></td>
+            <td class="num">{{ row.quantity }}</td>
+            <td class="num">{{ row.sales }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<div class="section-title">Aylık özet — tamamlanan satışlar (son 6 ay)</div>
+<table>
+    <thead>
+        <tr><th>Dönem</th><th class="num">Adet</th><th class="num">Toplam</th></tr>
+    </thead>
+    <tbody>
+        {% for row in monthly_stats %}
+        <tr>
+            <td>{{ row.label }}</td>
+            <td class="num">{{ row.count }}</td>
+            <td class="num">{{ row.amount|floatformat:2 }} ₺</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="section-title">Detaylı satış listesi — ürün odaklı</div>
+<table>
+    <thead>
+        <tr>
+            <th>Müşteri</th>
+            <th class="col-products">Ürünler</th>
+            <th>Yer</th>
+            <th>Satış</th>
+            <th>Durum</th>
+            <th class="num">Toplam</th>
+            <th class="num">Peşinat</th>
+            {% if max_interim_count > 1 %}
+                {% for _ in interim_column_indices %}
+                <th class="num">Ara {{ forloop.counter }}</th>
+                {% endfor %}
+            {% else %}
+                <th class="num">Ara ödeme</th>
+            {% endif %}
+            <th class="num">Kalan</th>
+            <th>Not</th>
+            <th class="col-project-ref">Proje ref.</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sale in report_leads %}
+        <tr>
+            <td class="col-customer">
+                <strong>{{ sale.customer.name }}</strong>
+                <span class="customer-meta">{{ sale.customer.phone|default:"-" }}{% if sale.customer.contract_date %} · Szlm. {{ sale.customer.contract_date|date:"d.m.Y" }}{% endif %}</span>
+            </td>
+            <td class="col-products">
+                {% for pl in sale.report_product_lines %}
+                <span class="product-line">
+                    <span class="product-headline">{{ pl.headline }}</span>
+                    {% if pl.detail %}<span class="product-detail">{{ pl.detail }}</span>{% endif %}
+                </span>
+                {% empty %}
+                <span class="product-headline">{{ sale.report_products_primary }}</span>
+                {% endfor %}
+            </td>
+            <td>{{ sale.customer.region|default:"-" }}</td>
+            <td>{{ sale.sale_date|date:"d.m.Y" }}</td>
+            <td>{{ sale.status_label }}</td>
+            <td class="num">{% if sale.sale_amount %}{{ sale.sale_amount|floatformat:2 }} ₺{% else %}-{% endif %}</td>
+            <td class="num">{% if sale.down_payment %}{{ sale.down_payment|floatformat:2 }} ₺{% else %}-{% endif %}</td>
+            {% if max_interim_count > 1 %}
+                {% for cell in sale.report_interim_cells %}
+                <td class="num">{% if cell %}{{ cell.display }}{% else %}-{% endif %}</td>
+                {% endfor %}
+            {% else %}
+                <td class="num">
+                    {% with cell=sale.report_interim_cells.0 %}
+                    {% if cell %}{{ cell.display }}{% elif sale.interim_payments_total %}{{ sale.interim_payments_total|floatformat:2 }} ₺{% else %}-{% endif %}
+                    {% endwith %}
+                </td>
+            {% endif %}
+            <td class="num"><strong>{{ sale.remaining_balance|floatformat:2 }} ₺</strong></td>
+            <td>{{ sale.notes|default:"-"|truncatechars:60 }}</td>
+            <td class="col-project-ref">{% if sale.report_project_ref %}{{ sale.report_project_ref|truncatechars:40 }}{% else %}—{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="14">Kayıt yok.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if region_stats %}
+<div class="section-title">Yer bazlı satış (tamamlanan)</div>
+<table>
+    <thead><tr><th>Yer</th><th class="num">Adet</th><th class="num">Tutar</th></tr></thead>
+    <tbody>
+        {% for row in region_stats %}
+        <tr>
+            <td>{{ row.customer__region }}</td>
+            <td class="num">{{ row.total }}</td>
+            <td class="num">{{ row.amount|default:0|floatformat:2 }} ₺</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

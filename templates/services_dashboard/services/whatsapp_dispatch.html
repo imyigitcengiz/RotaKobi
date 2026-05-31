@@ -92,7 +92,7 @@
                     ? window.populateWhatsAppConnectionSelect(dispatchConnectionSelect, data)
                     : { readyCount: 0 };
                 if (meta.readyCount === 0) {
-                    setDispatchStatus('Bağlı hat seçin veya Tools → WhatsApp sayfasından QR okutun.', 'warn');
+                    setDispatchStatus('Bağlı hat seçin veya {{ gy.araclar }} → WhatsApp sayfasından QR okutun.', 'warn');
                 }
             } catch (err) {
                 setDispatchStatus(err.message || 'Hat listesi yüklenemedi.', 'error');

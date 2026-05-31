@@ -1,0 +1,11 @@
+# Portainer Stack: host 80 genelde dolu — localhost:8080 üzerinden reverse proxy kullanın.
+# Portainer → Stacks → Web editor → Environment:
+#   COMPOSE_FILE=docker-compose.yaml:deploy/portainer/docker-compose.portainer.yaml
+name: kobi-ops
+
+services:
+  app:
+    ports:
+      - "127.0.0.1:${KOBIOPS_HTTP_PORT:-8080}:80"
+    environment:
+      KOBIOPS_COMPOSE_STACK: "1"

@@ -1,55 +1,113 @@
 {% extends 'muhasebe/base.html' %}
+{% load static %}
 
 {% block title %}{{ gy.mh_gelir_gider }}{% endblock %}
 
 {% block header %}
 <h1 class="text-lg font-bold text-slate-900">{{ gy.mh_gelir_gider }}</h1>
-<p class="text-sm text-slate-500">Genel gelir ve gider hareketleri — personel maaş/avans kayıtlarından ayrı tutulur.</p>
+<p class="text-sm text-slate-500">Genel gelir ve gider — personel maaş/avans kayıtlarından ayrı tutulur.</p>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-6xl mx-auto space-y-6">
-    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4">
-        <div class="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-                <h3 class="font-bold text-slate-900">Yeni Kayıt</h3>
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
+        <form method="get" class="flex flex-wrap items-end gap-3">
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-slate-600 uppercase">Dönem</label>
+                <input type="month" name="period" value="{{ finance_period_str }}" class="acct-input px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold">
             </div>
-            <form method="get" class="flex items-center gap-2">
-                <select name="record_type" class="p-2 bg-slate-50 border-none rounded-xl text-sm" onchange="this.form.submit()">
-                    <option value="">Tümü</option>
-                    <option value="income" {% if request.GET.record_type == 'income' %}selected{% endif %}>Gelir</option>
-                    <option value="expense" {% if request.GET.record_type == 'expense' %}selected{% endif %}>Gider</option>
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-slate-600 uppercase">Tür</label>
+                <select name="record_type" class="acct-input px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm">
+                    <option value="">Tüm hareketler</option>
+                    <option value="income" {% if finance_filter_type == 'income' %}selected{% endif %}>Yalnız gelir</option>
+                    <option value="expense" {% if finance_filter_type == 'expense' %}selected{% endif %}>Yalnız gider</option>
                 </select>
-            </form>
+            </div>
+            <button type="submit" class="px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold">Göster</button>
+            <div class="flex flex-wrap gap-2 ml-auto">
+                <a href="{% url 'accounting_finance_print' %}?period={{ finance_period_str }}{% if finance_filter_type %}&record_type={{ finance_filter_type }}{% endif %}" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-600 text-white text-sm font-bold hover:bg-brand-700">
+                    <i data-lucide="printer" class="w-4 h-4"></i> Yazdır
+                </a>
+                <a href="{% url 'accounting_finance_export' %}?period={{ finance_period_str }}{% if finance_filter_type %}&record_type={{ finance_filter_type }}{% endif %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    <i data-lucide="download" class="w-4 h-4"></i> CSV
+                </a>
+                <a href="{% url 'accounting_data_exchange' %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"><i data-lucide="arrow-up-down" class="w-4 h-4"></i> {{ gy.mh_veri_alisverisi }}</a>
+            </div>
+        </form>
+    </section>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="rounded-2xl bg-emerald-50 border border-emerald-100 px-5 py-4">
+            <p class="text-[10px] font-bold uppercase text-emerald-700">Gelir</p>
+            <p class="acct-kpi-value text-2xl font-black text-emerald-800 mt-1">+ {{ finance_income_total }} ₺</p>
+            <p class="text-xs text-emerald-700/70 mt-1">{{ finance_period_label }}</p>
+        </div>
+        <div class="rounded-2xl bg-red-50 border border-red-100 px-5 py-4">
+            <p class="text-[10px] font-bold uppercase text-red-700">Gider</p>
+            <p class="acct-kpi-value text-2xl font-black text-red-800 mt-1">− {{ finance_expense_total }} ₺</p>
+            <p class="text-xs text-red-700/70 mt-1">{{ finance_period_label }}</p>
+        </div>
+        <div class="rounded-2xl {% if finance_net_total >= 0 %}bg-sky-50 border-sky-100{% else %}bg-amber-50 border-amber-100{% endif %} border px-5 py-4">
+            <p class="text-[10px] font-bold uppercase {% if finance_net_total >= 0 %}text-sky-700{% else %}text-amber-800{% endif %}">Net nakit</p>
+            <p class="acct-kpi-value text-2xl font-black {% if finance_net_total >= 0 %}text-sky-900{% else %}text-amber-900{% endif %} mt-1">{{ finance_net_total }} ₺</p>
+            <p class="text-xs text-slate-500 mt-1">Gelir − gider</p>
+        </div>
+    </div>
+
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-5">
+        <div>
+            <h3 class="font-bold text-slate-900">Yeni kayıt</h3>
+            <p class="text-xs text-slate-500 mt-1">Tahsilat, fatura, ofis gideri vb. — maaş ödemeleri buraya yazılmaz.</p>
         </div>
 
-        <form method="post" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+        <form method="post" id="financeForm" class="space-y-4">
             {% csrf_token %}
             <input type="hidden" name="add_finance" value="1">
-            <div class="space-y-1">
-                <label class="text-xs font-bold text-slate-500 uppercase">Tür</label>
-                {{ finance_form.record_type }}
+            <input type="hidden" name="_redirect_period" value="{{ finance_period_str }}">
+            <input type="hidden" name="_redirect_record_type" value="{{ finance_filter_type }}">
+            <div class="flex flex-wrap gap-2" role="group" aria-label="Kayıt türü">
+                <label class="finance-type-opt cursor-pointer">
+                    <input type="radio" name="record_type_ui" value="income" class="sr-only peer" checked>
+                    <span class="inline-flex px-4 py-2 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-800">Gelir</span>
+                </label>
+                <label class="finance-type-opt cursor-pointer">
+                    <input type="radio" name="record_type_ui" value="expense" class="sr-only peer">
+                    <span class="inline-flex px-4 py-2 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-800">Gider</span>
+                </label>
             </div>
-            <div class="space-y-1 lg:col-span-2">
-                <label class="text-xs font-bold text-slate-500 uppercase">Açıklama</label>
-                {{ finance_form.title }}
+            <div class="hidden">{{ finance_form.record_type }}</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1.5 md:col-span-2 hidden" id="financeCategoryWrap">
+                    <label class="text-xs font-bold text-slate-600 uppercase">Gider kategorisi</label>
+                    {{ finance_form.category }}
+                </div>
+                <div class="space-y-1.5 md:col-span-2">
+                    <label class="text-xs font-bold text-slate-600 uppercase">Açıklama <span class="text-red-500">*</span></label>
+                    {{ finance_form.title }}
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-600 uppercase">Tutar (₺) <span class="text-red-500">*</span></label>
+                    {{ finance_form.amount }}
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-600 uppercase">Tarih</label>
+                    {{ finance_form.record_date }}
+                </div>
+                <div class="space-y-1.5 md:col-span-2">
+                    <label class="text-xs font-bold text-slate-600 uppercase">Not</label>
+                    {{ finance_form.notes }}
+                </div>
             </div>
-            <div class="space-y-1">
-                <label class="text-xs font-bold text-slate-500 uppercase">Tutar (₺)</label>
-                {{ finance_form.amount }}
-            </div>
-            <div class="space-y-1">
-                <label class="text-xs font-bold text-slate-500 uppercase">Tarih</label>
-                {{ finance_form.record_date }}
-            </div>
-            <div class="space-y-1 lg:col-span-5">
-                <label class="text-xs font-bold text-slate-500 uppercase">Not</label>
-                {{ finance_form.notes }}
-            </div>
-            <button type="submit" class="lg:col-span-5 bg-brand-600 text-white py-2.5 rounded-xl font-bold hover:bg-brand-700">Kaydet</button>
+            <button type="submit" class="w-full md:w-auto px-8 py-3 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700">Kaydı ekle</button>
         </form>
+    </section>
 
-        <div class="overflow-x-auto rounded-2xl border border-slate-100">
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+            <h3 class="font-bold text-slate-900">{{ finance_period_label }} hareketleri</h3>
+        </div>
+        <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">
                 <thead class="bg-slate-50 border-b border-slate-100">
                     <tr>
@@ -58,8 +116,7 @@
                         <th class="px-4 py-3 font-bold text-slate-700">Açıklama</th>
                         <th class="px-4 py-3 font-bold text-slate-700">Tutar</th>
                         <th class="px-4 py-3 font-bold text-slate-700">Not</th>
-                        <th class="px-4 py-3 font-bold text-slate-700">Kaydeden</th>
-                        <th class="px-4 py-3 font-bold text-slate-700 text-right">İşlem</th>
+                        <th class="px-4 py-3 font-bold text-slate-700 text-right"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -68,26 +125,34 @@
                         <td class="px-4 py-3 whitespace-nowrap">{{ rec.record_date|date:"d.m.Y" }}</td>
                         <td class="px-4 py-3">
                             {% if rec.record_type == 'income' %}
-                            <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700">Gelir</span>
+                            <span class="px-2 py-0.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700">Gelir</span>
                             {% else %}
-                            <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-red-50 text-red-700">Gider</span>
+                            <span class="px-2 py-0.5 rounded-lg text-xs font-bold bg-red-50 text-red-700">Gider</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 font-semibold">{{ rec.title }}</td>
-                        <td class="px-4 py-3 font-bold text-slate-900">{{ rec.amount }} ₺</td>
-                        <td class="px-4 py-3 text-slate-500">{{ rec.notes|default:"—" }}</td>
-                        <td class="px-4 py-3 text-slate-500 text-xs">{{ rec.recorded_by.display_name|default:"—" }}</td>
+                        <td class="px-4 py-3 font-semibold">
+                            {{ rec.title }}
+                            {% if rec.record_type == 'expense' and rec.category %}
+                            <span class="block text-[10px] font-bold text-slate-400 uppercase mt-0.5">{{ rec.get_category_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 font-bold acct-kpi-value {% if rec.record_type == 'income' %}text-emerald-700{% else %}text-red-700{% endif %}">
+                            {% if rec.record_type == 'income' %}+{% else %}−{% endif %} {{ rec.amount }} ₺
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 text-xs">{{ rec.notes|default:"—" }}</td>
                         <td class="px-4 py-3 text-right">
-                            <form method="post" class="inline" onsubmit="return confirm('Kayıt silinsin mi?');">
+                            <form method="post" data-acct-confirm="Kayıt silinsin mi?" class="inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="delete_finance" value="1">
                                 <input type="hidden" name="id" value="{{ rec.id }}">
-                                <button type="submit" class="text-red-500 hover:underline text-xs font-semibold">Sil</button>
+                                <input type="hidden" name="_redirect_period" value="{{ finance_period_str }}">
+                                <input type="hidden" name="_redirect_record_type" value="{{ finance_filter_type }}">
+                                <button type="submit" class="text-red-600 text-xs font-bold hover:underline">Sil</button>
                             </form>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Henüz kayıt yok.</td></tr>
+                    <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">Bu dönemde kayıt yok.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -97,12 +162,36 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/accounting-payroll.js' %}" defer></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const dateInput = document.querySelector('input[name="record_date"]');
-        if (dateInput && !dateInput.value) {
-            dateInput.value = new Date().toISOString().slice(0, 10);
+document.addEventListener('DOMContentLoaded', function () {
+    const dateInput = document.querySelector('#financeForm input[name="record_date"]');
+    if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+
+    const hiddenType = document.querySelector('#financeForm select[name="record_type"]');
+    const radios = document.querySelectorAll('#financeForm input[name="record_type_ui"]');
+    function syncType() {
+        const checked = document.querySelector('#financeForm input[name="record_type_ui"]:checked');
+        if (hiddenType && checked) hiddenType.value = checked.value;
+        const catWrap = document.getElementById('financeCategoryWrap');
+        if (catWrap && checked) {
+            catWrap.classList.toggle('hidden', checked.value !== 'expense');
+        }
+    }
+    radios.forEach(function (r) { r.addEventListener('change', syncType); });
+    syncType();
+
+    document.getElementById('financeForm')?.addEventListener('submit', function (e) {
+        const title = this.querySelector('input[name="title"]');
+        const amount = this.querySelector('input[name="amount"]');
+        if (!title?.value.trim()) {
+            e.preventDefault();
+            window.erpNotify?.('Açıklama girin.', 'warn');
+        } else if (!amount?.value || parseFloat(amount.value) <= 0) {
+            e.preventDefault();
+            window.erpNotify?.('Geçerli tutar girin.', 'warn');
         }
     });
+});
 </script>
 {% endblock %}

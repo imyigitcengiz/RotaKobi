@@ -1,0 +1,56 @@
+{% extends 'sales_lead/base.html' %}
+
+{% block title %}Teklifler{% endblock %}
+
+{% block header_title %}
+<h1 class="text-lg font-bold text-slate-900">Teklifler</h1>
+<p class="text-sm text-slate-500">Ürün odaklı teklif — kabul edilince satışa dönüştürülür.</p>
+{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'sales_quote_create' %}" class="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-brand-700">
+    <i data-lucide="plus" class="w-4 h-4"></i> Yeni teklif
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                    <th class="px-4 py-3 text-left">Müşteri</th>
+                    <th class="px-4 py-3 text-left">Ürünler</th>
+                    <th class="px-4 py-3 text-left">Tarih</th>
+                    <th class="px-4 py-3 text-right">Tutar</th>
+                    <th class="px-4 py-3 text-left">Durum</th>
+                    <th class="px-4 py-3 text-right">İşlem</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for q in quotes %}
+                <tr>
+                    <td class="px-4 py-3 font-semibold">{{ q.customer.name }}</td>
+                    <td class="px-4 py-3 font-bold text-slate-900">{{ q.products_primary }}</td>
+                    <td class="px-4 py-3">{{ q.quote_date|date:"d.m.Y" }}</td>
+                    <td class="px-4 py-3 text-right">{% if q.sale_amount %}{{ q.sale_amount|floatformat:2 }} ₺{% else %}-{% endif %}</td>
+                    <td class="px-4 py-3">{{ q.get_status_display }}</td>
+                    <td class="px-4 py-3 text-right">
+                        {% if not q.converted_lead_id %}
+                        <form method="post" action="{% url 'sales_quote_convert' q.pk %}" class="inline" onsubmit="return confirm('Satış kaydına dönüştürülsün mü?');">
+                            {% csrf_token %}
+                            <button type="submit" class="text-brand-600 font-bold hover:underline">Satışa çevir</button>
+                        </form>
+                        {% else %}
+                        <a href="{% url 'sales_lead_edit' q.converted_lead_id %}" class="text-emerald-700 font-semibold hover:underline">Satış</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="px-4 py-12 text-center text-slate-400">Teklif yok.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

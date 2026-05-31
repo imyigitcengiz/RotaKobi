@@ -1,0 +1,48 @@
+{% extends 'common/report_print_shell.html' %}
+
+{% block print_title %}Gelir & gider raporu{% endblock %}
+{% block doc_title %}Gelir & gider raporu{% endblock %}
+{% block doc_meta %}{{ finance_period_label }}{% if finance_filter_type %} · {% if finance_filter_type == 'income' %}yalnız gelir{% else %}yalnız gider{% endif %}{% endif %}{% endblock %}
+
+{% block print_body %}
+<div class="kpi-row">
+    <div class="kpi">
+        <div class="kpi-label">Gelir</div>
+        <div class="kpi-value" style="color:#047857">+ {{ finance_income_total }} ₺</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Gider</div>
+        <div class="kpi-value" style="color:#b91c1c">− {{ finance_expense_total }} ₺</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Net nakit</div>
+        <div class="kpi-value">{{ finance_net_total }} ₺</div>
+    </div>
+</div>
+
+<div class="section-title">Hareketler</div>
+<table>
+    <thead>
+        <tr>
+            <th>Tarih</th>
+            <th>Tür</th>
+            <th>Açıklama</th>
+            <th class="num">Tutar</th>
+            <th>Not</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rec in recent_records %}
+        <tr>
+            <td>{{ rec.record_date|date:"d.m.Y" }}</td>
+            <td>{% if rec.record_type == 'income' %}Gelir{% else %}Gider{% endif %}</td>
+            <td><strong>{{ rec.title }}</strong></td>
+            <td class="num">{% if rec.record_type == 'income' %}+{% else %}−{% endif %} {{ rec.amount }} ₺</td>
+            <td>{{ rec.notes|default:"-" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">Bu dönemde kayıt yok.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

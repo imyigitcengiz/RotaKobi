@@ -51,6 +51,11 @@ class ServiceRecord(models.Model):
         blank=True,
         verbose_name='İndirimli fiyat',
     )
+    scheduled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Planlanan randevu',
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
