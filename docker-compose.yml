@@ -18,7 +18,7 @@ services:
     environment:
       PORT: *app_port
       DATA_DIR: /data
-      COOLOPS_SECRETS_DIR: /run/coolops-secrets
+      COOLOPS_SECRETS_DIR: /run/kobiops-secrets
       DJANGO_DB_PATH: /data/db.sqlite3
       DJANGO_MEDIA_ROOT: /data/media
       DJANGO_SERVE_MEDIA: "1"
@@ -49,7 +49,7 @@ services:
         required: false
     volumes:
       - gy_data:/data
-      - coolops_secrets:/run/coolops-secrets
+      - kobiops_secrets:/run/kobiops-secrets
     labels:
       - traefik.enable=true
     security_opt:
@@ -80,11 +80,11 @@ services:
       - "3939"
     environment:
       WHATSAPP_BRIDGE_BIND: "0.0.0.0"
-      COOLOPS_SECRETS_DIR: /run/coolops-secrets
+      COOLOPS_SECRETS_DIR: /run/kobiops-secrets
       WHATSAPP_BRIDGE_TOKEN: ${WHATSAPP_BRIDGE_TOKEN:-}
     volumes:
       - whatsapp_session:/app/session
-      - coolops_secrets:/run/coolops-secrets
+      - kobiops_secrets:/run/kobiops-secrets
     shm_size: "512mb"
     healthcheck:
       test:
@@ -105,8 +105,8 @@ services:
 
 volumes:
   gy_data:
-    name: coolops_gy_data
+    name: kobiops_gy_data
   whatsapp_session:
-    name: coolops_whatsapp_session
-  coolops_secrets:
-    name: coolops_secrets
+    name: kobiops_whatsapp_session
+  kobiops_secrets:
+    name: kobiops_secrets

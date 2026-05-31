@@ -12,7 +12,7 @@ Panelde 3 adım — `.env` ve Persistent Storage UI **gerekmez**:
 2. **Docker Compose** build pack (`docker-compose.yaml` — Coolify varsayılan) — **Dockerfile tek başına değil**
 3. Domain → servis **`app`**, port **8080**, URL: `https://domain.com:8080` → Deploy
 
-Named volume `coolops_gy_data` compose ile otomatik oluşur; veri rebuild'lerde kalır.
+Named volume `kobiops_gy_data` compose ile otomatik oluşur; veri rebuild'lerde kalır.
 
 `deploy/bootstrap-env.sh` otomatik ayarlar:
 
@@ -80,7 +80,7 @@ Tüm değişkenler 4 grupta:
 
 ## Kalıcı veri
 
-Named volume **`coolops_gy_data`** → `/data`:
+Named volume **`kobiops_gy_data`** → `/data`:
 
 - `db.sqlite3`, `media/`, `backups/auto/`
 

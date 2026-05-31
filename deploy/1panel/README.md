@@ -45,7 +45,7 @@ Domain ekledikten sonra redeploy veya `./deploy/install.sh panel.sizin-domain.co
 
 | Volume | Mount | İçerik |
 |--------|--------|--------|
-| `coolops_gy_data` | `/data` | SQLite, medya, yedekler |
+| `kobiops_gy_data` | `/data` | SQLite, medya, yedekler |
 | `coolops_whatsapp_session` | köprü oturumu | WhatsApp QR |
 
 Stack silinirken **volume silmeyin**.

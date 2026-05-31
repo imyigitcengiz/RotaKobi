@@ -38,7 +38,7 @@ Veya: `./deploy/panel-compose.sh dokploy` → `.env.compose` yazar.
 2. **Compose path:** repo kökü `docker-compose.yaml`.
 3. **Domain servisi:** `app` (whatsapp_bridge'e domain bağlamayın).
 4. **Container port:** `80` (Dokploy domain UI, Coolify Generate Domain).
-5. **Volume:** `coolops_gy_data` → `/data` — deploy sırasında silmeyin.
+5. **Volume:** `kobiops_gy_data` → `/data` — deploy sırasında silmeyin.
 6. **RAM:** ≥ 2 GB (WhatsApp köprüsü + Chromium).
 7. **`.env` zorunlu değil** — `deploy/bootstrap-env.sh` secret, ALLOWED_HOSTS, CSRF doldurur.
 

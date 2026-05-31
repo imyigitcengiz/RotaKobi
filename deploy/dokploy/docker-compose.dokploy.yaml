@@ -15,8 +15,6 @@ services:
     networks:
       - default
       - dokploy-network
-    ports:
-      - "80"
     labels:
       - traefik.enable=true
       - traefik.docker.network=dokploy-network

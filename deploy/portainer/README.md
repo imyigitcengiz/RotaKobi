@@ -23,6 +23,6 @@ proxy_set_header Connection "upgrade";
 
 ## Kalıcı veri
 
-Volume **`coolops_gy_data`** silinmeden kalmalı.
+Volume **`kobiops_gy_data`** silinmeden kalmalı.
 
 Genel: [deploy/README.md](../README.md) · [DEPLOY.md](../../DEPLOY.md)

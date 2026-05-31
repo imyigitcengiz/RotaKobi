@@ -40,7 +40,7 @@ Overlay olmadan da çalışabilir; domain tanımlıysa ana compose yeterlidir.
 
 ## Kalıcı veri
 
-Named volume **`coolops_gy_data`** → `/data` (SQLite + medya). Deploy sırasında volume silmeyin.
+Named volume **`kobiops_gy_data`** → `/data` (SQLite + medya). Deploy sırasında volume silmeyin.
 
 ## Environment (isteğe bağlı)
 
@@ -67,12 +67,12 @@ Dokploy → **Deployments** → **Webhook** → GitHub push event.
 | Belirti | Çözüm |
 |---------|--------|
 | **404 page not found** | Domain servisi **`app`**, port **80**. sslip.io → **http://** (https değil). Overlay'de `traefik.docker.network=dokploy-network` olmalı — redeploy. Dokploy → **Reload Traefik**. Log: `daphne 0.0.0.0:80` |
-| App Restarting / SECRET_KEY | Logs; `/data` volume var mı? Redeploy |
+| **Deploy error / Restarting** | Logs → app konteyneri. `KRİTİK: /data` → volume bağlı mı? Eski stack `kobi-ops` çalışıyorsa durdurun. |
 | DisallowedHost | `APP_URL=http://tam-domain.sslip.io` (slash yok) + redeploy |
 | 404 / sslip | `DJANGO_SECURE_SSL` otomatik 0; http:// kullanın |
 | CSRF | Domain ile CSRF otomatik; redeploy |
 | Port 80 meşgul | Dokploy overlay kullanın; host ports kapatın |
 | WhatsApp kapalı | `whatsapp_bridge` logs; RAM kontrol |
-| Veri sıfırlandı | `coolops_gy_data` volume koruyun |
+| Veri sıfırlandı | `kobiops_gy_data` volume koruyun |
 
 Tüm paneller: [deploy/README.md](../README.md) · Genel: [DEPLOY.md](../../DEPLOY.md)

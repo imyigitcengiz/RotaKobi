@@ -126,7 +126,8 @@ def data_dir_looks_ephemeral(root: Path) -> bool:
 
 
 def _orchestrated_compose_stack() -> bool:
-    return os.environ.get('COOLOPS_COMPOSE_STACK', '').strip().lower() in ('1', 'true', 'yes')
+    raw = os.environ.get('COOLOPS_COMPOSE_STACK') or os.environ.get('KOBIOPS_COMPOSE_STACK') or ''
+    return raw.strip().lower() in ('1', 'true', 'yes')
 
 
 def _data_dir_usable_for_production(root: Path) -> bool:
@@ -278,8 +279,16 @@ def check_before_migrate() -> None:
         current_bytes = db.stat().st_size if db.is_file() else 0
 
         if prev_bytes >= MIN_MEANINGFUL_DB_BYTES and current_bytes < MIN_MEANINGFUL_DB_BYTES:
-            backup_hint = root / AUTO_BACKUP_SUBDIR / 'latest.sqlite3'
-            raise DataPersistenceError(
+            latest_backup = root / AUTO_BACKUP_SUBDIR / 'latest.sqlite3'
+            if latest_backup.is_file() and latest_backup.stat().st_size >= MIN_MEANINGFUL_DB_BYTES:
+                logger.warning(
+                    'db.sqlite3 boş — otomatik yedekten geri yükleniyor: %s', latest_backup
+                )
+                shutil.copy2(latest_backup, db)
+                current_bytes = db.stat().st_size
+            if current_bytes < MIN_MEANINGFUL_DB_BYTES:
+                backup_hint = root / AUTO_BACKUP_SUBDIR / 'latest.sqlite3'
+                raise DataPersistenceError(
                 'KRİTİK: Veri kaybı algılandı — önceki db.sqlite3 kayboldu veya boşaltıldı. '
                 f'Önceki boyut: {prev_bytes} bayt, şimdi: {current_bytes}. '
                 f'Volume /data silinmiş olabilir. '

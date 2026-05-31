@@ -7,7 +7,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const PORT = process.env.WHATSAPP_BRIDGE_PORT || 3939;
 /** Docker / Coolify: 0.0.0.0 — yerel geliştirme varsayılanı 127.0.0.1 */
 const BIND_HOST = process.env.WHATSAPP_BRIDGE_BIND || '127.0.0.1';
-const SECRETS_DIR = process.env.COOLOPS_SECRETS_DIR || '/run/coolops-secrets';
+const SECRETS_DIR = process.env.COOLOPS_SECRETS_DIR || process.env.KOBIOPS_SECRETS_DIR || '/run/kobiops-secrets';
 const app = express();
 
 function readBridgeToken() {

@@ -3,6 +3,21 @@
 # docker-entrypoint.sh kaynaklar; elle .env yazmadan deploy mümkün.
 set -euo pipefail
 
+# Eski KOBIOPS_* env (geriye dönük uyumluluk)
+_legacy_env() {
+  local new_name=$1 old_name=$2
+  if [[ -z "${!new_name:-}" && -n "${!old_name:-}" ]]; then
+    export "${new_name}=${!old_name}"
+  fi
+}
+_legacy_env COOLOPS_COMPOSE_STACK KOBIOPS_COMPOSE_STACK
+_legacy_env COOLOPS_SECRETS_DIR KOBIOPS_SECRETS_DIR
+_legacy_env COOLOPS_BUILD_COMMIT KOBIOPS_BUILD_COMMIT
+_legacy_env COOLOPS_UPDATE_REPO KOBIOPS_UPDATE_REPO
+_legacy_env COOLOPS_UPDATE_BRANCH KOBIOPS_UPDATE_BRANCH
+_legacy_env COOLOPS_DEPLOY_WEBHOOK_URL KOBIOPS_DEPLOY_WEBHOOK_URL
+_legacy_env COOLOPS_HTTP_PORT KOBIOPS_HTTP_PORT
+
 _data_dir="${DATA_DIR:-/data}"
 export DATA_DIR="$_data_dir"
 mkdir -p "$_data_dir" 2>/dev/null || true
@@ -171,8 +186,8 @@ export DJANGO_ALLOW_SSLIP_HOSTS="${DJANGO_ALLOW_SSLIP_HOSTS:-0}"
 # İsteğe bağlı özel şifre: DJANGO_SUPERADMIN_PASSWORD=...
 export DJANGO_ENSURE_SUPERADMIN="${DJANGO_ENSURE_SUPERADMIN:-0}"
 
-# WhatsApp köprü Bearer token (paylaşımlı volume: coolops_secrets)
-_secrets_dir="${COOLOPS_SECRETS_DIR:-/run/coolops-secrets}"
+# WhatsApp köprü Bearer token (paylaşımlı volume: kobiops_secrets)
+_secrets_dir="${COOLOPS_SECRETS_DIR:-${KOBIOPS_SECRETS_DIR:-/run/kobiops-secrets}}"
 export COOLOPS_SECRETS_DIR="$_secrets_dir"
 mkdir -p "$_secrets_dir" 2>/dev/null || true
 _bridge_token_file="${_secrets_dir}/whatsapp_bridge_token"

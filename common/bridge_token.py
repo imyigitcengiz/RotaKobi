@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-SECRETS_DIR = Path(os.environ.get('COOLOPS_SECRETS_DIR', '/run/coolops-secrets'))
+SECRETS_DIR = Path(os.environ.get('COOLOPS_SECRETS_DIR') or os.environ.get('KOBIOPS_SECRETS_DIR') or '/run/kobiops-secrets')
 TOKEN_FILENAME = 'whatsapp_bridge_token'
 
 
