@@ -2,9 +2,9 @@
 # Kullanım:
 #   COMPOSE_FILE=docker-compose.yaml:deploy/docker-compose.vps.yaml docker compose up -d --build
 # veya: ./deploy/install.sh panel.firma.com
-name: cool-ops
+name: kobi-ops
 
 services:
   app:
     ports:
-      - "${COOLOPS_HTTP_PORT:-8080}:80"
+      - "${KOBIOPS_HTTP_PORT:-8080}:80"

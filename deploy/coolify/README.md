@@ -5,7 +5,7 @@
 | Adres | Ne açılır |
 |-------|-----------|
 | `http://SUNUCU-IP:8000` | **Coolify yönetim paneli** |
-| `http://xxx.sslip.io` | **CoolOPS uygulaması** (Traefik üzerinden) |
+| `http://xxx.sslip.io` | **KobiOps uygulaması** (Traefik üzerinden) |
 
 Tarayıcıda **asla `:8000` veya `:8080` yazmayın** — sunucunun 8000 portu Coolify'a aittir.
 

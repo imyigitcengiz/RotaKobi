@@ -7,16 +7,22 @@
 1. **Project** → **Docker Compose** → **Create**
 2. **Source:** GitHub → `imyigitcengiz/cool-ops`, branch `main`  
    **Compose file path:** `docker-compose.yaml`
-3. **Environment** (isteğe bağlı, önerilir):
-   ```env
-   COMPOSE_FILE=docker-compose.yaml:deploy/dokploy/docker-compose.dokploy.yaml
-   APP_URL=http://panel.sizin-domain.sslip.io
-   ```
-   `APP_URL` sonunda `/` olmasın. sslip.io için **http** kullanın (https değil).
+3. **Environment** → [dokploy.env.example](./dokploy.env.example) dosyasını açıp içeriği yapıştırın  
+   (minimal sürüm: [dokploy.env.minimal](./dokploy.env.minimal))  
+   **`APP_URL`** satırını kendi domain'inizle değiştirin (`/` olmadan, sslip.io için `http://`).
 4. **Domains** → servis **`app`** (whatsapp_bridge değil), container port **`80`**, HTTPS **kapalı** (sslip.io)  
    → **Deploy** (domain değiştirdikten sonra mutlaka yeniden deploy)
 
-`.env` yazmanız **gerekmez** — `bootstrap-env.sh` secret, host ve CSRF'yi otomatik tamamlar.
+**Env şablonları**
+
+| Dosya | Ne için |
+|-------|---------|
+| [dokploy.env.example](./dokploy.env.example) | Dokploy UI'ya yapıştır — açıklamalı tam şablon |
+| [dokploy.env.minimal](./dokploy.env.minimal) | Sadece 5 satır, hızlı başlangıç |
+| [../../.env.example](../../.env.example) | Tüm değişkenler referansı (Coolify, VPS, override) |
+
+Repo kökünde `.env` oluşturmanız **gerekmez** — Dokploy Environment sekmesi yeterli.  
+Secret, ALLOWED_HOSTS ve CSRF → `bootstrap-env.sh` otomatik doldurur.
 
 - URL (sslip.io): `http://glgede-yaam-coolops-....sslip.io/giris/` (**https değil**)
 - İlk giriş: **admin** / **admin**
@@ -44,9 +50,8 @@ Named volume **`kobiops_gy_data`** → `/data` (SQLite + medya). Deploy sırası
 
 ## Environment (isteğe bağlı)
 
-Manuel override: [`.env.example`](../../.env.example)
-
-Dokploy UI değişkenleri `.env` dosyasına yazılır; compose `env_file: .env` ile okur.
+Dokploy şablonu: **[deploy/dokploy/dokploy.env.example](dokploy/dokploy.env.example)**  
+Genel referans: [`.env.example`](../.env.example)
 
 `DJANGO_SECRET_KEY` içinde `$` varsa tek tırnak: `DJANGO_SECRET_KEY='abc$xyz'`
 

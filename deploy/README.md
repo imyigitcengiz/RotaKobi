@@ -7,7 +7,7 @@ Tek `docker-compose.yaml`; platforma göre **overlay** dosyası eklenir (`COMPOS
 | Platform | Compose overlay | Rehber |
 |----------|-----------------|--------|
 | **Coolify** | *(gerekmez)* veya `deploy/coolify/docker-compose.coolify.yaml` | [coolify/README.md](coolify/README.md) |
-| **Dokploy** | `deploy/dokploy/docker-compose.dokploy.yaml` | [dokploy/README.md](dokploy/README.md) |
+| **Dokploy** | `deploy/dokploy/docker-compose.dokploy.yaml` | [dokploy/README.md](dokploy/README.md) · env: [dokploy/dokploy.env.example](dokploy/dokploy.env.example) |
 | **1Panel** | `deploy/1panel/docker-compose.1panel.yaml` | [1panel/README.md](1panel/README.md) |
 | **Portainer** | `deploy/portainer/docker-compose.portainer.yaml` | [portainer/README.md](portainer/README.md) |
 | **Easypanel** | *(gerekmez)* | [easypanel/README.md](easypanel/README.md) |

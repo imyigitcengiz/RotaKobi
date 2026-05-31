@@ -299,16 +299,12 @@ MEDIA_FFMPEG_PATH = os.environ.get('MEDIA_FFMPEG_PATH', 'ffmpeg')
 MEDIA_FFMPEG_TIMEOUT = int(os.environ.get('MEDIA_FFMPEG_TIMEOUT', '300'))
 
 # Panel içi uygulama güncellemesi (GitHub kontrol + git pull veya deploy webhook)
-def _env_compat(primary: str, legacy: str, default: str = '') -> str:
-    return (os.environ.get(primary) or os.environ.get(legacy) or default).strip()
-
-
-COOLOPS_UPDATE_REPO = _env_compat('COOLOPS_UPDATE_REPO', 'KOBIOPS_UPDATE_REPO', 'imyigitcengiz/cool-ops')
-COOLOPS_UPDATE_BRANCH = _env_compat('COOLOPS_UPDATE_BRANCH', 'KOBIOPS_UPDATE_BRANCH', 'main')
-COOLOPS_UPDATE_CHECK_INTERVAL = int(_env_compat('COOLOPS_UPDATE_CHECK_INTERVAL', 'KOBIOPS_UPDATE_CHECK_INTERVAL', '1800') or '1800')
-COOLOPS_DEPLOY_WEBHOOK_URL = _env_compat('COOLOPS_DEPLOY_WEBHOOK_URL', 'KOBIOPS_DEPLOY_WEBHOOK_URL')
-COOLOPS_GITHUB_TOKEN = _env_compat('COOLOPS_GITHUB_TOKEN', 'KOBIOPS_GITHUB_TOKEN')
-COOLOPS_BUILD_COMMIT = _env_compat('COOLOPS_BUILD_COMMIT', 'KOBIOPS_BUILD_COMMIT')
+KOBIOPS_UPDATE_REPO = os.environ.get('KOBIOPS_UPDATE_REPO', 'imyigitcengiz/kobi-ops').strip()
+KOBIOPS_UPDATE_BRANCH = os.environ.get('KOBIOPS_UPDATE_BRANCH', 'main').strip()
+KOBIOPS_UPDATE_CHECK_INTERVAL = int(os.environ.get('KOBIOPS_UPDATE_CHECK_INTERVAL', '1800'))
+KOBIOPS_DEPLOY_WEBHOOK_URL = os.environ.get('KOBIOPS_DEPLOY_WEBHOOK_URL', '').strip()
+KOBIOPS_GITHUB_TOKEN = os.environ.get('KOBIOPS_GITHUB_TOKEN', '').strip()
+KOBIOPS_BUILD_COMMIT = os.environ.get('KOBIOPS_BUILD_COMMIT', '').strip()
 
 LOGGING = {
     'version': 1,

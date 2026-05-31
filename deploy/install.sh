@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CoolOPS — tek komut kurulum: .env üretir, docker compose başlatır
+# KobiOps — tek komut kurulum: .env üretir, docker compose başlatır
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -20,8 +20,8 @@ Ortam: DOMAIN=panel.firma.com ./deploy/install.sh
        PANEL=dokploy ./deploy/install.sh
 
 Örnek (sadece IP — domain yazmadan):
-  git clone https://github.com/imyigitcengiz/cool-ops.git /opt/cool-ops
-  cd /opt/cool-ops && ./deploy/install.sh
+  git clone https://github.com/imyigitcengiz/kobi-ops.git /opt/kobi-ops
+  cd /opt/kobi-ops && ./deploy/install.sh
 EOF
 }
 
@@ -134,7 +134,7 @@ DJANGO_SECURE_SSL=${SECURE_SSL}
 DJANGO_DEBUG=0
 DJANGO_ENSURE_SUPERADMIN=1
 PORT=80
-COOLOPS_HTTP_PORT=8080
+KOBIOPS_HTTP_PORT=8080
 
 WHATSAPP_BRIDGE_URL=http://whatsapp_bridge:3939
 DJANGO_WHATSAPP_BRIDGE_CAN_SPAWN=0
@@ -146,7 +146,7 @@ EOF
 
 chmod 600 .env 2>/dev/null || true
 
-echo "=== CoolOPS kurulum ==="
+echo "=== KobiOps kurulum ==="
 echo "  .env yazıldı (DJANGO_SECRET_KEY otomatik)"
 echo "  ALLOWED_HOSTS: ${HOSTS}"
 echo "  CSRF: ${CSRF}"
@@ -169,8 +169,8 @@ if [[ -n "$DOMAIN" ]] && ! is_ipv4 "$DOMAIN"; then
 else
   echo "  Panel: http://${IP}:8080/giris/  (reverse proxy yoksa compose'a ports: 8080:8080 ekleyin)"
 fi
-if [[ "${COOLOPS_PLESK:-0}" == "1" ]]; then
-  echo "  Plesk: nginx proxy → 127.0.0.1:${COOLOPS_HTTP_PORT:-8080} (deploy/plesk/nginx-proxy.conf)"
+if [[ "${KOBIOPS_PLESK:-0}" == "1" ]]; then
+  echo "  Plesk: nginx proxy → 127.0.0.1:${KOBIOPS_HTTP_PORT:-8080} (deploy/plesk/nginx-proxy.conf)"
 fi
 echo "  İlk giriş: admin / admin"
 echo "  Sonra .env içinde DJANGO_ENSURE_SUPERADMIN=0 yapıp: docker compose up -d"

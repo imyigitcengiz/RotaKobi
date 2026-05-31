@@ -12,7 +12,7 @@ mkdir -p "$LOG_DIR"
 
 exec >> >(tee -a "$LOG_FILE") 2>&1
 
-echo "=== CoolOPS Plesk deploy $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+echo "=== KobiOps Plesk deploy $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 echo "ROOT=$ROOT"
 
 # --- Ortam ---
@@ -35,31 +35,31 @@ _detect_domain_from_path() {
   return 1
 }
 
-if [[ -z "${COOLOPS_DOMAIN:-}" ]]; then
-  COOLOPS_DOMAIN="$(_detect_domain_from_path 2>/dev/null || true)"
+if [[ -z "${KOBIOPS_DOMAIN:-}" ]]; then
+  KOBIOPS_DOMAIN="$(_detect_domain_from_path 2>/dev/null || true)"
 fi
 
-if [[ -z "${COOLOPS_DOMAIN:-}" ]]; then
-  echo "HATA: COOLOPS_DOMAIN tanımlı değil."
+if [[ -z "${KOBIOPS_DOMAIN:-}" ]]; then
+  echo "HATA: KOBIOPS_DOMAIN tanımlı değil."
   echo "  cp deploy/plesk/plesk.env.example deploy/plesk/plesk.env"
-  echo "  COOLOPS_DOMAIN=ops.ornek.com yazın"
+  echo "  KOBIOPS_DOMAIN=ops.ornek.com yazın"
   exit 1
 fi
 
-COOLOPS_HTTP_PORT="${COOLOPS_HTTP_PORT:-8080}"
-export COOLOPS_DOMAIN COOLOPS_HTTP_PORT
+KOBIOPS_HTTP_PORT="${KOBIOPS_HTTP_PORT:-8080}"
+export KOBIOPS_DOMAIN KOBIOPS_HTTP_PORT
 
-if [[ -z "${COOLOPS_PUBLIC_URL:-}" ]]; then
-  if [[ "$COOLOPS_DOMAIN" == *".sslip.io"* ]]; then
-    COOLOPS_PUBLIC_URL="http://${COOLOPS_DOMAIN}"
+if [[ -z "${KOBIOPS_PUBLIC_URL:-}" ]]; then
+  if [[ "$KOBIOPS_DOMAIN" == *".sslip.io"* ]]; then
+    KOBIOPS_PUBLIC_URL="http://${KOBIOPS_DOMAIN}"
   else
-    COOLOPS_PUBLIC_URL="https://${COOLOPS_DOMAIN}"
+    KOBIOPS_PUBLIC_URL="https://${KOBIOPS_DOMAIN}"
   fi
 fi
-export COOLOPS_PUBLIC_URL
+export KOBIOPS_PUBLIC_URL
 
 export COMPOSE_FILE="$ROOT/docker-compose.yaml:$SCRIPT_DIR/docker-compose.plesk.yaml"
-export COOLOPS_PLESK=1
+export KOBIOPS_PLESK=1
 
 # --- Ön kontroller ---
 if ! command -v docker >/dev/null 2>&1; then
@@ -80,7 +80,7 @@ fi
 # --- .env (ilk kurulum) ---
 if [[ ! -f "$ROOT/.env" ]]; then
   echo "İlk kurulum: .env oluşturuluyor..."
-  DOMAIN="$COOLOPS_DOMAIN" DJANGO_ENSURE_SUPERADMIN="${DJANGO_ENSURE_SUPERADMIN:-1}" \
+  DOMAIN="$KOBIOPS_DOMAIN" DJANGO_ENSURE_SUPERADMIN="${DJANGO_ENSURE_SUPERADMIN:-1}" \
     "$ROOT/deploy/install.sh" --force
 else
   echo "Güncelleme: docker compose build + up..."
@@ -91,12 +91,12 @@ fi
 echo "Konteyner durumu:"
 docker compose ps
 
-HEALTH_URL="http://127.0.0.1:${COOLOPS_HTTP_PORT}/healthz/"
+HEALTH_URL="http://127.0.0.1:${KOBIOPS_HTTP_PORT}/healthz/"
 echo "Healthcheck: $HEALTH_URL"
 for i in 1 2 3 4 5 6 7 8 9 10; do
   if curl -fsS --max-time 5 "$HEALTH_URL" >/dev/null 2>&1; then
     echo "OK — uygulama ayakta."
-    echo "Panel: ${COOLOPS_PUBLIC_URL}/giris/"
+    echo "Panel: ${KOBIOPS_PUBLIC_URL}/giris/"
     echo "=== Deploy bitti ==="
     exit 0
   fi

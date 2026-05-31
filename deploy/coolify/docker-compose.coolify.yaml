@@ -3,9 +3,9 @@
 #
 # Bu overlay isteğe bağlıdır; ana compose zaten expose + traefik.enable kullanır.
 # Coolify'da port çakışması yaşarsanız COMPOSE_FILE ile bu dosyayı ekleyin.
-name: cool-ops
+name: kobi-ops
 
 services:
   app:
     environment:
-      COOLOPS_COMPOSE_STACK: "1"
+      KOBIOPS_COMPOSE_STACK: "1"

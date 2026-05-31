@@ -19,7 +19,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-CACHE_FILENAME = '.coolops_update_cache.json'
+CACHE_FILENAME = '.kobiops_update_cache.json'
 
 
 @dataclass
@@ -71,7 +71,7 @@ def _read_version_file() -> str:
 
 
 def _read_build_commit() -> str:
-    env = os.environ.get('COOLOPS_BUILD_COMMIT', '').strip()
+    env = os.environ.get('KOBIOPS_BUILD_COMMIT', '').strip()
     if env and env != 'unknown':
         return env
     path = _repo_root() / '.build_commit'
@@ -110,8 +110,8 @@ def local_git_commit() -> tuple[str, str]:
 def local_branch() -> str:
     proc = _run_git(['rev-parse', '--abbrev-ref', 'HEAD'])
     if proc and proc.returncode == 0:
-        return (proc.stdout or '').strip() or settings.COOLOPS_UPDATE_BRANCH
-    return settings.COOLOPS_UPDATE_BRANCH
+        return (proc.stdout or '').strip() or settings.KOBIOPS_UPDATE_BRANCH
+    return settings.KOBIOPS_UPDATE_BRANCH
 
 
 def _github_request(url: str) -> dict | None:
@@ -119,7 +119,7 @@ def _github_request(url: str) -> dict | None:
         'Accept': 'application/vnd.github+json',
         'User-Agent': 'CoolOPS-Updater',
     }
-    token = settings.COOLOPS_GITHUB_TOKEN
+    token = settings.KOBIOPS_GITHUB_TOKEN
     if token:
         headers['Authorization'] = f'Bearer {token}'
     req = urllib.request.Request(url, headers=headers)
@@ -132,8 +132,8 @@ def _github_request(url: str) -> dict | None:
 
 
 def fetch_remote_commit() -> tuple[str, str, str, str]:
-    repo = settings.COOLOPS_UPDATE_REPO
-    branch = settings.COOLOPS_UPDATE_BRANCH
+    repo = settings.KOBIOPS_UPDATE_REPO
+    branch = settings.KOBIOPS_UPDATE_BRANCH
     url = f'https://api.github.com/repos/{repo}/commits/{branch}'
     data = _github_request(url)
     if not data:
@@ -147,7 +147,7 @@ def fetch_remote_commit() -> tuple[str, str, str, str]:
 
 
 def resolve_apply_mode() -> str:
-    if settings.COOLOPS_DEPLOY_WEBHOOK_URL:
+    if settings.KOBIOPS_DEPLOY_WEBHOOK_URL:
         return 'webhook'
     if (_repo_root() / '.git').exists() and _run_git(['--version']) is not None:
         return 'git'
@@ -156,7 +156,7 @@ def resolve_apply_mode() -> str:
 
 def check_for_updates(*, force: bool = False) -> UpdateStatus:
     cache_file = _cache_path()
-    interval = max(60, int(settings.COOLOPS_UPDATE_CHECK_INTERVAL))
+    interval = max(60, int(settings.KOBIOPS_UPDATE_CHECK_INTERVAL))
 
     if not force and cache_file and cache_file.is_file():
         try:
@@ -174,8 +174,8 @@ def check_for_updates(*, force: bool = False) -> UpdateStatus:
     status = UpdateStatus(
         checked_at=datetime.now(timezone.utc).isoformat(),
         local_version=_read_version_file(),
-        branch=settings.COOLOPS_UPDATE_BRANCH,
-        repo=settings.COOLOPS_UPDATE_REPO,
+        branch=settings.KOBIOPS_UPDATE_BRANCH,
+        repo=settings.KOBIOPS_UPDATE_REPO,
         apply_mode=resolve_apply_mode(),
     )
 
@@ -213,7 +213,7 @@ def check_for_updates(*, force: bool = False) -> UpdateStatus:
 
     status.can_apply = status.update_available and status.apply_mode != 'none'
     if status.apply_mode == 'none' and status.update_available:
-        status.message += ' Güncelleme için git deposu veya COOLOPS_DEPLOY_WEBHOOK_URL tanımlayın.'
+        status.message += ' Güncelleme için git deposu veya KOBIOPS_DEPLOY_WEBHOOK_URL tanımlayın.'
 
     _write_cache(status)
     return status
@@ -248,7 +248,7 @@ def _run_manage(cmd: list[str], *, timeout: int = 300) -> tuple[bool, str]:
 
 def apply_git_update() -> tuple[bool, str, list[str]]:
     steps: list[str] = []
-    branch = settings.COOLOPS_UPDATE_BRANCH
+    branch = settings.KOBIOPS_UPDATE_BRANCH
 
     ok, out = _run_manage(['guard_persistent_data', '--phase', 'backup'])
     steps.append('Otomatik veritabanı yedeği' + (' ✓' if ok else ' ✗'))
@@ -283,7 +283,7 @@ def apply_git_update() -> tuple[bool, str, list[str]]:
 
 
 def apply_webhook_update() -> tuple[bool, str, list[str]]:
-    url = settings.COOLOPS_DEPLOY_WEBHOOK_URL
+    url = settings.KOBIOPS_DEPLOY_WEBHOOK_URL
     if not url:
         return False, 'Webhook URL tanımlı değil.', []
     try:

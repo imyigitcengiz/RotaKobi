@@ -1,4 +1,4 @@
-# CoolOPS — Plesk Git otomatik deploy
+# KobiOps — Plesk Git otomatik deploy
 
 Plesk **Git** ile `pull` + `deploy` sonrası Docker stack otomatik güncellenir.
 
@@ -23,7 +23,7 @@ Plesk **Git** ile `pull` + `deploy` sonrası Docker stack otomatik güncellenir.
 
 | Alan | Değer |
 |------|--------|
-| URL | `https://github.com/imyigitcengiz/cool-ops.git` |
+| URL | `https://github.com/imyigitcengiz/kobi-ops.git` |
 | Branch | `main` |
 | Deployment mode | **Automatic** (veya Manual + Deploy now) |
 | Deploy to | Subdomain document root (ör. `/ops.yigitcengiz.co`) |
@@ -47,7 +47,7 @@ cd /var/www/vhosts/yigitcengiz.co/ops.yigitcengiz.co   # Plesk'teki gerçek yol
 
 # Domain ayarı (sunucuya özel — git'e gitmez)
 cp deploy/plesk/plesk.env.example deploy/plesk/plesk.env
-nano deploy/plesk/plesk.env   # COOLOPS_DOMAIN=ops.yigitcengiz.co
+nano deploy/plesk/plesk.env   # KOBIOPS_DOMAIN=ops.yigitcengiz.co
 
 chmod +x deploy/plesk/deploy.sh
 
@@ -80,7 +80,7 @@ docker compose -f docker-compose.yaml -f deploy/plesk/docker-compose.plesk.yaml 
 | Belirti | Çözüm |
 |---------|--------|
 | 502 Bad Gateway | `docker compose ps` — app ayakta mı? nginx proxy port 8080 mi? |
-| DisallowedHost | `plesk.env` → doğru `COOLOPS_DOMAIN`, redeploy |
+| DisallowedHost | `plesk.env` → doğru `KOBIOPS_DOMAIN`, redeploy |
 | CSRF hatası | SSL açık + domain doğru; redeploy |
 | Docker permission denied | `usermod -aG docker PLESK_USER` veya script root ile |
 | Deploy script çalışmıyor | Additional actions'ta `/bin/bash` ile tam path; `chmod +x deploy/plesk/deploy.sh` |

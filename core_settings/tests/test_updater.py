@@ -8,7 +8,7 @@ from core_settings.updater import UpdateStatus, check_for_updates, resolve_apply
 
 
 class UpdaterTests(SimpleTestCase):
-    @override_settings(COOLOPS_DEPLOY_WEBHOOK_URL='https://example.com/hook')
+    @override_settings(KOBIOPS_DEPLOY_WEBHOOK_URL='https://example.com/hook')
     def test_resolve_apply_mode_webhook_priority(self):
         self.assertEqual(resolve_apply_mode(), 'webhook')
 

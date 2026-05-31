@@ -1,12 +1,12 @@
 # Plesk: nginx/apache 80 kullanır — uygulama yalnızca localhost'ta dinler.
 # Kullanım: COMPOSE_FILE=docker-compose.yaml:deploy/plesk/docker-compose.plesk.yaml
-name: cool-ops
+name: kobi-ops
 
 services:
   app:
     ports:
-      - "127.0.0.1:${COOLOPS_HTTP_PORT:-8080}:80"
+      - "127.0.0.1:${KOBIOPS_HTTP_PORT:-8080}:80"
     environment:
-      COOLOPS_COMPOSE_STACK: "1"
-      SERVICE_FQDN_APP: ${COOLOPS_DOMAIN:-}
-      SERVICE_URL_APP: ${COOLOPS_PUBLIC_URL:-}
+      KOBIOPS_COMPOSE_STACK: "1"
+      SERVICE_FQDN_APP: ${KOBIOPS_DOMAIN:-}
+      SERVICE_URL_APP: ${KOBIOPS_PUBLIC_URL:-}
