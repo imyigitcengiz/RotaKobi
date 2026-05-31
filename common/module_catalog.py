@@ -108,7 +108,7 @@ MODULES: tuple[dict, ...] = (
         'icon': 'map-pin',
         'verticals': ('kobi', 'agency', 'retail', 'nonprofit'),
         'status': MODULE_STATUS_ACTIVE,
-        'panel_section': None,
+        'panel_section': 'contact',
         'route_prefixes': ('/contact/firma-bul/', '/contact/firma-kazi/'),
         'particle_slugs': (),
         'sort': 50,
@@ -125,7 +125,7 @@ MODULES: tuple[dict, ...] = (
         'icon': 'message-circle',
         'verticals': ('kobi', 'agency', 'retail', 'healthcare', 'universal'),
         'status': MODULE_STATUS_ACTIVE,
-        'panel_section': None,
+        'panel_section': 'outreach',
         'route_prefixes': ('/tools/whatsapp-baglan/', '/tools/whatsapp/'),
         'particle_slugs': (),
         'sort': 51,
@@ -142,7 +142,7 @@ MODULES: tuple[dict, ...] = (
         'icon': 'cloud',
         'verticals': ('kobi', 'agency', 'nonprofit', 'universal'),
         'status': MODULE_STATUS_ACTIVE,
-        'panel_section': None,
+        'panel_section': 'outreach',
         'route_prefixes': ('/tools/whatsapp-api/',),
         'particle_slugs': (),
         'sort': 52,
@@ -159,7 +159,7 @@ MODULES: tuple[dict, ...] = (
         'icon': 'images',
         'verticals': ('kobi', 'agency', 'retail', 'nonprofit', 'universal', 'healthcare'),
         'status': MODULE_STATUS_ACTIVE,
-        'panel_section': None,
+        'panel_section': 'contact',
         'route_prefixes': ('/tools/medya/',),
         'particle_slugs': (),
         'sort': 53,
@@ -254,8 +254,8 @@ MODULES: tuple[dict, ...] = (
     {
         'slug': 'projects',
         'kind': MODULE_KIND_APP,
-        'name': 'Proje & Sprint',
-        'summary': 'Operasyon projeleri — durum panosu ve müşteri bağlantısı.',
+        'name': 'Montaj programı',
+        'summary': 'Günlük kurulum planı — müşteri, ekip, hava durumu ve yazdırma.',
         'access_perm': 'access.accounting',
         'hub_url_name': 'accounting_projects',
         'icon': 'kanban',
@@ -285,6 +285,26 @@ MODULES: tuple[dict, ...] = (
         'default_enabled': True,
         'can_disable': True,
     },
+    {
+        'slug': 'integration_weather',
+        'kind': MODULE_KIND_INTEGRATION,
+        'name': 'Hava Durumu',
+        'summary': 'Saha planı için anlık hava — ücretsiz Open-Meteo, API anahtarı gerekmez.',
+        'access_perm': 'access.tools',
+        'hub_url_name': 'tools_hub',
+        'icon': 'cloud-sun',
+        'verticals': (
+            'montaj_saha', 'bayi_servis', 'insaat_taahhut', 'hizmet_danismanlik',
+            'evde_bakim', 'stk_dernek', 'kobi', 'universal',
+        ),
+        'status': MODULE_STATUS_ACTIVE,
+        'panel_section': 'services',
+        'route_prefixes': ('/tools/api/hava-durumu/',),
+        'particle_slugs': (),
+        'sort': 54,
+        'default_enabled': True,
+        'can_disable': True,
+    },
 )
 
 DEFAULT_PRIMARY_VERTICAL = 'kobi'
@@ -300,7 +320,11 @@ MODULE_GATE_EXEMPT_PREFIXES = (
     '/media/',
     '/chat/',
     '/yonetim/',
-    '/tools/',  # hub — entegrasyon kartlarından yönlendirme
+)
+
+# Yalnızca tam eşleşme — alt yollar (WhatsApp, medya vb.) modül kapısından geçer
+MODULE_GATE_EXEMPT_EXACT = (
+    '/tools/',
 )
 
 

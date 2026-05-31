@@ -77,7 +77,8 @@
         {% endif %}
         <div class="ml-auto flex flex-wrap gap-2">
             <a href="{% url 'accounting_personnel' %}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Personel</a>
-            <a href="{% url 'accounting_payroll_export' %}?period_from={{ period_str }}&period_to={{ period_str }}{% if filter_personnel %}&personnel={{ filter_personnel }}{% endif %}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">CSV</a>
+            <a href="{% url 'accounting_payroll_export' %}?period_from={{ period_str }}&period_to={{ period_str }}{% if filter_personnel %}&personnel={{ filter_personnel }}{% endif %}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">CSV indir</a>
+            <a href="{% url 'csv_import_wizard' %}?type=payroll&next={{ request.get_full_path|urlencode }}" class="px-3 py-2 rounded-xl border border-violet-200 bg-violet-50 text-violet-800 text-sm font-semibold hover:bg-violet-100">CSV yükle</a>
             <a href="{% url 'accounting_reports' %}" class="px-3 py-2 rounded-xl border border-violet-200 text-sm font-semibold text-violet-800 hover:bg-violet-50">{{ gy.mh_raporlar }}</a>
         </div>
     </div>

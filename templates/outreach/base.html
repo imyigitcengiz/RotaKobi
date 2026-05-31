@@ -41,6 +41,7 @@
             <a href="{% url 'outreach_personnel_messages' %}" class="flex items-center gap-3 px-3 py-2 rounded-xl {% if request.resolver_match.url_name == 'outreach_personnel_messages' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
                 <i data-lucide="id-card" class="w-4 h-4"></i> Personel mesajları
             </a>
+            {% include 'common/erp_module_integrations_nav.html' with section='outreach' %}
             <div class="pt-4 mt-2 border-t border-slate-800">
                 <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Diğer modüller</p>
                 {% include 'common/erp_cross_nav.html' with skip_platform_module='outreach' %}

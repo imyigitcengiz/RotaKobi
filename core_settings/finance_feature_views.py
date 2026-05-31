@@ -11,9 +11,10 @@ from django.shortcuts import redirect, get_object_or_404
 from django.utils import timezone
 from django.views.generic import TemplateView
 
-from common.permissions import accounting_fallback_redirect, can_manage_finance
+from common.permissions import accounting_fallback_redirect, can_manage_finance, can_manage_installation_schedule
 from core_settings.models import (
     CashAccount,
+    InstallationScheduleEntry,
     OperationalProject,
     SupplierPayable,
     TimeEntry,
@@ -240,38 +241,142 @@ class AccountingProjectsView(TemplateView):
     template_name = 'muhasebe/projects.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if not can_manage_finance(request.user):
-            messages.error(request, 'Proje ekranı için yetkiniz yok.')
+        if not can_manage_installation_schedule(request.user):
+            messages.error(request, 'Montaj programı için yetkiniz yok.')
             return accounting_fallback_redirect(request.user)
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        from core_settings.operational_projects import create_project
+        from core_settings.installation_schedule import (
+            create_schedule_entry,
+            save_schedule_settings,
+            schedule_redirect_url,
+            update_schedule_entry,
+        )
+        from core_settings.models import SiteSettings
 
         action = request.POST.get('action', '')
-        if action == 'create':
-            create_project(
-                name=request.POST.get('name', ''),
-                customer_id=request.POST.get('customer_id') or None,
-                sales_lead_id=request.POST.get('sales_lead_id') or None,
-                status=request.POST.get('status', OperationalProject.STATUS_ACTIVE),
-                notes=request.POST.get('notes', ''),
+        settings = SiteSettings.objects.first()
+
+        if action == 'create_entry':
+            raw_date = (request.POST.get('scheduled_date') or '').strip()
+            customer_id = request.POST.get('customer_id')
+            if not raw_date or not customer_id:
+                messages.error(request, 'Gün ve müşteri zorunludur.')
+            else:
+                try:
+                    create_schedule_entry(
+                        scheduled_date=date.fromisoformat(raw_date),
+                        customer_id=int(customer_id),
+                        team_id=request.POST.get('team_id') or None,
+                        sales_lead_id=request.POST.get('sales_lead_id') or None,
+                        work_type=request.POST.get('work_type', ''),
+                        notes=request.POST.get('notes', ''),
+                    )
+                    messages.success(request, 'Montaj planı eklendi.')
+                except (ValueError, TypeError):
+                    messages.error(request, 'Geçersiz tarih veya müşteri.')
+                except Exception:
+                    messages.error(request, 'Kayıt eklenemedi — müşteri ve tarihi kontrol edin.')
+
+        elif action == 'update_entry':
+            entry = get_object_or_404(InstallationScheduleEntry, pk=request.POST.get('entry_id'))
+            raw_date = (request.POST.get('scheduled_date') or '').strip()
+            try:
+                fields = {
+                    'customer_id': int(request.POST.get('customer_id') or entry.customer_id),
+                    'team_id': request.POST.get('team_id') or None,
+                    'sales_lead_id': request.POST.get('sales_lead_id') or None,
+                    'work_type': request.POST.get('work_type', entry.work_type),
+                    'notes': request.POST.get('notes', ''),
+                }
+                if raw_date:
+                    fields['scheduled_date'] = date.fromisoformat(raw_date)
+                update_schedule_entry(entry, **fields)
+                messages.success(request, 'Kayıt güncellendi.')
+            except (ValueError, TypeError):
+                messages.error(request, 'Güncelleme başarısız.')
+
+        elif action == 'delete_entry':
+            entry = get_object_or_404(InstallationScheduleEntry, pk=request.POST.get('entry_id'))
+            entry.delete()
+            messages.info(request, 'Montaj planı silindi.')
+
+        elif action == 'save_schedule_settings' and settings:
+            save_schedule_settings(
+                settings,
+                saturday_working=request.POST.get('schedule_saturday_working') == 'on',
+                sunday_working=request.POST.get('schedule_sunday_working') == 'on',
+                saturday_default_work=request.POST.get(
+                    'schedule_saturday_default_work',
+                    InstallationScheduleEntry.TYPE_INSTALLATION,
+                ),
             )
-            messages.success(request, 'Proje eklendi.')
-        elif action == 'status':
-            project = get_object_or_404(OperationalProject, pk=request.POST.get('project_id'))
-            project.status = request.POST.get('status', project.status)
-            project.save(update_fields=['status'])
-            messages.success(request, 'Proje durumu güncellendi.')
-        return redirect('accounting_projects')
+            messages.success(request, 'Hafta sonu ve cumartesi kuralları kaydedildi.')
+
+        return redirect(schedule_redirect_url(request))
 
     def get_context_data(self, **kwargs):
-        from core_settings.operational_projects import build_projects_context
+        from core_settings.installation_schedule import (
+            build_schedule_calendar,
+            schedule_form_context,
+        )
+        from core_settings.models import ServiceTeam
         from customers.models import Customer
         from sales_leads.models import SalesLead
 
         context = super().get_context_data(**kwargs)
-        context.update(build_projects_context())
-        context['project_customers'] = Customer.objects.order_by('name')[:100]
-        context['project_sales_leads'] = SalesLead.objects.select_related('customer').order_by('-sale_date')[:50]
+        today = timezone.localdate()
+        year = int(self.request.GET.get('year', today.year))
+        month = int(self.request.GET.get('month', today.month))
+        view = self.request.GET.get('view', 'month')
+        week_raw = self.request.GET.get('week')
+        week_index = int(week_raw) if week_raw is not None and week_raw.isdigit() else None
+
+        context.update(build_schedule_calendar(
+            year=year,
+            month=month,
+            view=view if view in ('month', 'week') else 'month',
+            week_index=week_index,
+        ))
+        context.update(schedule_form_context(self.request))
+        context['schedule_customers'] = Customer.objects.order_by('name')[:200]
+        context['schedule_teams'] = ServiceTeam.objects.filter(is_active=True).order_by('name')
+        context['schedule_sales_leads'] = (
+            SalesLead.objects.select_related('customer').order_by('-sale_date')[:80]
+        )
+        context['selected_day'] = self.request.GET.get('day', '')
+        return context
+
+
+class AccountingProjectsPrintView(TemplateView):
+    template_name = 'muhasebe/projects_print.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not can_manage_installation_schedule(request.user):
+            messages.error(request, 'Yazdırma için yetkiniz yok.')
+            return accounting_fallback_redirect(request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        from core_settings.installation_schedule import build_schedule_calendar
+
+        context = super().get_context_data(**kwargs)
+        today = timezone.localdate()
+        year = int(self.request.GET.get('year', today.year))
+        month = int(self.request.GET.get('month', today.month))
+        view = self.request.GET.get('view', 'month')
+        week_raw = self.request.GET.get('week')
+        week_index = int(week_raw) if week_raw is not None and week_raw.isdigit() else None
+
+        context.update(build_schedule_calendar(
+            year=year,
+            month=month,
+            view=view if view in ('month', 'week') else 'month',
+            week_index=week_index,
+        ))
+        context['print_scope_label'] = (
+            f'Hafta {week_index + 1}' if view == 'week' and week_index is not None
+            else context.get('calendar_month_label', '')
+        )
         return context

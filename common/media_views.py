@@ -7,8 +7,10 @@ from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponseForbidden
 from django.views.decorators.http import require_GET
+
+from common.media_access import user_can_access_media_path
 
 
 @require_GET
@@ -19,6 +21,9 @@ def serve_media_file(request, path: str):
         raise Http404('Medya dizini yok.')
 
     relative = path.lstrip('/')
+    if not user_can_access_media_path(request.user, relative):
+        return HttpResponseForbidden('Bu dosyaya erişim yetkiniz yok.')
+
     target = (media_root / relative).resolve()
 
     try:

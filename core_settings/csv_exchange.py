@@ -5,7 +5,7 @@ from __future__ import annotations
 from django.db import transaction
 from django.utils import timezone
 
-from common.csv_io import parse_date_tr, parse_decimal, read_uploaded_csv
+from common.csv_io import parse_date_tr, parse_decimal
 from core_settings.models import CashAccount, FinanceRecord, PersonnelPayment, ServicePersonnel
 from core_settings.payroll import parse_period
 
@@ -79,32 +79,41 @@ FINANCE_CSV_HEADER = [
 ]
 
 
-def import_finance_csv(uploaded_file, *, user=None) -> dict:
-    rows = read_uploaded_csv(uploaded_file)
+def _row_val(row: dict, key: str, *legacy_keys: str) -> str:
+    val = (row.get(key) or '').strip()
+    if val:
+        return val
+    return _cell(row, *legacy_keys) if legacy_keys else ''
+
+
+def import_finance_rows(rows: list[dict], *, user=None) -> dict:
     created = 0
+    skipped = 0
     with transaction.atomic():
         for row in rows:
-            raw_type = _cell(row, 'TÜR', 'TUR', 'TYPE').lower()
+            raw_type = _row_val(row, 'type', 'TÜR', 'TUR', 'TYPE').lower()
             if raw_type in ('gelir', 'income', 'g'):
                 record_type = FinanceRecord.TYPE_INCOME
             elif raw_type in ('gider', 'expense', 'e'):
                 record_type = FinanceRecord.TYPE_EXPENSE
             else:
+                skipped += 1
                 continue
-            title = _cell(row, 'AÇIKLAMA', 'ACIKLAMA', 'BAŞLIK', 'BASLIK')
-            amount = parse_decimal(_cell(row, 'TUTAR', 'MİKTAR', 'MIKTAR'))
-            record_date = parse_date_tr(_cell(row, 'TARİH', 'TARIH')) or timezone.localdate()
+            title = _row_val(row, 'title', 'AÇIKLAMA', 'ACIKLAMA', 'BAŞLIK', 'BASLIK')
+            amount = parse_decimal(_row_val(row, 'amount', 'TUTAR', 'MİKTAR', 'MIKTAR'))
+            record_date = parse_date_tr(_row_val(row, 'date', 'TARİH', 'TARIH')) or timezone.localdate()
             if not title or not amount or amount <= 0:
+                skipped += 1
                 continue
             category = ''
             if record_type == FinanceRecord.TYPE_EXPENSE:
-                category = _resolve_expense_category(_cell(row, 'KATEGORİ', 'KATEGORI', 'CATEGORY'))
-            account = _resolve_cash_account(_cell(row, 'HESAP', 'KASA', 'ACCOUNT'))
+                category = _resolve_expense_category(_row_val(row, 'category', 'KATEGORİ', 'KATEGORI', 'CATEGORY'))
+            account = _resolve_cash_account(_row_val(row, 'account', 'HESAP', 'KASA', 'ACCOUNT'))
             sales_lead = _resolve_sales_lead(
-                _cell(row, 'SATIŞ_ID', 'SATIS_ID', 'SALES_ID'),
-                _cell(row, 'MÜŞTERİ', 'MUSTERI', 'CUSTOMER'),
+                _row_val(row, 'sales_id', 'SATIŞ_ID', 'SATIS_ID', 'SALES_ID'),
+                _row_val(row, 'customer', 'MÜŞTERİ', 'MUSTERI', 'CUSTOMER', 'SATIŞ_ETİKET', 'SATIS_ETIKET'),
             )
-            project_name = _cell(row, 'PROJE', 'PROJECT')
+            project_name = _row_val(row, 'project', 'PROJE', 'PROJECT')
             operational_project = None
             if project_name:
                 from core_settings.models import OperationalProject
@@ -116,18 +125,22 @@ def import_finance_csv(uploaded_file, *, user=None) -> dict:
                 title=title,
                 amount=amount,
                 record_date=record_date,
-                notes=_cell(row, 'NOT', 'NOTLAR'),
+                notes=_row_val(row, 'notes', 'NOT', 'NOTLAR'),
                 cash_account=account,
                 sales_lead=sales_lead,
                 operational_project=operational_project,
                 recorded_by=user if user and user.is_authenticated else None,
             )
             created += 1
-    return {'created': created}
+    return {'created': created, 'skipped': skipped}
 
 
-def import_payroll_csv(uploaded_file, *, user=None) -> dict:
-    rows = read_uploaded_csv(uploaded_file)
+def import_finance_csv(uploaded_file, *, user=None, mapping=None) -> dict:
+    from common.csv_import_runner import import_from_upload
+    return import_from_upload('finance', uploaded_file, user=user, mapping=mapping)
+
+
+def import_payroll_rows(rows: list[dict], *, user=None) -> dict:
     created = 0
     skipped = 0
     personnel_by_name = {
@@ -136,24 +149,24 @@ def import_payroll_csv(uploaded_file, *, user=None) -> dict:
     }
     with transaction.atomic():
         for row in rows:
-            pname = _cell(row, 'PERSONEL', 'AD SOYAD', 'AD')
+            pname = _row_val(row, 'personnel', 'PERSONEL', 'AD SOYAD', 'AD')
             personnel = personnel_by_name.get(pname.lower())
             if not personnel:
                 skipped += 1
                 continue
-            period_raw = _cell(row, 'DÖNEM', 'DONEM', 'PERIOD')
+            period_raw = _row_val(row, 'period', 'DÖNEM', 'DONEM', 'PERIOD')
             try:
                 period = parse_period(period_raw) if period_raw else timezone.localdate().replace(day=1)
             except ValueError:
                 skipped += 1
                 continue
-            raw_type = _cell(row, 'TÜR', 'TUR', 'TYPE').lower()
-            amount = parse_decimal(_cell(row, 'TUTAR', 'MİKTAR'))
+            raw_type = _row_val(row, 'type', 'TÜR', 'TUR', 'TYPE').lower()
+            amount = parse_decimal(_row_val(row, 'amount', 'TUTAR', 'MİKTAR'))
             if not amount or amount <= 0:
                 skipped += 1
                 continue
-            payment_date = parse_date_tr(_cell(row, 'TARİH', 'TARIH', 'ÖDEME TARİHİ')) or timezone.localdate()
-            notes = _cell(row, 'NOT', 'NOTLAR')
+            payment_date = parse_date_tr(_row_val(row, 'date', 'TARİH', 'TARIH', 'ÖDEME TARİHİ')) or timezone.localdate()
+            notes = _row_val(row, 'notes', 'NOT', 'NOTLAR')
 
             if raw_type in ('avans', 'advance', 'a'):
                 ptype = PersonnelPayment.TYPE_ADVANCE
@@ -174,6 +187,11 @@ def import_payroll_csv(uploaded_file, *, user=None) -> dict:
             )
             created += 1
     return {'created': created, 'skipped': skipped}
+
+
+def import_payroll_csv(uploaded_file, *, user=None, mapping=None) -> dict:
+    from common.csv_import_runner import import_from_upload
+    return import_from_upload('payroll', uploaded_file, user=user, mapping=mapping)
 
 
 def export_payroll_payments_rows(period_from, period_to, personnel_qs=None):

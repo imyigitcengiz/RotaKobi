@@ -167,7 +167,9 @@ class SiteSettingsView(TemplateView):
             form = GeneralSiteSettingsForm(request.POST, request.FILES, instance=settings)
             try:
                 if form.is_valid():
-                    form.save()
+                    obj = form.save()
+                    from common.weather_service import refresh_site_coordinates
+                    refresh_site_coordinates(obj)
                     messages.success(request, "Site ayarları güncellendi.")
                 else:
                     # Show detailed form errors to help debugging
@@ -1012,7 +1014,9 @@ class AccountingDataExchangeView(TemplateView):
             or user.has_perm_codename('sales.export')
             or user.has_perm_codename('sales.reports')
         )
-        if not (can_payroll or can_finance or can_sales):
+        can_customers = user.has_perm_codename('contact.customers')
+        can_firms = user.has_perm_codename('contact.firms')
+        if not (can_payroll or can_finance or can_sales or can_customers or can_firms):
             messages.error(request, 'Veri alışverişi için yetkiniz yok.')
             return accounting_fallback_redirect(request.user)
         return super().dispatch(request, *args, **kwargs)
@@ -1025,6 +1029,8 @@ class AccountingDataExchangeView(TemplateView):
         context['can_sales_manage'] = user.has_perm_codename('sales.manage')
         context['can_sales_export'] = user.has_perm_codename('sales.export')
         context['can_sales'] = context['can_sales_manage'] or context['can_sales_export'] or user.has_perm_codename('sales.reports')
+        context['can_customers'] = user.has_perm_codename('contact.customers')
+        context['can_firms'] = user.has_perm_codename('contact.firms')
         today = timezone.localdate()
         from core_settings.payroll import period_start
         period = period_start(today)

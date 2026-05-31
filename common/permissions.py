@@ -67,6 +67,17 @@ def can_manage_finance(user):
     return user_has_perm(user, FINANCE_PERM)
 
 
+def can_manage_installation_schedule(user):
+    """Montaj programı — muhasebe, operasyon veya ekip yöneticisi."""
+    return user_has_any_perm(
+        user,
+        FINANCE_PERM,
+        ACCOUNTING_ACCESS_PERM,
+        SERVICES_MANAGE_PERM,
+        TEAM_PERM,
+    )
+
+
 def can_access_accounting(user):
     return user_has_perm(user, ACCOUNTING_ACCESS_PERM)
 

@@ -1,5 +1,6 @@
 from django.urls import path
 
+from common.csv_import_views import CsvImportWizardView, csv_import_execute_api, csv_import_preview_api
 from core_settings.finance_feature_views import (
     AccountingPayablesView,
     AccountingCashAccountsView,
@@ -7,6 +8,7 @@ from core_settings.finance_feature_views import (
     AccountingEExportView,
     AccountingTimesheetView,
     AccountingProjectsView,
+    AccountingProjectsPrintView,
 )
 from core_settings.views import (
     AccountingHubView, AccountingReportsHubView, AccountingPayrollView,
@@ -45,10 +47,14 @@ urlpatterns = [
     path('dis-aktarim/', AccountingEExportView.as_view(), name='accounting_e_export'),
     path('zaman/', AccountingTimesheetView.as_view(), name='accounting_timesheet'),
     path('projeler/', AccountingProjectsView.as_view(), name='accounting_projects'),
+    path('projeler/yazdir/', AccountingProjectsPrintView.as_view(), name='accounting_projects_print'),
     path('stok/', AccountingStockView.as_view(), name='accounting_stock'),
     path('alacaklar/', AccountingReceivablesView.as_view(), name='accounting_receivables'),
     path('raporlar/', AccountingReportsHubView.as_view(), name='accounting_reports'),
     path('veri-alisverisi/', AccountingDataExchangeView.as_view(), name='accounting_data_exchange'),
+    path('veri-alisverisi/csv/', CsvImportWizardView.as_view(), name='csv_import_wizard'),
+    path('veri-alisverisi/csv/onizle/', csv_import_preview_api, name='csv_import_preview'),
+    path('veri-alisverisi/csv/ice-aktar/', csv_import_execute_api, name='csv_import_execute'),
     path('maas-avans/', AccountingPayrollView.as_view(), name='accounting_payroll'),
     path('personel/', AccountingPersonnelView.as_view(), name='accounting_personnel'),
     path('maas-avans/raporlar/', AccountingPayrollReportsView.as_view(), name='accounting_payroll_reports'),

@@ -2,6 +2,7 @@ from django.urls import path
 from django.views.generic import RedirectView
 
 from analytics.views import ai_chat_view
+from tools.weather_views import weather_api
 from tools.media_views import ToolsMediaDeleteView, ToolsMediaLibraryView
 from tools.views import ToolsHubView, WhatsappBaglanView, WhatsappApiSettingsView
 from tools.whatsapp_connection_views import (
@@ -51,4 +52,5 @@ urlpatterns = [
     path('medya/', ToolsMediaLibraryView.as_view(), name='tools_media_library'),
     path('medya/sil/', ToolsMediaDeleteView.as_view(), name='tools_media_delete'),
     path('api/ai-chat/chat/', ai_chat_view, name='ai_chat'),
+    path('api/hava-durumu/', weather_api, name='tools_weather_api'),
 ]

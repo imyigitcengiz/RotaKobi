@@ -1,4 +1,4 @@
-{# Modül katalogu — sol menüde diğer modüller #}
+{# Modül katalogu — sol menüde diğer modüller (entegrasyonlar hariç) #}
 {% with inactive_class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800" %}
 {% with active_class="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-700 text-white" %}
 
@@ -10,7 +10,7 @@
 {% if group.items %}
 <p class="px-3 pt-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">{{ group.name }}</p>
 {% for app in group.items %}
-{% if not skip_platform_module or skip_platform_module not in app.platform_modules %}
+{% if not skip_platform_module or app.panel_section != skip_platform_module and skip_platform_module not in app.platform_modules %}
 <a href="{{ app.url }}" class="{% if app.active %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
     <i data-lucide="{{ app.icon }}" class="w-4 h-4"></i><span class="font-medium text-sm">{{ app.name }}</span>
 </a>
@@ -19,30 +19,11 @@
 {% endif %}
 {% endfor %}
 
-{% if profile_sidebar.capabilities %}
-<p class="px-3 pt-3 text-[10px] font-bold uppercase tracking-wider text-amber-500/90">{{ gy.entegrasyon_merkezi }}</p>
-{% for app in profile_sidebar.capabilities %}
-{% if not skip_platform_module or skip_platform_module not in app.platform_modules %}
-<a href="{{ app.url }}" class="{% if app.active %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
-    <i data-lucide="{{ app.icon }}" class="w-4 h-4"></i><span class="font-medium text-sm">{{ app.name }}</span>
+<a href="{% url 'capabilities_hub' %}" class="{% if request.resolver_match.url_name == 'capabilities_hub' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %} mt-2">
+    <i data-lucide="zap" class="w-4 h-4"></i><span class="font-medium text-sm">{{ gy.entegrasyon_merkezi }}</span>
 </a>
-{% endif %}
-{% endfor %}
-<a href="{% url 'capabilities_hub' %}" class="{% if request.resolver_match.url_name == 'capabilities_hub' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %} px-3 py-2 text-xs text-amber-400/80 hover:text-amber-300">
-    <i data-lucide="zap" class="w-4 h-4 inline"></i> Tüm entegrasyonlar
-</a>
-{% elif profile_sidebar.integrations %}
-<p class="px-3 pt-3 text-[10px] font-bold uppercase tracking-wider text-amber-500/90">{{ gy.entegrasyon_merkezi }}</p>
-{% for app in profile_sidebar.integrations %}
-{% if not skip_platform_module or skip_platform_module not in app.platform_modules %}
-<a href="{{ app.url }}" class="{% if app.active %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
-    <i data-lucide="{{ app.icon }}" class="w-4 h-4"></i><span class="font-medium text-sm">{{ app.name }}</span>
-</a>
-{% endif %}
-{% endfor %}
-{% endif %}
 
-<a href="{% url 'module_hub' %}" class="{% if request.resolver_match.url_name == 'module_hub' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %} mt-2">
+<a href="{% url 'module_hub' %}" class="{% if request.resolver_match.url_name == 'module_hub' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %} mt-1">
     <i data-lucide="puzzle" class="w-4 h-4"></i><span class="font-medium text-sm">{{ gy.modul_merkezi }}</span>
 </a>
 

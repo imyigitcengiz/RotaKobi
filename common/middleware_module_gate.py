@@ -7,8 +7,9 @@ from django.urls import reverse
 from common.module_catalog import MODULE_STATUS_ACTIVE, MODULE_STATUS_BETA, module_by_slug
 from common.module_particles import particle_by_slug
 from common.module_runtime import (
-    is_module_enabled,
+    is_module_installed,
     is_particle_enabled,
+    module_route_allowed,
     resolve_path_module_slug,
     resolve_path_particle_slug,
 )
@@ -31,7 +32,7 @@ class ModuleInstallMiddleware:
         particle_slug = resolve_path_particle_slug(path)
         if particle_slug:
             p = particle_by_slug(particle_slug)
-            if p and not is_particle_enabled(particle_slug):
+            if p and not self._particle_route_allowed(particle_slug):
                 messages.warning(
                     request,
                     f'"{p["name"]}" özelliği kapalı. Modül Merkezi\'nden açabilirsiniz.',
@@ -44,13 +45,23 @@ class ModuleInstallMiddleware:
         mod = module_by_slug(slug)
         if not mod or mod['status'] not in (MODULE_STATUS_ACTIVE, MODULE_STATUS_BETA):
             return None
-        if is_module_enabled(slug):
+        if module_route_allowed(slug):
             return None
         messages.warning(
             request,
-            f'{mod["name"]} modülü kurulu değil. Modül Merkezi\'nden açabilirsiniz.',
+            f'{mod["name"]} modülü kapalı. Modül Merkezi\'nden açabilirsiniz.',
         )
         try:
             return redirect(reverse('module_hub') + f'?highlight={slug}')
         except Exception:
             return redirect('module_hub')
+
+    @staticmethod
+    def _particle_route_allowed(particle_slug: str) -> bool:
+        p = particle_by_slug(particle_slug)
+        if not p or not is_particle_enabled(particle_slug):
+            return False
+        parent = p.get('parent_module')
+        if parent and not is_module_installed(parent):
+            return False
+        return True

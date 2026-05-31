@@ -15,7 +15,7 @@
                 <h1 class="text-xl font-bold text-slate-900 mt-1">{{ gy.modul_merkezi }}</h1>
                 <p class="text-sm text-slate-500">Kurulumda hangi modüllerin açık olacağını yönetin.</p>
             </div>
-            <span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold">{{ module_installed_count }} açık</span>
+            <span id="moduleInstalledCount" data-module-installed-count class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold">{{ module_installed_count }} açık</span>
         </div>
     </header>
 
@@ -23,6 +23,38 @@
         {% include 'common/toast_messages.html' %}
 
         {% if can_manage_modules %}
+        <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div>
+                <h2 class="text-sm font-bold text-slate-900">Kurumsal sektör profili</h2>
+                <p class="text-sm text-slate-500 mt-1">Modülleri sektör tipine göre toplu uygulayın. Mevcut açık modüller seçilen paketle değiştirilir.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for sec in sector_profiles %}
+                <article class="p-4 rounded-2xl border {% if sec.is_active %}border-emerald-300 bg-emerald-50/50{% else %}border-slate-200{% endif %}">
+                    <div class="flex items-start gap-3">
+                        <span class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                            <i data-lucide="{{ sec.icon }}" class="w-5 h-5 text-slate-600"></i>
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <p class="font-bold text-slate-900 text-sm">{{ sec.name }}</p>
+                            <p class="text-[10px] font-bold uppercase text-emerald-700 mt-0.5">{{ sec.fit_label }}</p>
+                            <p class="text-xs text-slate-500 mt-1">{{ sec.description }}</p>
+                            <p class="text-[10px] text-slate-400 mt-2">{{ sec.module_count }} modül · {{ sec.particle_count }} parçacık</p>
+                        </div>
+                    </div>
+                    <form method="post" class="mt-3" data-preserve-scroll>
+                        {% csrf_token %}
+                        <input type="hidden" name="apply_sector" value="1">
+                        <input type="hidden" name="sector_slug" value="{{ sec.slug }}">
+                        <button type="submit" class="w-full py-2 rounded-xl text-xs font-bold {% if sec.is_active %}bg-emerald-600 text-white{% else %}bg-slate-100 text-slate-700 hover:bg-slate-200{% endif %}">
+                            {% if sec.is_active %}Aktif profil{% else %}Bu paketi uygula{% endif %}
+                        </button>
+                    </form>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
         <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
             <form method="get" class="flex flex-wrap gap-3 items-end">
                 <div class="flex-1 min-w-[200px] space-y-1">
@@ -41,34 +73,39 @@
             </h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for mod in group.items %}
-                <article class="bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col {% if mod.installed %}border-emerald-200{% else %}border-slate-200{% endif %}">
+                <article class="module-card bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col {% if mod.installed %}border-emerald-200{% else %}border-slate-200{% endif %}"
+                    data-module-card data-module-slug="{{ mod.slug }}" data-module-kind="app"
+                    data-module-installed="{% if mod.installed %}1{% else %}0{% endif %}">
                     <div class="p-5 flex-1">
                         <div class="flex justify-between gap-2 mb-3">
                             <span class="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center">
                                 <i data-lucide="{{ mod.icon }}" class="w-5 h-5 text-slate-600"></i>
                             </span>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-lg {% if mod.installed %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %}">
+                            <span data-module-badge class="text-[10px] font-bold px-2 py-0.5 rounded-lg {% if mod.installed %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %}">
                                 {% if mod.installed %}Açık{% else %}Kapalı{% endif %}
                             </span>
                         </div>
                         <h3 class="font-bold text-slate-900">{{ mod.name }}</h3>
                         <p class="text-sm text-slate-500 mt-2">{{ mod.summary }}</p>
+                        {% if mod.sector_labels %}
+                        <div class="mt-3 flex flex-wrap gap-1">
+                            {% for sec in mod.sector_labels %}
+                            <span class="px-1.5 py-0.5 text-[10px] rounded bg-slate-100 text-slate-600" title="{{ sec.fit_label }}">{{ sec.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
-                    <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/80 flex gap-2 items-center">
+                    <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/80 flex gap-2 items-center" data-module-actions>
                         {% if mod.can_open %}
-                        <a href="{{ mod.open_url }}" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold">Aç</a>
+                        <a href="{{ mod.open_url }}" data-module-open class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold">Aç</a>
                         {% elif mod.installed %}
-                        <span class="text-xs text-amber-700 font-semibold">Rol izni gerekir</span>
+                        <span data-module-perm-hint class="text-xs text-amber-700 font-semibold">Rol izni gerekir</span>
                         {% endif %}
                         {% if can_manage_modules and mod.can_toggle %}
-                        <form method="post" class="ml-auto">
-                            {% csrf_token %}
-                            <input type="hidden" name="toggle_module" value="1">
-                            <input type="hidden" name="module_slug" value="{{ mod.slug }}">
-                            <button type="submit" class="text-xs font-bold {% if mod.installed %}text-red-600{% else %}text-emerald-700{% endif %} hover:underline">
-                                {% if mod.installed %}Kapat{% else %}Aç{% endif %}
-                            </button>
-                        </form>
+                        <button type="button" data-module-toggle data-module-slug="{{ mod.slug }}"
+                            class="text-xs font-bold ml-auto hover:underline {% if mod.installed %}text-red-600{% else %}text-emerald-700{% endif %}">
+                            {% if mod.installed %}Kapat{% else %}Aç{% endif %}
+                        </button>
                         {% endif %}
                     </div>
                 </article>
@@ -86,23 +123,37 @@
             </h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for mod in module_integrations %}
-                <article class="bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col {% if mod.installed %}border-amber-200{% else %}border-slate-200{% endif %}">
+                <article class="module-card bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col {% if mod.installed %}border-amber-200{% else %}border-slate-200{% endif %}"
+                    data-module-card data-module-slug="{{ mod.slug }}" data-module-kind="integration"
+                    data-module-installed="{% if mod.installed %}1{% else %}0{% endif %}">
                     <div class="p-5 flex-1">
-                        <span class="text-[10px] font-bold uppercase text-amber-600">Entegrasyon</span>
-                        <h3 class="font-bold text-slate-900 mt-1">{{ mod.name }}</h3>
+                        <div class="flex justify-between gap-2 mb-1">
+                            <span class="text-[10px] font-bold uppercase text-amber-600">Entegrasyon</span>
+                            <span data-module-badge class="text-[10px] font-bold px-2 py-0.5 rounded-lg {% if mod.installed %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %}">
+                                {% if mod.installed %}Açık{% else %}Kapalı{% endif %}
+                            </span>
+                        </div>
+                        <h3 class="font-bold text-slate-900">{{ mod.name }}</h3>
                         <p class="text-sm text-slate-500 mt-2">{{ mod.summary }}</p>
+                        {% if mod.sector_labels %}
+                        <div class="mt-3 flex flex-wrap gap-1">
+                            {% for sec in mod.sector_labels %}
+                            <span class="px-1.5 py-0.5 text-[10px] rounded bg-amber-50 text-amber-800">{{ sec.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
-                    <div class="px-5 py-3 border-t flex gap-2 items-center">
-                        {% if mod.can_open %}<a href="{{ mod.open_url }}" class="text-xs font-bold text-emerald-700">Kullan →</a>{% endif %}
+                    <div class="px-5 py-3 border-t flex gap-2 items-center" data-module-actions>
+                        {% if mod.can_open %}
+                        <a href="{{ mod.open_url }}" data-module-open class="text-xs font-bold text-emerald-700">Kullan →</a>
+                        {% elif mod.installed %}
+                        <span data-module-perm-hint class="text-xs text-amber-700 font-semibold">Rol izni gerekir</span>
+                        {% endif %}
                         {% if can_manage_modules and mod.can_toggle %}
-                        <form method="post" class="ml-auto">
-                            {% csrf_token %}
-                            <input type="hidden" name="toggle_module" value="1">
-                            <input type="hidden" name="module_slug" value="{{ mod.slug }}">
-                            <button type="submit" class="text-xs font-bold {% if mod.installed %}text-red-600{% else %}text-emerald-700{% endif %}">
-                                {% if mod.installed %}Kapat{% else %}Aç{% endif %}
-                            </button>
-                        </form>
+                        <button type="button" data-module-toggle data-module-slug="{{ mod.slug }}"
+                            class="text-xs font-bold ml-auto {% if mod.installed %}text-red-600{% else %}text-emerald-700{% endif %}">
+                            {% if mod.installed %}Kapat{% else %}Aç{% endif %}
+                        </button>
                         {% endif %}
                     </div>
                 </article>
@@ -125,6 +176,8 @@
         </section>
         {% endif %}
     </main>
+    <script src="{% static 'js/gy-toast.js' %}"></script>
+    <script src="{% static 'js/module-toggle.js' %}"></script>
     <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

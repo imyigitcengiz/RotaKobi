@@ -77,6 +77,9 @@
             <a href="{% url 'sales_lead_export_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50">CSV indir</a>
 
             {% endif %}
+            {% if user_perms.sales_manage %}
+            <a href="{% url 'csv_import_wizard' %}?type=sales&next={{ request.get_full_path|urlencode }}" class="px-4 py-2.5 border border-amber-200 bg-amber-50 text-amber-800 rounded-xl text-sm font-semibold hover:bg-amber-100">CSV yükle</a>
+            {% endif %}
 
         </form>
 

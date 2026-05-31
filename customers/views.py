@@ -1,4 +1,4 @@
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, TemplateView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, TemplateView, View
 from django.urls import reverse_lazy
 from django.shortcuts import redirect, get_object_or_404
 from django.db.models import Count, Max, Q
@@ -366,3 +366,29 @@ class CustomerOverviewView(PermissionRequiredMixin, TemplateView):
         context['customer'] = customer
         context.update(build_customer_overview(customer))
         return context
+
+
+class CustomerExportCsvView(PermissionRequiredMixin, View):
+    permission_required = CUSTOMERS_EDIT_PERM
+
+    def get(self, request):
+        from common.csv_io import csv_response
+
+        qs = Customer.objects.all().order_by('name')
+        q = (request.GET.get('q') or '').strip()
+        if q:
+            qs = qs.filter(Q(name__icontains=q) | Q(phone__icontains=q) | Q(region__icontains=q))
+        rows = []
+        for c in qs:
+            rows.append([
+                c.name,
+                c.phone or '',
+                c.region or '',
+                c.address or '',
+                c.contract_date.strftime('%d.%m.%Y') if c.contract_date else '',
+            ])
+        return csv_response(
+            'musteriler.csv',
+            rows,
+            header=['AD SOYAD', 'TELEFON', 'YER', 'ADRES', 'SÖZLEŞME TARİHİ'],
+        )

@@ -1,0 +1,68 @@
+{% extends 'common/report_print_shell.html' %}
+{% load static %}
+{% block print_title %}Montaj programı — {{ print_scope_label }}{% endblock %}
+{% block print_extra_head %}
+<style>
+    .day-col { vertical-align: top; width: 14.28%; min-height: 120px; }
+    .day-head { font-weight: 700; font-size: 12px; margin-bottom: 4px; }
+    .weather { font-size: 10px; color: #0369a1; margin-bottom: 6px; }
+    .entry { border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 6px; margin-bottom: 4px; font-size: 10px; }
+    .entry-name { font-weight: 700; }
+    .holiday { background: #fff1f2; }
+    .weekend { background: #fffbeb; }
+    .today { outline: 2px solid #059669; }
+    .out-month { opacity: 0.45; }
+</style>
+{% endblock %}
+{% block print_body %}
+<h1 class="text-lg font-bold mb-1">Montaj programı</h1>
+<p class="text-sm text-slate-600 mb-4">{{ calendar_month_label }}{% if calendar_view == 'week' %} · Hafta {{ calendar_week_index|add:1 }}{% endif %} · Hava: {{ schedule_settings.weather_city }}</p>
+<p class="text-xs text-slate-500 mb-4">
+    Cumartesi: {% if schedule_settings.saturday_working %}çalışma (varsayılan {{ schedule_settings.saturday_default_work_label }}){% else %}tatil{% endif %}
+    · Pazar: {% if schedule_settings.sunday_working %}çalışma{% else %}tatil{% endif %}
+</p>
+
+<table>
+    <thead>
+        <tr>
+            {% for label in weekday_headers %}
+            <th class="text-center text-xs">{{ label }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for week in visible_weeks %}
+        <tr>
+            {% for day in week.days %}
+            <td class="day-col border p-2
+                {% if not day.in_month %}out-month{% endif %}
+                {% if day.is_holiday %}holiday{% elif day.is_weekend %}weekend{% endif %}
+                {% if day.is_today %}today{% endif %}">
+                <div class="day-head">{{ day.day }} {{ day.weekday_label }}{% if day.is_holiday %} · Tatil{% endif %}</div>
+                {% if day.weather and day.in_month %}
+                <div class="weather">
+                    {% if day.weather.temp_min != None and day.weather.temp_max != None %}
+                    {{ day.weather.temp_min|floatformat:0 }}–{{ day.weather.temp_max|floatformat:0 }}°C
+                    {% endif %}
+                    · {{ day.weather.condition }}
+                    {% if day.weather.precip_probability != None %} · Yağış %{{ day.weather.precip_probability }}{% endif %}
+                </div>
+                {% endif %}
+                {% for entry in day.entries %}
+                <div class="entry">
+                    <div class="entry-name">{{ entry.customer_name }}</div>
+                    <div>{{ entry.work_type_label }}{% if entry.team_name %} · {{ entry.team_name }}{% endif %}</div>
+                    {% if entry.customer_phone %}<div>Tel: {{ entry.customer_phone }}</div>{% endif %}
+                    {% if entry.customer_address %}<div>{{ entry.customer_address|truncatechars:80 }}</div>{% endif %}
+                    {% if entry.notes %}<div><em>{{ entry.notes }}</em></div>{% endif %}
+                </div>
+                {% empty %}
+                {% if day.in_month and not day.is_holiday %}<span class="text-[10px] text-slate-400">—</span>{% endif %}
+                {% endfor %}
+            </td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -233,23 +233,7 @@ if _db_path:
     DATABASES['default']['NAME'] = Path(_db_path)
 
 
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+# Password validation — kurumsal politika config.settings_security içinde
 
 
 # Internationalization
@@ -294,21 +278,11 @@ if os.environ.get('DJANGO_ALLOW_SSLIP_HOSTS', _sslip_default).lower() in ('1', '
         _use_secure_ssl = False
 
 if not DEBUG:
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SESSION_COOKIE_HTTPONLY = True
-    CSRF_COOKIE_HTTPONLY = True
     if os.environ.get('DATA_DIR', '').strip():
         USE_X_FORWARDED_HOST = True
     if _use_secure_ssl:
         SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
         USE_X_FORWARDED_HOST = True
-        SECURE_SSL_REDIRECT = True
-        SESSION_COOKIE_SECURE = True
-        CSRF_COOKIE_SECURE = True
-        SECURE_HSTS_SECONDS = 31536000
-        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
 # Büyük video/belge yüklemeleri (medya paneli)
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get('DJANGO_UPLOAD_MAX_MEMORY', 52 * 1024 * 1024))
@@ -367,3 +341,13 @@ LOGGING = {
         },
     },
 }
+
+# Üretim güvenlik katmanı (oturum, parola, HSTS, CSP middleware)
+from config.settings_security import *  # noqa: E402, F403
+
+if os.environ.get('DJANGO_CSP_ENABLED', '').lower() in ('1', 'true', 'yes'):
+    MIDDLEWARE = [
+        *MIDDLEWARE[:1],
+        'common.middleware_csp.ContentSecurityPolicyMiddleware',
+        *MIDDLEWARE[1:],
+    ]

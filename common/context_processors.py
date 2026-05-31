@@ -72,8 +72,8 @@ def module_install_context(request):
             'modules_installed': {},
             'modules_nav': {},
             'particles_nav': {},
-            'module_sidebar': {'groups': [], 'capabilities': [], 'integrations': []},
-            'profile_sidebar': {'groups': [], 'capabilities': [], 'integrations': []},
+            'module_sidebar': {'groups': [], 'capabilities': [], 'integrations': [], 'integrations_by_section': {}},
+            'profile_sidebar': {'groups': [], 'capabilities': [], 'integrations': [], 'integrations_by_section': {}},
             'capabilities_hub_url': None,
         }
     from common.request_cache import cache_get

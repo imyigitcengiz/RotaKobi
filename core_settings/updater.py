@@ -286,6 +286,12 @@ def apply_webhook_update() -> tuple[bool, str, list[str]]:
     url = settings.KOBIOPS_DEPLOY_WEBHOOK_URL
     if not url:
         return False, 'Webhook URL tanımlı değil.', []
+    try:
+        from common.webhook_guard import WebhookURLError, validate_outbound_webhook_url
+
+        url = validate_outbound_webhook_url(url)
+    except WebhookURLError as exc:
+        return False, str(exc), ['Webhook ✗ (güvenlik)']
     steps = ['Deploy webhook tetikleniyor…']
     req = urllib.request.Request(url, method='POST', data=b'')
     try:

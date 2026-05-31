@@ -1,4 +1,5 @@
 {# Rehber modülü kısayolları — /panel ana sayfa #}
+{% if contact_show_panel %}
 <section class="mb-10">
     <h3 class="text-xs font-bold uppercase tracking-wider text-violet-600 mb-4 flex items-center gap-2">
         <i data-lucide="book-user" class="w-4 h-4"></i> {{ gy.rehber }}
@@ -17,11 +18,13 @@
             <h4 class="text-lg font-bold text-slate-900">{{ gy.rehber_firmalar }}</h4>
             <p class="text-sm text-slate-500 mt-2">Manuel kayıt, etiketler ve Maps araması.</p>
         </a>
+        {% if modules_nav.integration_data_harvest %}
         <a href="{% url 'contact_firma_bul' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-all p-6">
             <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-4"><i data-lucide="map-pin" class="w-6 h-6"></i></div>
             <h4 class="text-lg font-bold text-slate-900">{{ gy.rehber_firma_bul }}</h4>
             <p class="text-sm text-slate-500 mt-2">Google Maps üzerinden firma arama ve dışa aktarım.</p>
         </a>
+        {% endif %}
         {% endif %}
         {% if user_perms.contact_firms and particles_nav.contact_freelancers %}
         <a href="{% url 'solution_network' %}" class="group block bg-white rounded-3xl border border-violet-200 shadow-sm hover:shadow-lg hover:border-violet-300 transition-all p-6">
@@ -46,3 +49,4 @@
         {% endif %}
     </div>
 </section>
+{% endif %}

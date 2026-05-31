@@ -107,21 +107,27 @@
         <span class="inline-flex mt-3 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-bold">{{ accounting_stock_low_count }} kritik malzeme</span>
         {% endif %}
     </a>
+    {% if modules_nav.supplier_payables %}
     <a href="{% url 'accounting_payables' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-violet-300 transition-all p-6">
         <div class="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4"><i data-lucide="truck" class="w-6 h-6"></i></div>
         <h4 class="text-lg font-bold text-slate-900">{{ gy.mh_borclar }}</h4>
         <p class="text-sm text-slate-500 mt-2">Tedarikçi vade ve ödeme.</p>
     </a>
+    {% endif %}
+    {% if modules_nav.multi_cash %}
     <a href="{% url 'accounting_cash_accounts' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg p-6">
         <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-4"><i data-lucide="wallet" class="w-6 h-6"></i></div>
         <h4 class="text-lg font-bold text-slate-900">{{ gy.mh_hesaplar }}</h4>
         <p class="text-sm text-slate-500 mt-2">Çoklu kasa ve banka.</p>
     </a>
+    {% endif %}
+    {% if modules_nav.project_costing %}
     <a href="{% url 'accounting_project_costing' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg p-6">
         <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4"><i data-lucide="pie-chart" class="w-6 h-6"></i></div>
         <h4 class="text-lg font-bold text-slate-900">{{ gy.mh_proje_karlilik }}</h4>
         <p class="text-sm text-slate-500 mt-2">Proje marjı.</p>
     </a>
+    {% endif %}
     {% endif %}
 
     {% if accounting_show_sales and user_access.sales %}

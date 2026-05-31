@@ -14,6 +14,7 @@ from .models import (
     PersonnelDepartment,
     CashAccount,
     SupplierPayable,
+    InstallationScheduleEntry,
     OperationalProject,
     TimeEntry,
     FinanceRecord,
@@ -38,6 +39,7 @@ admin.site.register(PersonnelDepartment)
 admin.site.register(ServicePersonnel)
 admin.site.register(CashAccount)
 admin.site.register(SupplierPayable)
+admin.site.register(InstallationScheduleEntry)
 admin.site.register(OperationalProject)
 admin.site.register(TimeEntry)
 admin.site.register(EExportSettings)

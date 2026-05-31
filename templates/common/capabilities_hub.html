@@ -32,7 +32,7 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div class="rounded-2xl bg-amber-50 border border-amber-200 p-4">
                     <p class="text-[10px] font-bold uppercase text-amber-700">Açık yetenek</p>
-                    <p class="text-2xl font-bold text-amber-900">{{ capabilities_enabled }}/{{ capabilities_total }}</p>
+                    <p class="text-2xl font-bold text-amber-900"><span data-capabilities-enabled-count>{{ capabilities_enabled }}</span>/{{ capabilities_total }}</p>
                 </div>
             </div>
 
@@ -43,13 +43,15 @@
                 </h3>
                 <div class="grid sm:grid-cols-2 gap-4">
                     {% for cap in group.items %}
-                    <article class="bg-white rounded-2xl border {% if cap.installed %}border-amber-200{% else %}border-slate-200{% endif %} shadow-sm overflow-hidden flex flex-col">
+                    <article class="module-card bg-white rounded-2xl border {% if cap.installed %}border-amber-200{% else %}border-slate-200{% endif %} shadow-sm overflow-hidden flex flex-col"
+                        data-module-card data-module-slug="{{ cap.slug }}" data-module-kind="integration"
+                        data-module-installed="{% if cap.installed %}1{% else %}0{% endif %}">
                         <div class="p-5 flex-1">
                             <div class="flex justify-between gap-2 mb-2">
                                 <span class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
                                     <i data-lucide="{{ cap.icon }}" class="w-5 h-5"></i>
                                 </span>
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-lg h-fit {% if cap.installed %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %}">
+                                <span data-module-badge class="text-[10px] font-bold px-2 py-0.5 rounded-lg h-fit {% if cap.installed %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %}">
                                     {% if cap.installed %}Açık{% else %}Kapalı{% endif %}
                                 </span>
                             </div>
@@ -59,21 +61,17 @@
                             <p class="text-xs text-amber-700 font-semibold mt-3">{{ cap.status_hint }}</p>
                             {% endif %}
                         </div>
-                        <div class="px-5 py-3 border-t bg-slate-50/80 flex flex-wrap gap-2 items-center">
+                        <div class="px-5 py-3 border-t bg-slate-50/80 flex flex-wrap gap-2 items-center" data-module-actions>
                             {% if cap.can_open %}
-                            <a href="{{ cap.open_url }}" class="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-bold hover:bg-amber-600">Kullan</a>
+                            <a href="{{ cap.open_url }}" data-module-open class="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-bold hover:bg-amber-600">Kullan</a>
                             {% elif cap.installed %}
-                            <span class="text-xs text-amber-700 font-semibold">Rol izni gerekir</span>
+                            <span data-module-perm-hint class="text-xs text-amber-700 font-semibold">Rol izni gerekir</span>
                             {% endif %}
-                            {% if can_manage_modules %}
-                            <form method="post" action="{% url 'module_hub' %}" class="ml-auto">
-                                {% csrf_token %}
-                                <input type="hidden" name="toggle_module" value="1">
-                                <input type="hidden" name="module_slug" value="{{ cap.slug }}">
-                                <button type="submit" class="text-xs font-bold {% if cap.installed %}text-red-600{% else %}text-emerald-700{% endif %}">
-                                    {% if cap.installed %}Kapat{% else %}Aç{% endif %}
-                                </button>
-                            </form>
+                            {% if can_manage_modules and cap.can_toggle %}
+                            <button type="button" data-module-toggle data-module-slug="{{ cap.slug }}"
+                                class="text-xs font-bold ml-auto {% if cap.installed %}text-red-600{% else %}text-emerald-700{% endif %}">
+                                {% if cap.installed %}Kapat{% else %}Aç{% endif %}
+                            </button>
                             {% endif %}
                         </div>
                     </article>
@@ -85,6 +83,8 @@
             {% endfor %}
         </div>
     </main>
+    <script src="{% static 'js/gy-toast.js' %}"></script>
+    <script src="{% static 'js/module-toggle.js' %}"></script>
     <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from common.module_catalog import MODULE_KIND_INTEGRATION, MODULES
-from common.module_runtime import build_module_record, is_module_enabled, module_available_for_nav
+from common.module_runtime import (
+    build_module_record,
+    is_module_installed,
+    module_available_for_nav,
+)
 
 
 def _whatsapp_connection_count() -> int:
@@ -43,10 +47,12 @@ def integration_status_hint(slug: str) -> str:
     return 'Hazır'
 
 
-def build_capabilities_hub_context(user) -> dict:
+def build_capabilities_hub_context(user, *, section: str | None = None) -> dict:
     items = []
     for mod in MODULES:
         if mod['kind'] != MODULE_KIND_INTEGRATION:
+            continue
+        if section and (mod.get('panel_section') or 'other') != section:
             continue
         rec = build_module_record(user, mod)
         rec['status_hint'] = integration_status_hint(mod['slug'])
@@ -54,7 +60,7 @@ def build_capabilities_hub_context(user) -> dict:
         items.append(rec)
 
     items.sort(key=lambda x: (x.get('sort', 99), x['name']))
-    enabled = sum(1 for c in items if is_module_enabled(c['slug']))
+    enabled = sum(1 for c in items if is_module_installed(c['slug']))
     return {
         'capability_groups': [{
             'slug': 'entegrasyon',
@@ -65,4 +71,5 @@ def build_capabilities_hub_context(user) -> dict:
         'capabilities_flat': items,
         'capabilities_total': len(items),
         'capabilities_enabled': enabled,
+        'capabilities_section': section or '',
     }

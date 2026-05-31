@@ -28,6 +28,11 @@
                     <label class="text-sm font-semibold text-slate-700">Firma adresi</label>
                     {{ settings_form.company_address }}
                 </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-slate-700">Hava durumu şehri</label>
+                    {{ settings_form.weather_city }}
+                    <p class="text-xs text-slate-500">Saha planı üst çubuğunda gösterilir. Open-Meteo kullanılır; API anahtarı gerekmez.</p>
+                </div>
             </div>
             <div class="md:col-span-2 flex justify-end">
                 <button type="submit" class="px-8 py-3 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-all">

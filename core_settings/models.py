@@ -68,9 +68,46 @@ class SiteSettings(models.Model):
 
     primary_vertical_slug = models.CharField(
         max_length=32,
-        default='kobi',
+        default='montaj_saha',
         verbose_name='Birincil sektör profili',
-        help_text='Modül vitrininde öne çıkan sektör kategorisi (KOBİ, ajans, …).',
+        help_text='Kurumsal sektör tipi — modül paketi bu profile göre önerilir.',
+    )
+    weather_city = models.CharField(
+        max_length=120,
+        blank=True,
+        default='İstanbul',
+        verbose_name='Hava durumu şehri',
+        help_text='Open-Meteo ile otomatik koordinat çözülür; API anahtarı gerekmez.',
+    )
+    weather_latitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name='Hava enlem',
+    )
+    weather_longitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name='Hava boylam',
+    )
+    schedule_saturday_working = models.BooleanField(
+        default=True,
+        verbose_name='Cumartesi çalışma günü',
+        help_text='Kapalıysa cumartesi montaj programında tatil olarak işaretlenir.',
+    )
+    schedule_sunday_working = models.BooleanField(
+        default=False,
+        verbose_name='Pazar çalışma günü',
+        help_text='Kapalıysa pazar montaj programında tatil olarak işaretlenir.',
+    )
+    schedule_saturday_default_work = models.CharField(
+        max_length=20,
+        choices=(
+            ('installation', 'Montaj'),
+            ('service', 'Servis'),
+        ),
+        default='installation',
+        verbose_name='Cumartesi varsayılan iş tipi',
+        help_text='Cumartesi gününe yeni kayıt eklerken önerilen montaj veya servis.',
     )
     enabled_module_slugs = models.JSONField(
         default=list,
@@ -853,6 +890,65 @@ class OperationalProject(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class InstallationScheduleEntry(models.Model):
+    TYPE_INSTALLATION = 'installation'
+    TYPE_SERVICE = 'service'
+    TYPE_CHOICES = (
+        (TYPE_INSTALLATION, 'Montaj'),
+        (TYPE_SERVICE, 'Servis'),
+    )
+
+    scheduled_date = models.DateField(verbose_name='Gün', db_index=True)
+    customer = models.ForeignKey(
+        'customers.Customer',
+        on_delete=models.CASCADE,
+        related_name='installation_schedule_entries',
+        verbose_name='Müşteri',
+    )
+    sales_lead = models.ForeignKey(
+        'sales_leads.SalesLead',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='installation_schedule_entries',
+        verbose_name='Satış kaydı',
+    )
+    operational_project = models.ForeignKey(
+        'core_settings.OperationalProject',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='schedule_entries',
+        verbose_name='Proje kartı',
+    )
+    team = models.ForeignKey(
+        'core_settings.ServiceTeam',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='installation_schedule_entries',
+        verbose_name='Ekip',
+    )
+    work_type = models.CharField(
+        max_length=20,
+        choices=TYPE_CHOICES,
+        default=TYPE_INSTALLATION,
+        verbose_name='İş tipi',
+    )
+    notes = models.TextField(blank=True, verbose_name='Montaj notları')
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name='Sıra')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Montaj programı kaydı'
+        verbose_name_plural = 'Montaj programı kayıtları'
+        ordering = ['scheduled_date', 'sort_order', 'pk']
+
+    def __str__(self):
+        return f'{self.scheduled_date:%d.%m.%Y} — {self.customer.name}'
 
 
 class TimeEntry(models.Model):

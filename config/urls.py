@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from common.module_toggle_views import module_toggle_api
 from analytics.views import (
     CapabilitiesHubView,
     HomeView,
@@ -29,6 +30,7 @@ urlpatterns = [
     path('', PublicLandingView.as_view(), name='landing'),
     path('bilgi-bankasi/', IntroducerKnowledgeBaseView.as_view(), name='introducer_knowledge_base'),
     path('panel/', HomeView.as_view(), name='home'),
+    path('panel/moduller/toggle/', module_toggle_api, name='module_toggle_api'),
     path('panel/moduller/', ModuleHubView.as_view(), name='module_hub'),
     path('panel/yetenekler/', CapabilitiesHubView.as_view(), name='capabilities_hub'),
     path('', include('users.urls')),

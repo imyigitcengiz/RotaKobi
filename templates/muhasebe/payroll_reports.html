@@ -12,6 +12,7 @@
         <a href="{% url 'accounting_reports' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200">← {{ gy.mh_raporlar }}</a>
         <a href="{% url 'accounting_payroll_reports_print' %}?{{ export_query }}" target="_blank" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 inline-flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i> Yazdır</a>
         <a href="{% url 'accounting_payroll_export' %}?{{ export_query }}" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700">CSV indir</a>
+        <a href="{% url 'csv_import_wizard' %}?type=payroll&next={{ request.get_full_path|urlencode }}" class="px-4 py-2 border border-violet-200 bg-violet-50 text-violet-800 rounded-xl text-sm font-bold hover:bg-violet-100">CSV yükle</a>
         <a href="{% url 'accounting_data_exchange' %}" class="px-4 py-2 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-2"><i data-lucide="arrow-up-down" class="w-4 h-4"></i> {{ gy.mh_veri_alisverisi }}</a>
     </div>
 </div>

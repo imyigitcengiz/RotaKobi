@@ -1,0 +1,8 @@
+{% if can_manage and mod.can_toggle %}
+<button type="button"
+    data-module-toggle
+    data-module-slug="{{ mod.slug }}"
+    class="text-xs font-bold ml-auto {% if mod.installed %}text-red-600{% else %}text-emerald-700{% endif %} hover:underline">
+    {% if mod.installed %}Kapat{% else %}Aç{% endif %}
+</button>
+{% endif %}

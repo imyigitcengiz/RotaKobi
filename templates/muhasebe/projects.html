@@ -1,54 +1,201 @@
 {% extends 'muhasebe/base.html' %}
 {% block title %}{{ gy.mh_projeler }}{% endblock %}
 {% block header %}
-<h1 class="text-lg font-bold text-slate-900">{{ gy.mh_projeler }}</h1>
-<p class="text-sm text-slate-500">Operasyon projeleri — müşteri ve satış kaydına bağlı durum takibi.</p>
-{% endblock %}
-{% block content %}
-<div class="max-w-6xl mx-auto space-y-6">
-    <form method="post" class="bg-white rounded-3xl border p-5 grid md:grid-cols-2 gap-3">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="create">
-        <input name="name" required placeholder="Proje adı" class="acct-input px-3 py-2 border rounded-xl text-sm md:col-span-2">
-        <select name="customer_id" class="acct-input px-3 py-2 border rounded-xl text-sm">
-            <option value="">Müşteri (opsiyonel)</option>
-            {% for c in project_customers %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
-        </select>
-        <select name="sales_lead_id" class="acct-input px-3 py-2 border rounded-xl text-sm">
-            <option value="">Satış kaydı (opsiyonel)</option>
-            {% for s in project_sales_leads %}<option value="{{ s.id }}">{{ s.customer.name }} — {{ s.sale_date|date:"d.m.Y" }}</option>{% endfor %}
-        </select>
-        <select name="status" class="acct-input px-3 py-2 border rounded-xl text-sm">
-            {% for val, label in project_status_choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
-        </select>
-        <input name="notes" placeholder="Not" class="acct-input px-3 py-2 border rounded-xl text-sm">
-        <button type="submit" class="md:col-span-2 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold w-fit">Proje ekle</button>
-    </form>
-
-    <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {% for status_code, status_label in project_status_choices %}
-        <section class="bg-white rounded-2xl border border-slate-200 p-4 min-h-[12rem]">
-            <h2 class="text-xs font-bold uppercase text-slate-500 mb-3">{{ status_label }}</h2>
-            <div class="space-y-2">
-                {% for project in operational_projects %}
-                {% if project.status == status_code %}
-                <article class="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                    <p class="font-bold text-sm">{{ project.name }}</p>
-                    {% if project.customer %}<p class="text-xs text-slate-500">{{ project.customer.name }}</p>{% endif %}
-                    <form method="post" class="mt-2 flex gap-1">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="status">
-                        <input type="hidden" name="project_id" value="{{ project.id }}">
-                        <select name="status" class="text-xs border rounded-lg px-1 py-0.5 flex-1" onchange="this.form.submit()">
-                            {% for val, label in project_status_choices %}<option value="{{ val }}" {% if project.status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
-                        </select>
-                    </form>
-                </article>
-                {% endif %}
-                {% endfor %}
-            </div>
-        </section>
-        {% endfor %}
+<div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+        <h1 class="text-lg font-bold text-slate-900">{{ gy.mh_projeler }}</h1>
+        <p class="text-sm text-slate-500">Günlük montaj ve servis planı — müşteri, ekip, hava durumu ve notlar.</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+        <a href="?year={{ calendar_year }}&month={{ calendar_month }}&view=month" class="px-3 py-1.5 rounded-xl text-xs font-bold {% if calendar_view == 'month' %}bg-brand-600 text-white{% else %}border border-slate-200 text-slate-600{% endif %}">Ay</a>
+        <a href="?year={{ calendar_year }}&month={{ calendar_month }}&view=week&week={{ calendar_week_index }}" class="px-3 py-1.5 rounded-xl text-xs font-bold {% if calendar_view == 'week' %}bg-brand-600 text-white{% else %}border border-slate-200 text-slate-600{% endif %}">Hafta</a>
+        <a href="{% url 'accounting_projects_print' %}?year={{ calendar_year }}&month={{ calendar_month }}&view={{ calendar_view }}{% if calendar_view == 'week' %}&week={{ calendar_week_index }}{% endif %}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50">
+            <i data-lucide="printer" class="w-4 h-4"></i> Yazdır
+        </a>
     </div>
 </div>
+{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <section class="bg-white rounded-3xl border border-slate-200 p-4 md:p-5 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+            <a href="?year={{ prev_year }}&month={{ prev_month }}&view={{ calendar_view }}{% if calendar_view == 'week' %}&week={{ calendar_week_index }}{% endif %}" class="p-2 rounded-xl border border-slate-200 hover:bg-slate-50" aria-label="Önceki ay"><i data-lucide="chevron-left" class="w-5 h-5"></i></a>
+            <h2 class="text-xl font-bold text-slate-900 min-w-[10rem] text-center">{{ calendar_month_label }}</h2>
+            <a href="?year={{ next_year }}&month={{ next_month }}&view={{ calendar_view }}{% if calendar_view == 'week' %}&week={{ calendar_week_index }}{% endif %}" class="p-2 rounded-xl border border-slate-200 hover:bg-slate-50" aria-label="Sonraki ay"><i data-lucide="chevron-right" class="w-5 h-5"></i></a>
+            <a href="?year={{ calendar_year }}&month={{ calendar_month }}&view={{ calendar_view }}" class="ml-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Bugün</a>
+        </div>
+        <p class="text-xs text-slate-500">
+            Hava: <span class="font-semibold text-slate-700">{{ schedule_settings.weather_city }}</span>
+            · Cumartesi: {% if schedule_settings.saturday_working %}çalışma{% else %}tatil{% endif %}, varsayılan {{ schedule_settings.saturday_default_work_label }}
+            · Pazar: {% if schedule_settings.sunday_working %}çalışma{% else %}tatil{% endif %}
+        </p>
+    </section>
+
+    <div class="grid xl:grid-cols-[1fr_320px] gap-6">
+        <section class="bg-white rounded-3xl border border-slate-200 overflow-hidden">
+            <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                {% for label in weekday_headers %}
+                <div class="py-2 text-center {% if forloop.counter >= 6 %}text-amber-700{% endif %}">{{ label }}</div>
+                {% endfor %}
+            </div>
+            {% for week in visible_weeks %}
+            <div class="grid grid-cols-7 border-b border-slate-100 last:border-b-0 {% if week.is_current_week %}ring-2 ring-inset ring-brand-200{% endif %}">
+                {% for day in week.days %}
+                <article class="min-h-[9rem] md:min-h-[11rem] p-2 border-r border-slate-100 last:border-r-0 flex flex-col gap-1
+                    {% if not day.in_month %}bg-slate-50/80 opacity-60{% elif day.is_holiday %}bg-rose-50/60{% elif day.is_today %}bg-brand-50/50{% elif day.is_weekend %}bg-amber-50/40{% endif %}">
+                    <div class="flex items-start justify-between gap-1">
+                        <button type="button" class="schedule-day-pick text-left font-bold text-sm {% if day.is_today %}text-brand-700{% else %}text-slate-800{% endif %}" data-date="{{ day.date_iso }}" data-work-type="{{ day.default_work_type }}">
+                            {{ day.day }}
+                        </button>
+                        {% if day.is_holiday %}
+                        <span class="text-[9px] font-bold uppercase text-rose-600">Tatil</span>
+                        {% endif %}
+                    </div>
+                    {% if day.weather and day.in_month %}
+                    <p class="text-[10px] text-sky-700 leading-tight" title="Yağış olasılığı: {{ day.weather.precip_probability|default:'—' }}%">
+                        {% if day.weather.temp_max != None %}{{ day.weather.temp_max|floatformat:0 }}°{% endif %}
+                        · {{ day.weather.condition }}
+                    </p>
+                    {% endif %}
+                    <div class="flex-1 space-y-1 overflow-y-auto max-h-32">
+                        {% for entry in day.entries %}
+                        <div class="rounded-lg border border-slate-200 bg-white p-1.5 text-[10px] leading-snug group relative">
+                            <p class="font-bold text-slate-800 truncate">{{ entry.customer_name }}</p>
+                            <p class="text-slate-500 truncate">
+                                <span class="{% if entry.work_type == 'service' %}text-violet-700{% else %}text-emerald-700{% endif %} font-semibold">{{ entry.work_type_label }}</span>
+                                {% if entry.team_name %} · {{ entry.team_name }}{% endif %}
+                            </p>
+                            {% if entry.notes %}<p class="text-slate-400 truncate">{{ entry.notes }}</p>{% endif %}
+                            <details class="mt-1">
+                                <summary class="cursor-pointer text-brand-600 font-semibold">Düzenle</summary>
+                                <form method="post" class="mt-2 space-y-1">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="update_entry">
+                                    {% include 'muhasebe/_schedule_calendar_hidden.html' %}
+                                    <input type="hidden" name="entry_id" value="{{ entry.id }}">
+                                    <input type="date" name="scheduled_date" value="{{ day.date_iso }}" class="w-full text-[10px] border rounded px-1 py-0.5">
+                                    <select name="customer_id" class="w-full text-[10px] border rounded px-1 py-0.5">
+                                        {% for c in schedule_customers %}<option value="{{ c.id }}" {% if c.name == entry.customer_name %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                                    </select>
+                                    <select name="team_id" class="w-full text-[10px] border rounded px-1 py-0.5">
+                                        <option value="">Ekip yok</option>
+                                        {% for t in schedule_teams %}<option value="{{ t.id }}" {% if t.name == entry.team_name %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+                                    </select>
+                                    <select name="work_type" class="w-full text-[10px] border rounded px-1 py-0.5">
+                                        {% for val, label in work_type_choices %}
+                                        <option value="{{ val }}" {% if entry.work_type == val %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <textarea name="notes" rows="2" class="w-full text-[10px] border rounded px-1 py-0.5">{{ entry.notes }}</textarea>
+                                    <button type="submit" class="w-full py-1 bg-brand-600 text-white rounded font-bold">Kaydet</button>
+                                </form>
+                                <form method="post" class="mt-1" onsubmit="return confirm('Silinsin mi?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_entry">
+                                    {% include 'muhasebe/_schedule_calendar_hidden.html' %}
+                                    <input type="hidden" name="entry_id" value="{{ entry.id }}">
+                                    <button type="submit" class="w-full py-1 text-red-600 font-bold text-[10px]">Sil</button>
+                                </form>
+                            </details>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            {% if calendar_view == 'week' and calendar_weeks|length > 1 %}
+            <div class="p-3 border-t border-slate-100 flex flex-wrap gap-2">
+                {% for week in calendar_weeks %}
+                <a href="?year={{ calendar_year }}&month={{ calendar_month }}&view=week&week={{ week.index }}" class="px-2 py-1 rounded-lg text-xs font-bold {% if week.index == calendar_week_index %}bg-brand-600 text-white{% else %}bg-slate-100 text-slate-600{% endif %}">H{{ week.index|add:1 }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </section>
+
+        <aside class="space-y-4">
+            {% if not schedule_customers %}
+            <section class="bg-amber-50 border border-amber-200 rounded-3xl p-4 text-sm text-amber-900">
+                <p class="font-bold">Müşteri kaydı yok</p>
+                <p class="mt-1 text-amber-800">Montaj planı eklemek için önce rehberde müşteri oluşturun.</p>
+                <a href="{% url 'customers' %}" class="inline-block mt-2 text-xs font-bold text-brand-700 hover:underline">Müşterilere git →</a>
+            </section>
+            {% endif %}
+            <section class="bg-white rounded-3xl border border-slate-200 p-5 space-y-3">
+                <h3 class="font-bold text-slate-900 text-sm">Plan ekle</h3>
+                <form method="post" id="scheduleAddForm" class="space-y-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_entry">
+                    {% include 'muhasebe/_schedule_calendar_hidden.html' %}
+                    <label class="text-xs font-semibold text-slate-600">Gün</label>
+                    <input type="date" name="scheduled_date" id="scheduleDateInput" value="{{ selected_day|default:today_iso }}" required class="acct-input w-full px-3 py-2 border rounded-xl text-sm">
+                    <label class="text-xs font-semibold text-slate-600">Müşteri</label>
+                    <select name="customer_id" required class="acct-input w-full px-3 py-2 border rounded-xl text-sm">
+                        <option value="">Seçin…</option>
+                        {% for c in schedule_customers %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+                    </select>
+                    <label class="text-xs font-semibold text-slate-600">Ekip</label>
+                    <select name="team_id" class="acct-input w-full px-3 py-2 border rounded-xl text-sm">
+                        <option value="">Atanmadı</option>
+                        {% for t in schedule_teams %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+                    </select>
+                    <label class="text-xs font-semibold text-slate-600">Satış kaydı (opsiyonel)</label>
+                    <select name="sales_lead_id" class="acct-input w-full px-3 py-2 border rounded-xl text-sm">
+                        <option value="">—</option>
+                        {% for s in schedule_sales_leads %}<option value="{{ s.id }}">{{ s.customer.name }} — {{ s.sale_date|date:"d.m.Y" }}</option>{% endfor %}
+                    </select>
+                    <label class="text-xs font-semibold text-slate-600">İş tipi</label>
+                    <select name="work_type" id="scheduleWorkType" class="acct-input w-full px-3 py-2 border rounded-xl text-sm">
+                        {% for val, label in work_type_choices %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="text-xs font-semibold text-slate-600">Montaj notları</label>
+                    <textarea name="notes" rows="3" placeholder="Adres tarifi, malzeme, özel talimat…" class="acct-input w-full px-3 py-2 border rounded-xl text-sm"></textarea>
+                    <button type="submit" class="w-full py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700">Plana ekle</button>
+                </form>
+            </section>
+
+            <section class="bg-white rounded-3xl border border-slate-200 p-5 space-y-3">
+                <h3 class="font-bold text-slate-900 text-sm">Hafta sonu kuralları</h3>
+                <form method="post" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_schedule_settings">
+                    {% include 'muhasebe/_schedule_calendar_hidden.html' %}
+                    <label class="flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" name="schedule_saturday_working" class="rounded accent-brand-600" {% if schedule_settings.saturday_working %}checked{% endif %}>
+                        Cumartesi çalışma günü
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" name="schedule_sunday_working" class="rounded accent-brand-600" {% if schedule_settings.sunday_working %}checked{% endif %}>
+                        Pazar çalışma günü
+                    </label>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Cumartesi varsayılan</label>
+                        <select name="schedule_saturday_default_work" class="acct-input w-full px-3 py-2 border rounded-xl text-sm mt-1">
+                            {% for val, label in work_type_choices %}
+                            <option value="{{ val }}" {% if schedule_settings.saturday_default_work == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-slate-400 mt-1">Cumartesi gününe yeni kayıt eklerken önerilen montaj veya servis tipi.</p>
+                    </div>
+                    <button type="submit" class="w-full py-2 bg-slate-800 text-white rounded-xl text-sm font-bold">Kuralları kaydet</button>
+                </form>
+            </section>
+        </aside>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.querySelectorAll('.schedule-day-pick').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var dateInput = document.getElementById('scheduleDateInput');
+        var workType = document.getElementById('scheduleWorkType');
+        if (dateInput) dateInput.value = btn.dataset.date || '';
+        if (workType && btn.dataset.workType) workType.value = btn.dataset.workType;
+        document.getElementById('scheduleAddForm')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+});
+</script>
 {% endblock %}

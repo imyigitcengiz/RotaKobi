@@ -125,7 +125,12 @@ class MediaAuthTests(TestCase):
 
     def test_media_accessible_when_logged_in(self):
         role = Role.objects.create(slug='media-role', name='Media', is_system=False)
+        perm, _ = Permission.objects.get_or_create(
+            codename='contact.customers_view',
+            defaults={'name': 'View', 'module': 'Test', 'kind': 'action', 'sort_order': 0},
+        )
+        role.permissions.add(perm)
         User.objects.create_user(username='mediauser', password='test-pass-123', role=role)
         self.client.login(username='mediauser', password='test-pass-123')
-        res = self.client.get('/media/site/nonexistent.png')
+        res = self.client.get('/media/customers/1/dosyalar/nonexistent.png')
         self.assertEqual(res.status_code, 404)

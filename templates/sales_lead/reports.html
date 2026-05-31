@@ -28,7 +28,12 @@
 
 {% if user_perms.sales_export %}
 <a href="{% url 'sales_lead_export_csv' %}?format=report{% if report_status_filter %}&status={{ report_status_filter }}{% endif %}" class="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-xl hover:bg-slate-900 text-sm font-semibold">
-    <i data-lucide="download" class="w-4 h-4"></i> CSV
+    <i data-lucide="download" class="w-4 h-4"></i> CSV indir
+</a>
+{% endif %}
+{% if user_perms.sales_manage %}
+<a href="{% url 'csv_import_wizard' %}?type=sales&next={{ request.get_full_path|urlencode }}" class="flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 text-sm font-semibold">
+    <i data-lucide="upload" class="w-4 h-4"></i> CSV yükle
 </a>
 {% endif %}
 <a href="{% url 'sales_lead_reports_print' %}{% if report_status_filter %}?status={{ report_status_filter }}{% endif %}" target="_blank" class="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-xl hover:bg-brand-700 text-sm font-semibold">

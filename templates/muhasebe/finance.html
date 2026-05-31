@@ -30,7 +30,10 @@
                     <i data-lucide="printer" class="w-4 h-4"></i> Yazdır
                 </a>
                 <a href="{% url 'accounting_finance_export' %}?period={{ finance_period_str }}{% if finance_filter_type %}&record_type={{ finance_filter_type }}{% endif %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                    <i data-lucide="download" class="w-4 h-4"></i> CSV
+                    <i data-lucide="download" class="w-4 h-4"></i> CSV indir
+                </a>
+                <a href="{% url 'csv_import_wizard' %}?type=finance&next={{ request.get_full_path|urlencode }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm font-semibold hover:bg-emerald-100">
+                    <i data-lucide="upload" class="w-4 h-4"></i> CSV yükle
                 </a>
                 <a href="{% url 'accounting_data_exchange' %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"><i data-lucide="arrow-up-down" class="w-4 h-4"></i> {{ gy.mh_veri_alisverisi }}</a>
             </div>

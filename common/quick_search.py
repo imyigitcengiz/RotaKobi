@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from django.urls import NoReverseMatch, reverse
 
-from common.module_runtime import is_module_enabled, module_available_for_nav
+from common.module_runtime import is_module_installed, module_available_for_nav, module_route_allowed
 
 
 @dataclass(frozen=True)
@@ -58,7 +58,7 @@ QUICK_SEARCH_ITEMS: tuple[QuickSearchItem, ...] = (
     _item('Müşteriler', 'Müşteri listesi', 'users', 'Rehber', 'customers', keywords=('müşteri', 'rehber'), perms_any=('access.contact', 'contact.customers_view', 'contact.customers'), module_slug='contact'),
     _item('Yeni müşteri', 'Müşteri kaydı oluştur', 'user-plus', 'Rehber', 'customer_create', keywords=('ekle', 'yeni'), perms_any=('contact.customers',), module_slug='contact', kind='action'),
     _item('Firma rehberi', 'Firma kayıtları', 'building-2', 'Rehber', 'contact_firmalar', keywords=('firma',), perms_any=('contact.firms',), module_slug='contact'),
-    _item('Firma bul', 'Google Maps araması', 'map-pin', 'Rehber', 'contact_firma_bul', keywords=('maps', 'kazı'), perms_any=('contact.firms',), module_slug='contact'),
+    _item('Firma bul', 'Google Maps araması', 'map-pin', 'Rehber', 'contact_firma_bul', keywords=('maps', 'kazı'), perms_any=('contact.firms',), module_slug='integration_data_harvest'),
     _item('Ekipler', 'Saha servis ekipleri', 'users-round', 'Rehber', 'team_network', keywords=('ekip',), perms_any=('contact.teams',), module_slug='contact'),
     _item('Yardım Masası özeti', 'Durum paneli', 'layout-dashboard', 'Yardım Masası', 'dashboard', module_slug='services', perms_any=('access.services',)),
     _item('Servis kayıtları', 'Tüm servis iş emirleri', 'clipboard-list', 'Yardım Masası', 'services', keywords=('servis', 'kayıt'), perms_any=('access.services',), module_slug='services'),
@@ -70,12 +70,12 @@ QUICK_SEARCH_ITEMS: tuple[QuickSearchItem, ...] = (
     _item('Gelir & gider', 'Ofis giderleri', 'receipt', 'Muhasebe', 'accounting_finance', keywords=('gider', 'gelir'), perms_any=('accounting.finance',), module_slug='accounting'),
     _item('Kasa', 'Nakit özeti', 'landmark', 'Muhasebe', 'accounting_cash', keywords=('kasa', 'nakit'), perms_any=('accounting.finance',), module_slug='accounting'),
     _item('Stok & reçete', 'Malzeme stoku', 'package', 'Muhasebe', 'accounting_stock', keywords=('stok', 'malzeme'), perms_any=('accounting.finance',), module_slug='accounting'),
-    _item('Tedarikçi borçları', 'Vade ve ödeme', 'truck', 'Muhasebe', 'accounting_payables', keywords=('tedarik', 'borç'), perms_any=('accounting.finance',), module_slug='accounting'),
-    _item('Kasa & banka', 'Çoklu hesap', 'landmark', 'Muhasebe', 'accounting_cash_accounts', keywords=('banka', 'hesap'), perms_any=('accounting.finance',), module_slug='accounting'),
-    _item('Proje kârlılığı', 'Marj raporu', 'pie-chart', 'Muhasebe', 'accounting_project_costing', keywords=('kâr', 'maliyet'), perms_any=('accounting.finance',), module_slug='accounting'),
-    _item('Dış aktarım', 'Mali müşavir CSV', 'file-badge', 'Muhasebe', 'accounting_e_export', keywords=('e-fatura', 'export'), perms_any=('accounting.finance',), module_slug='accounting'),
-    _item('Zaman kaydı', 'Saat & faturalama', 'clock', 'Muhasebe', 'accounting_timesheet', keywords=('zaman', 'saat'), perms_any=('accounting.finance',), module_slug='accounting'),
-    _item('Projeler', 'Operasyon projeleri', 'kanban', 'Muhasebe', 'accounting_projects', keywords=('proje', 'sprint'), perms_any=('accounting.finance',), module_slug='accounting'),
+    _item('Tedarikçi borçları', 'Vade ve ödeme', 'truck', 'Muhasebe', 'accounting_payables', keywords=('tedarik', 'borç'), perms_any=('accounting.finance',), module_slug='supplier_payables'),
+    _item('Kasa & banka', 'Çoklu hesap', 'landmark', 'Muhasebe', 'accounting_cash_accounts', keywords=('banka', 'hesap'), perms_any=('accounting.finance',), module_slug='multi_cash'),
+    _item('Proje kârlılığı', 'Marj raporu', 'pie-chart', 'Muhasebe', 'accounting_project_costing', keywords=('kâr', 'maliyet'), perms_any=('accounting.finance',), module_slug='project_costing'),
+    _item('Dış aktarım', 'Mali müşavir CSV', 'file-badge', 'Muhasebe', 'accounting_e_export', keywords=('e-fatura', 'export'), perms_any=('accounting.finance',), module_slug='e_invoice_bridge'),
+    _item('Zaman kaydı', 'Saat & faturalama', 'clock', 'Muhasebe', 'accounting_timesheet', keywords=('zaman', 'saat'), perms_any=('accounting.finance',), module_slug='timesheet'),
+    _item('Montaj programı', 'Günlük kurulum planı', 'calendar-days', 'Muhasebe', 'accounting_projects', keywords=('montaj', 'proje', 'takvim', 'program'), perms_any=('accounting.finance', 'access.accounting', 'services.manage', 'contact.teams'), module_slug='projects'),
     _item('Alacaklar', 'Bekleyen tahsilat', 'hand-coins', 'Muhasebe', 'accounting_receivables', keywords=('alacak', 'tahsilat'), perms_any=('sales.reports', 'sales.manage'), module_slug='accounting'),
     _item('Satış kayıtları', 'Pipeline listesi', 'list', 'Muhasebe', 'sales_lead_list', keywords=('satış',), perms_any=('access.accounting', 'sales.manage'), module_slug='accounting'),
     _item('Yeni satış', 'Satış kaydı oluştur', 'circle-plus', 'Muhasebe', 'sales_lead_create', keywords=('yeni satış',), perms_any=('sales.manage',), module_slug='accounting', kind='action'),
@@ -85,8 +85,8 @@ QUICK_SEARCH_ITEMS: tuple[QuickSearchItem, ...] = (
     _item('Veri alışverişi', 'CSV içe/dışa aktarım', 'arrow-up-down', 'Muhasebe', 'accounting_data_exchange', keywords=('csv', 'import'), perms_any=('contact.payroll', 'accounting.finance', 'sales.export'), module_slug='accounting'),
     _item('İletişim Merkezi', 'Kampanya hub', 'messages-square', 'İletişim', 'outreach_hub', module_slug='outreach', perms_any=('access.outreach',)),
     _item('Kampanyalar', 'Toplu mesaj gönderimi', 'megaphone', 'İletişim', 'outreach_campaigns', keywords=('kampanya',), perms_any=('access.outreach',), module_slug='outreach'),
-    _item('WhatsApp bağlan', 'Köprü ve senaryolar', 'message-circle', 'Araçlar', 'tools_whatsapp_baglan', keywords=('whatsapp',), perms_any=('tools.whatsapp',)),
-    _item('Medya kütüphanesi', 'Yüklenen dosyalar', 'images', 'Araçlar', 'tools_media_library', keywords=('medya', 'dosya'), perms_any=('tools.media',)),
+    _item('WhatsApp bağlan', 'Köprü ve senaryolar', 'message-circle', 'Araçlar', 'tools_whatsapp_baglan', keywords=('whatsapp',), perms_any=('tools.whatsapp',), module_slug='integration_whatsapp_bridge'),
+    _item('Medya kütüphanesi', 'Yüklenen dosyalar', 'images', 'Araçlar', 'tools_media_library', keywords=('medya', 'dosya'), perms_any=('tools.media',), module_slug='integration_media'),
     _item('Araçlar', 'Entegrasyon kısayolları', 'hammer', 'Araçlar', 'tools_hub', keywords=('araç',), perms_any=('access.tools',)),
     _item('Site ayarları', 'Firma bilgileri', 'building-2', 'Ayarlar', 'settings_genel', keywords=('ayar', 'firma'), perms_any=('access.settings',), module_slug='settings'),
     _item('Ürün kataloğu', 'Ortak ürünler', 'package', 'Ayarlar', 'settings_products', keywords=('ürün',), perms_any=('access.settings',), module_slug='settings'),
@@ -106,9 +106,9 @@ def _user_can_see_item(user, item: QuickSearchItem) -> bool:
         if item.module_slug == 'settings':
             if not user.has_perm_codename('access.settings'):
                 return False
-        elif not module_available_for_nav(user, item.module_slug):
+        elif not module_route_allowed(item.module_slug):
             return False
-        elif not is_module_enabled(item.module_slug):
+        elif not module_available_for_nav(user, item.module_slug):
             return False
     if item.perms_any:
         return user.has_any_perm_codename(*item.perms_any)

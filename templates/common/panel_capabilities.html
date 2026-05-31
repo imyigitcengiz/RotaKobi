@@ -1,21 +1,33 @@
-{# Entegrasyonlar — WhatsApp, kazıma, medya #}
-{% if panel_integrations %}
+{# Açık entegrasyonlar — kapalı veya üst modül kapalı olanlar listelenmez #}
+{% if panel_integration_groups %}
 <section class="mb-10">
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h3 class="text-xs font-bold uppercase tracking-wider text-amber-700 flex items-center gap-2">
-            <i data-lucide="zap" class="w-4 h-4"></i> Entegrasyonlar
+            <i data-lucide="zap" class="w-4 h-4"></i> Açık entegrasyonlar
         </h3>
+        {% if can_manage_modules %}
         <a href="{{ capabilities_hub_url }}" class="text-xs font-bold text-amber-600 hover:text-amber-800">{{ gy.entegrasyon_merkezi }} →</a>
+        {% endif %}
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {% for mod in panel_integrations %}
-        <a href="{{ mod.open_url }}" class="group block bg-white rounded-2xl border border-amber-100 shadow-sm hover:shadow-md hover:border-amber-300 transition-all p-5">
-            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 group-hover:bg-amber-500 group-hover:text-white transition-colors">
-                <i data-lucide="{{ mod.icon }}" class="w-5 h-5"></i>
+
+    <div class="space-y-8">
+        {% for group in panel_integration_groups %}
+        <div>
+            <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+                <i data-lucide="{{ group.icon }}" class="w-3.5 h-3.5"></i> {{ group.name }}
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for mod in group.items %}
+                <a href="{{ mod.open_url }}" class="group block bg-white rounded-2xl border border-amber-100 shadow-sm hover:shadow-md hover:border-amber-300 transition-all p-5">
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                        <i data-lucide="{{ mod.icon }}" class="w-5 h-5"></i>
+                    </div>
+                    <h5 class="font-bold text-slate-900 text-sm">{{ mod.name }}</h5>
+                    <p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ mod.summary }}</p>
+                </a>
+                {% endfor %}
             </div>
-            <h4 class="font-bold text-slate-900 text-sm">{{ mod.name }}</h4>
-            <p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ mod.summary }}</p>
-        </a>
+        </div>
         {% endfor %}
     </div>
 </section>

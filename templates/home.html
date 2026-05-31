@@ -10,7 +10,7 @@
 <body class="erp-app erp-theme-sky min-h-screen bg-slate-100 text-slate-900">
     <div class="min-h-screen flex flex-col">
         <header class="bg-white border-b border-slate-200">
-            <div class="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
+            <div class="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                     {% if site_settings.logo %}
                     <img src="{{ site_settings.logo.url }}" alt="" class="h-10 w-10 rounded-xl object-contain">
@@ -39,20 +39,24 @@
             </div>
         </header>
 
-        <main class="flex-1 max-w-5xl mx-auto w-full px-4 md:px-6 py-8 md:py-12">
+        <main class="flex-1 max-w-6xl mx-auto w-full px-4 md:px-6 py-8 md:py-12">
             {% include 'common/toast_messages.html' %}
             <div class="mb-8">
                 <h2 class="text-2xl font-bold text-slate-900">Hoş geldiniz, {{ user_profile_card.display_name }}</h2>
-                <p class="text-slate-600 mt-2">Kurulu modüllere ve entegrasyonlara hızlı erişin.</p>
+                <p class="text-slate-600 mt-2">Kurulu modüllere ve açık entegrasyonlara hızlı erişin.</p>
             </div>
 
-            <nav class="mb-8 flex flex-wrap gap-2" aria-label="Platform">
+            <nav class="mb-10 flex flex-wrap gap-2" aria-label="Platform">
+                {% if can_manage_modules %}
                 <a href="{% url 'module_hub' %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-semibold text-slate-700 hover:border-violet-300 hover:text-violet-700">
                     <i data-lucide="puzzle" class="w-4 h-4"></i> {{ gy.modul_merkezi }}
                 </a>
+                {% endif %}
+                {% if panel_integrations or can_manage_modules %}
                 <a href="{% url 'capabilities_hub' %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-amber-200 text-sm font-semibold text-amber-800 hover:bg-amber-50">
                     <i data-lucide="zap" class="w-4 h-4"></i> {{ gy.entegrasyon_merkezi }}
                 </a>
+                {% endif %}
                 <a href="{% url 'introducer_knowledge_base' %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-violet-200 text-sm font-semibold text-violet-800 hover:bg-violet-50">
                     <i data-lucide="book-open" class="w-4 h-4"></i> Bilgi bankası
                 </a>
@@ -63,8 +67,29 @@
                 {% endif %}
             </nav>
 
-            {% include 'common/panel_capabilities.html' %}
             {% include 'common/panel_profile_apps.html' %}
+
+            {% if contact_show_panel %}
+            {% include 'common/panel_rehber_section.html' %}
+            {% endif %}
+
+            {% if services_show_panel %}
+            <section class="mb-10">
+                {% include 'common/panel_services_section.html' %}
+            </section>
+            {% endif %}
+
+            {% if accounting_show_payroll or accounting_show_finance or accounting_show_reports or accounting_show_sales %}
+            <section class="mb-10">
+                {% include 'common/accounting_panel_section.html' with section_title=gy.muhasebe show_hub_link=True show_hub_card=False card_layout='wide' highlight_payroll=False %}
+            </section>
+            {% endif %}
+
+            {% if outreach_show_panel %}
+            {% include 'common/panel_outreach_section.html' %}
+            {% endif %}
+
+            {% include 'common/panel_capabilities.html' %}
 
             {% if user_access.settings %}
             <section class="mb-10">
@@ -86,7 +111,7 @@
             </section>
             {% endif %}
 
-            {% if not panel_modules and not user_access.settings %}
+            {% if not panel_has_content %}
             <div class="p-6 rounded-2xl bg-amber-50 border border-amber-100 text-amber-800 text-sm">
                 Açık uygulama yok veya rol izniniz tanımlı değil. Yöneticinizle iletişime geçin.
             </div>

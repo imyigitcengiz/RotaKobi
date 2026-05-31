@@ -152,6 +152,9 @@
         <button type="button" id="setRegionBtn" disabled class="px-3 py-1.5 bg-teal-600 text-white rounded-xl text-xs font-bold disabled:opacity-40">Bölge ata</button>
         <button type="button" id="deleteSelectedBtn" disabled class="px-3 py-1.5 bg-red-100 text-red-700 rounded-xl text-xs font-bold disabled:opacity-40">Seçilenleri sil</button>
         <button type="button" id="addFirmBtn" class="px-3 py-1.5 bg-brand-600 text-white rounded-xl text-xs font-bold">Manuel kayıt ekle</button>
+        <a href="{% url 'csv_import_wizard' %}?type=firms&next={{ request.get_full_path|urlencode }}" class="px-3 py-1.5 bg-rose-50 text-rose-800 border border-rose-200 rounded-xl text-xs font-bold hover:bg-rose-100 inline-flex items-center gap-1">
+            <i data-lucide="upload" class="w-3.5 h-3.5"></i> CSV yükle
+        </a>
         <button type="button" id="clearMemoryBtn" class="px-3 py-1.5 bg-red-600 text-white rounded-xl text-xs font-bold">Rehberi temizle</button>
         <a href="{% url 'outreach_campaigns' %}" class="px-3 py-1.5 bg-brand-100 text-brand-800 rounded-xl text-xs font-bold hover:bg-brand-200 ml-auto">Kampanyalar →</a>
     </div>

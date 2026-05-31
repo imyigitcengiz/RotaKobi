@@ -109,6 +109,7 @@ class HomeView(TemplateView):
         from core_settings.accounting_summary import build_accounting_panel_context
         from analytics.panel_summary import build_services_panel_context, build_outreach_panel_context
         from common.module_runtime import (
+            build_panel_integration_groups,
             build_panel_integrations,
             build_panel_modules,
             panel_section_visible,
@@ -121,16 +122,32 @@ class HomeView(TemplateView):
 
         context['panel_modules'] = build_panel_modules(user)
         context['panel_integrations'] = build_panel_integrations(user)
+        context['panel_integration_groups'] = build_panel_integration_groups(user)
         context['can_manage_modules'] = (
             user.is_superuser or user.has_perm_codename('access.settings')
         )
 
+        if panel_section_visible('contact') and user.has_perm_codename('access.contact'):
+            context['contact_show_panel'] = True
         if can_access_accounting(user) and panel_section_visible('accounting'):
             context.update(build_accounting_panel_context(user))
         if panel_section_visible('services') and user.has_perm_codename('access.services'):
             context.update(build_services_panel_context(user))
         if panel_section_visible('outreach') and user.has_perm_codename('access.outreach'):
             context.update(build_outreach_panel_context(user))
+
+        context['panel_has_content'] = bool(
+            context['panel_modules']
+            or context['panel_integrations']
+            or context.get('contact_show_panel')
+            or context.get('services_show_panel')
+            or context.get('accounting_show_payroll')
+            or context.get('accounting_show_finance')
+            or context.get('accounting_show_reports')
+            or context.get('accounting_show_sales')
+            or context.get('outreach_show_panel')
+            or context['can_manage_modules']
+        )
         return context
 
 
@@ -157,10 +174,12 @@ class ModuleHubView(TemplateView):
         return context
 
     def post(self, request, *args, **kwargs):
-        from common.module_catalog import module_by_slug
-        from common.module_runtime import get_enabled_module_slugs
+        from common.middleware import _is_api_request
+        from common.module_toggle import toggle_module_slug
 
         if not (request.user.is_superuser or request.user.has_perm_codename('access.settings')):
+            if _is_api_request(request):
+                return JsonResponse({'ok': False, 'error': 'Modül ayarları için yetkiniz yok.'}, status=403)
             messages.error(request, 'Modül ayarları için yetkiniz yok.')
             return redirect('module_hub')
 
@@ -172,28 +191,36 @@ class ModuleHubView(TemplateView):
         if request.GET.get('q'):
             redirect_qs = f'?q={request.GET.get("q")}'
 
-        if 'toggle_module' in request.POST:
-            slug = request.POST.get('module_slug', '').strip()
-            mod = module_by_slug(slug)
-            if not mod or mod['slug'].startswith('agency_'):
-                messages.error(request, 'Geçersiz modül.')
+        if 'apply_sector' in request.POST:
+            sector_slug = request.POST.get('sector_slug', '').strip()
+            from common.sector_catalog import sector_by_slug, apply_sector_preset
+
+            if not sector_by_slug(sector_slug):
+                messages.error(request, 'Geçersiz sektör profili.')
             else:
-                enabled = list(get_enabled_module_slugs())
-                if slug in enabled:
-                    if not mod.get('can_disable', True):
-                        messages.error(request, 'Bu modül kapatılamaz.')
-                    elif len([s for s in enabled if module_by_slug(s) and module_by_slug(s).get('can_disable', True)]) <= 1:
-                        messages.error(request, 'En az bir modül açık kalmalı.')
-                    else:
-                        enabled.remove(slug)
-                        settings.enabled_module_slugs = enabled
-                        settings.save(update_fields=['enabled_module_slugs'])
-                        messages.info(request, f'"{mod["name"]}" kapatıldı.')
+                apply_sector_preset(settings, sector_slug)
+                sec = sector_by_slug(sector_slug)
+                messages.success(
+                    request,
+                    f'"{sec["name"]}" sektör paketi uygulandı — modüller güncellendi.',
+                )
+
+        elif 'toggle_module' in request.POST:
+            slug = request.POST.get('module_slug', '').strip()
+            result = toggle_module_slug(request.user, slug)
+            if _is_api_request(request):
+                status = 200 if result.get('ok') else 400
+                if not result.get('ok') and 'yetkiniz' in result.get('error', ''):
+                    status = 403
+                return JsonResponse(result, status=status)
+            if result.get('ok'):
+                level = result.get('level', 'success')
+                if level == 'info':
+                    messages.info(request, result['message'])
                 else:
-                    enabled.append(slug)
-                    settings.enabled_module_slugs = enabled
-                    settings.save(update_fields=['enabled_module_slugs'])
-                    messages.success(request, f'"{mod["name"]}" açıldı.')
+                    messages.success(request, result['message'])
+            else:
+                messages.error(request, result.get('error', 'İşlem başarısız.'))
 
         from django.urls import reverse
         return redirect(f"{reverse('module_hub')}{redirect_qs}")
@@ -213,7 +240,10 @@ class CapabilitiesHubView(TemplateView):
         from common.capability_hub import build_capabilities_hub_context
 
         context = super().get_context_data(**kwargs)
-        context.update(build_capabilities_hub_context(self.request.user))
+        context.update(build_capabilities_hub_context(
+            self.request.user,
+            section=(self.request.GET.get('section') or '').strip() or None,
+        ))
         context['can_manage_modules'] = (
             self.request.user.is_superuser
             or self.request.user.has_perm_codename('access.settings')

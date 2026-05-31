@@ -1,0 +1,152 @@
+{% extends 'muhasebe/base.html' %}
+{% load static %}
+
+{% block title %}CSV içe aktarma{% if import_label %} — {{ import_label }}{% endif %}{% endblock %}
+
+{% block header %}
+<h1 class="text-lg font-bold text-slate-900">CSV içe aktarma</h1>
+<p class="text-sm text-slate-500">Dosyayı yükleyin, sütunları tablo alanlarıyla eşleştirin, ardından içe aktarın.</p>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    {% if not import_type %}
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+        <h2 class="font-bold text-slate-900 mb-4">İçe aktarma türü seçin</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {% for item in import_types %}
+            <a href="{% url 'csv_import_wizard' %}?type={{ item.slug }}&next={{ next_url|urlencode }}"
+               class="flex items-start gap-3 p-4 rounded-2xl border border-slate-200 hover:border-brand-300 hover:bg-brand-50/40 transition-colors">
+                <span class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                    <i data-lucide="{{ item.icon }}" class="w-5 h-5"></i>
+                </span>
+                <div>
+                    <p class="font-bold text-slate-900">{{ item.label }}</p>
+                    <p class="text-xs text-slate-500 mt-1 font-mono">{{ item.sample_hint }}</p>
+                </div>
+            </a>
+            {% empty %}
+            <p class="text-sm text-slate-500">CSV içe aktarma için yetkiniz yok.</p>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
+
+    {% if not preview_token %}
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+                <h2 class="font-bold text-slate-900">{{ import_label }}</h2>
+                <p class="text-sm text-slate-500 mt-1 font-mono">{{ import_hint }}</p>
+            </div>
+            <a href="{% url 'csv_import_wizard' %}?next={{ next_url|urlencode }}" class="text-sm font-semibold text-slate-500 hover:text-brand-600">← Tür değiştir</a>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="space-y-4 pt-2">
+            {% csrf_token %}
+            <input type="hidden" name="type" value="{{ import_type }}">
+            <input type="hidden" name="step" value="upload">
+            <input type="hidden" name="next" value="{{ next_url }}">
+            <label class="block text-xs font-bold text-slate-600 uppercase">CSV dosyası</label>
+            <input type="file" name="file" accept=".csv,text/csv" required
+                   class="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-brand-50 file:text-brand-800 file:font-bold">
+            <div class="flex flex-wrap gap-2">
+                <button type="submit" class="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700">Önizle ve eşleştir</button>
+                <a href="{{ next_url }}" class="px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50">İptal</a>
+            </div>
+        </form>
+    </section>
+    {% else %}
+
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+                <h2 class="font-bold text-slate-900">Sütun eşleştirme</h2>
+                <p class="text-sm text-slate-500 mt-1">{{ row_count }} satır — CSV sütunlarını sistem alanlarıyla eşleştirin.</p>
+            </div>
+            <a href="{% url 'csv_import_wizard' %}?type={{ import_type }}&next={{ next_url|urlencode }}" class="text-sm font-semibold text-slate-500 hover:text-brand-600">← Dosyayı değiştir</a>
+        </div>
+
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+            <input type="hidden" name="type" value="{{ import_type }}">
+            <input type="hidden" name="step" value="import">
+            <input type="hidden" name="token" value="{{ preview_token }}">
+            <input type="hidden" name="next" value="{{ next_url }}">
+
+            <div class="overflow-x-auto rounded-2xl border border-slate-200">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-100">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Sistem alanı</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">CSV sütunu</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">Örnek değer</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for row in mapping_rows %}
+                        <tr>
+                            <td class="px-4 py-3 font-semibold text-slate-800">
+                                {{ row.label }}{% if row.required %}<span class="text-red-600">*</span>{% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                <select name="map_{{ row.key }}" class="w-full min-w-[180px] p-2 bg-white border border-slate-200 rounded-xl text-sm">
+                                    <option value="">— Atla —</option>
+                                    {% for header in csv_headers %}
+                                    <option value="{{ header }}" {% if row.selected_header == header %}selected{% endif %}>{{ header }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="px-4 py-3 text-slate-500 font-mono text-xs">{{ row.sample }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if preview_matrix %}
+            <div>
+                <p class="text-xs font-bold text-slate-600 uppercase mb-2">Önizleme (ilk satırlar)</p>
+                <div class="overflow-x-auto rounded-2xl border border-slate-200">
+                    <table class="w-full text-xs">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                {% for header in csv_headers %}
+                                <th class="px-3 py-2 text-left font-bold text-slate-600 whitespace-nowrap">{{ header }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for cells in preview_matrix %}
+                            <tr>
+                                {% for cell in cells %}
+                                <td class="px-3 py-2 text-slate-700 whitespace-nowrap">{{ cell|default:"—"|truncatechars:48 }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="flex flex-wrap gap-2 pt-2">
+                <button type="submit" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 inline-flex items-center gap-2">
+                    <i data-lucide="upload" class="w-4 h-4"></i> {{ row_count }} satırı içe aktar
+                </button>
+                <a href="{{ next_url }}" class="px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50">İptal</a>
+            </div>
+        </form>
+    </section>
+    {% endif %}
+    {% endif %}
+
+    <section class="rounded-2xl bg-slate-50 border border-slate-200 p-5 text-sm text-slate-600 space-y-2">
+        <p class="font-bold text-slate-800">İpuçları</p>
+        <ul class="list-disc pl-5 space-y-1">
+            <li>Ayraç: noktalı virgül (;) veya virgül (,) — otomatik algılanır</li>
+            <li>Zorunlu alanlar eşleştirilmezse ilgili satırlar atlanır</li>
+            <li>İçe aktarma mevcut kayıtları silmez; yeni kayıt ekler veya günceller</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}

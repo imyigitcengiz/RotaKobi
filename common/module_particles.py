@@ -192,8 +192,8 @@ PARTICLES: tuple[dict, ...] = (
     },
     {
         'slug': 'p.accounting.projects',
-        'name': 'Operasyon projeleri',
-        'summary': 'Proje kartları, durum panosu, müşteri/satış bağlantısı.',
+        'name': 'Montaj programı',
+        'summary': 'Proje kartları, günlük montaj takvimi, ekip ataması.',
         'category': 'operasyon',
         'parent_module': 'accounting',
         'route_prefixes': ('/muhasebe/projeler/',),
@@ -221,7 +221,7 @@ VERTICAL_CATALOG_PRESETS: dict[str, dict[str, tuple[str, ...]]] = {
             'contact', 'services', 'accounting', 'outreach',
             'supplier_payables', 'e_invoice_bridge', 'project_costing', 'multi_cash', 'projects', 'timesheet',
             'integration_data_harvest',
-            'integration_whatsapp_bridge', 'integration_whatsapp_api', 'integration_media',
+            'integration_whatsapp_bridge', 'integration_whatsapp_api', 'integration_media', 'integration_weather',
         ),
         'particles': (
             'p.contact.customers', 'p.contact.firms', 'p.contact.teams',
@@ -298,6 +298,11 @@ def default_enabled_particle_slugs() -> list[str]:
 
 
 def vertical_preset_all_slugs(vertical_slug: str) -> tuple[str, ...]:
+    from common.sector_catalog import normalize_sector_slug, sector_preset_all_slugs
+
+    slug = normalize_sector_slug(vertical_slug)
+    if slug in ('montaj_saha', 'bayi_servis', 'insaat_taahhut', 'hizmet_danismanlik', 'evde_bakim', 'stk_dernek'):
+        return sector_preset_all_slugs(slug)
     preset = VERTICAL_CATALOG_PRESETS.get(vertical_slug, VERTICAL_CATALOG_PRESETS['kobi'])
     return preset['modules'] + preset['particles']
 

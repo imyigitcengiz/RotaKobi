@@ -82,7 +82,7 @@ LANDING_MUHASEBE_FEATURES: tuple[tuple[str, str, str], ...] = (
     ('truck', 'Tedarikçi borçları', 'Vade takibi; ödeme otomatik gider kaydı'),
     ('landmark', 'Çoklu kasa & banka', 'Nakit, banka, POS hesap bakiyeleri'),
     ('pie-chart', 'Proje kârlılığı', 'Satış geliri − proje gideri = marj'),
-    ('kanban', 'Operasyon projeleri', 'Durum panosu, müşteri ve satış bağlantısı'),
+    ('calendar-days', 'Montaj programı', 'Günlük kurulum takvimi, ekip, hava durumu'),
     ('clock', 'Zaman kaydı', 'Personel saatleri ve faturalama durumu'),
     ('file-badge', 'Dış aktarım', 'Mali müşavir CSV paketi (Logo / Paraşüt)'),
     ('bar-chart-3', 'Raporlar', 'Maaş, satış, gelir-gider; yazdırma ve dönem filtresi'),
@@ -124,14 +124,9 @@ LANDING_SETTINGS_FEATURES: tuple[tuple[str, str, str], ...] = (
     ('handshake', 'Çözüm ortağı türleri', 'Taşeron / partner sınıflandırması'),
 )
 
-LANDING_SECTORS: tuple[tuple[str, str, str, str], ...] = (
-    ('wrench', 'Montaj & saha servis', 'Tam uyum', 'Teklif → satış → saha → stok → tahsilat akışı'),
-    ('store', 'Bayi servis ağı', 'Yüksek', 'Garanti servisi, çok nokta, alacak takibi'),
-    ('hard-hat', 'İnşaat & taahhüt', 'Yüksek', 'Saha ekip, malzeme reçetesi, proje satışı'),
-    ('briefcase', 'Hizmet & danışmanlık', 'Orta', 'Saha modülü kapalı; teklif, satış, kasa'),
-    ('heart-pulse', 'Evde bakım / sağlık', 'Orta', 'Randevu planı; muhasebe modülü opsiyonel'),
-    ('heart-handshake', 'STK & dernek', 'Kısmi', 'Kampanya, rehber; servis/muhasebe kapalı profil'),
-)
+from common.sector_catalog import landing_sectors_tuple
+
+LANDING_SECTORS: tuple[tuple[str, str, str, str], ...] = landing_sectors_tuple()
 
 LANDING_FLOW_SAHA: tuple[tuple[str, str, str, str, str], ...] = (
     ('border-violet-500/20 bg-violet-500/5', 'text-violet-400', '1', 'Rehber', 'Müşteri kartı, ürün ve sözleşme'),

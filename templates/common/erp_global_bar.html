@@ -1,5 +1,11 @@
 {% if user.is_authenticated %}
 <div class="erp-global-bar flex items-center gap-2 shrink-0">
+    {% if modules_installed.integration_weather %}
+    <div id="erpWeatherWidget" class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-600" title="Open-Meteo — API anahtarı gerekmez">
+        <i data-lucide="cloud-sun" class="w-4 h-4 text-sky-500 shrink-0"></i>
+        <span id="erpWeatherText" class="truncate max-w-[140px] lg:max-w-[200px]">Hava…</span>
+    </div>
+    {% endif %}
     <button type="button" id="erpQuickSearchOpen" class="erp-global-search-trigger hidden sm:flex items-center gap-2 min-w-[200px] lg:min-w-[260px] px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 text-left transition-colors" aria-label="Hızlı arama" aria-haspopup="dialog" aria-controls="erpQuickSearchModal">
         <i data-lucide="search" class="w-4 h-4 text-slate-400 shrink-0"></i>
         <span class="flex-1 text-sm text-slate-500 truncate">Hızlı arama</span>
@@ -25,4 +31,26 @@
         </div>
     </div>
 </div>
+{% if modules_installed.integration_weather %}
+<script>
+(function () {
+    const el = document.getElementById('erpWeatherWidget');
+    const text = document.getElementById('erpWeatherText');
+    if (!el || !text) return;
+    fetch('/tools/api/hava-durumu/', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+            if (!data || !data.ok || !data.weather) {
+                text.textContent = 'Hava alınamadı';
+                return;
+            }
+            var w = data.weather;
+            var temp = w.temperature_c != null ? Math.round(w.temperature_c) + '°' : '';
+            text.textContent = (w.city || '') + (temp ? ' · ' + temp : '') + ' · ' + (w.condition || '');
+            el.classList.remove('hidden');
+        })
+        .catch(function () { text.textContent = 'Hava kapalı'; el.classList.remove('hidden'); });
+})();
+</script>
+{% endif %}
 {% endif %}

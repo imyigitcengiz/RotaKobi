@@ -9,6 +9,12 @@
     <a href="{% url 'customer_create' %}" class="flex items-center gap-2 bg-white text-slate-800 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 text-sm font-semibold">
         <i data-lucide="user-plus" class="w-4 h-4"></i> Yeni Müşteri
     </a>
+    <a href="{% url 'customer_export_csv' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="flex items-center gap-2 bg-white text-slate-800 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 text-sm font-semibold">
+        <i data-lucide="download" class="w-4 h-4"></i> CSV indir
+    </a>
+    <a href="{% url 'csv_import_wizard' %}?type=customers&next={{ request.get_full_path|urlencode }}" class="flex items-center gap-2 bg-brand-50 text-brand-800 border border-brand-200 px-4 py-2 rounded-xl hover:bg-brand-100 text-sm font-semibold">
+        <i data-lucide="upload" class="w-4 h-4"></i> CSV yükle
+    </a>
     {% endif %}
     {% if user_perms.sales_manage %}
     <a href="{% url 'sales_lead_create' %}" class="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-xl hover:bg-brand-700 text-sm font-semibold shadow-lg shadow-brand-200">

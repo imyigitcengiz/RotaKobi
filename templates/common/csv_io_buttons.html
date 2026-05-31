@@ -1,0 +1,17 @@
+{% comment %}
+CSV indir / yükle buton çifti.
+Kullanım: {% include 'common/csv_io_buttons.html' with import_type='finance' export_url=export_url %}
+{% endcomment %}
+{% if import_type %}
+<div class="inline-flex flex-wrap items-center gap-2">
+    {% if export_url %}
+    <a href="{{ export_url }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        <i data-lucide="download" class="w-4 h-4"></i> CSV indir
+    </a>
+    {% endif %}
+    <a href="{% url 'csv_import_wizard' %}?type={{ import_type }}&next={{ request.get_full_path|urlencode }}"
+       class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-brand-200 bg-brand-50 text-brand-800 text-sm font-semibold hover:bg-brand-100">
+        <i data-lucide="upload" class="w-4 h-4"></i> CSV yükle
+    </a>
+</div>
+{% endif %}
