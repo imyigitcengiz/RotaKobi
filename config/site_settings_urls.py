@@ -26,6 +26,7 @@ _cozum = SiteSettingsView.as_view(section='cozum-turleri')
 urlpatterns = [
     path('', RedirectView.as_view(url='/ayarlar/genel/', permanent=False), name='site_general_settings'),
     path('genel/', SiteSettingsView.as_view(section='genel'), name='settings_genel'),
+    path('mesai/', SiteSettingsView.as_view(section='mesai'), name='settings_work_schedule'),
     path('urunler/', _urunler, name='settings_products'),
     path('ariza-tipleri/', _ariza, name='settings_service_types'),
     path('durumlar/', _durum, name='settings_statuses'),

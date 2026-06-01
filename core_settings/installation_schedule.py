@@ -25,6 +25,15 @@ def _site_settings() -> SiteSettings | None:
     return SiteSettings.objects.first()
 
 
+def _default_work_schedule_label() -> str:
+    from core_settings.work_schedule import get_default_work_schedule_plan
+
+    plan = get_default_work_schedule_plan()
+    if not plan:
+        return 'Tanımlı değil'
+    return f'{plan.name} ({plan.summary()})'
+
+
 def default_work_type_for_date(d: date, settings: SiteSettings) -> str:
     if d.weekday() == 5:
         return settings.schedule_saturday_default_work or InstallationScheduleEntry.TYPE_INSTALLATION
@@ -216,6 +225,7 @@ def build_schedule_calendar(
             'weather_city': (settings.weather_city or '').strip() or 'Ayarlanmadı',
             'weather_city_value': (settings.weather_city or '').strip(),
             'weather_city_configured': bool((settings.weather_city or '').strip()),
+            'work_schedule_plan': _default_work_schedule_label(),
         },
         'work_type_choices': InstallationScheduleEntry.TYPE_CHOICES,
     }

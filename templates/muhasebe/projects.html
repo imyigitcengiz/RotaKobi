@@ -29,6 +29,7 @@
             · Günlük hava satırlarda <strong>müşteri bölgesine</strong> göre
             · Cumartesi: {% if schedule_settings.saturday_working %}çalışma{% else %}tatil{% endif %}
             · Pazar: {% if schedule_settings.sunday_working %}çalışma{% else %}tatil{% endif %}
+            · Mesai: <a href="{% url 'settings_work_schedule' %}" class="text-brand-600 font-semibold hover:underline">{{ schedule_settings.work_schedule_plan }}</a>
         </p>
     </section>
 

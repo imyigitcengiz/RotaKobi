@@ -146,6 +146,41 @@ class SiteSettings(models.Model):
         return currency_from_settings(self).label
 
 
+class WorkSchedulePlan(models.Model):
+    """Haftalık mesai planı — site ayarlarından yönetilir."""
+
+    name = models.CharField(max_length=120, verbose_name='Plan adı')
+    notes = models.TextField(blank=True, default='', verbose_name='Açıklama')
+    is_default = models.BooleanField(
+        default=False,
+        verbose_name='Varsayılan plan',
+        help_text='Montaj programı ve mesai kontrollerinde öncelikli plan.',
+    )
+    is_active = models.BooleanField(default=True, verbose_name='Aktif')
+    weekly_hours = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name='Haftalık mesai',
+        help_text='Gün başına: çalışma günü mü, başlangıç ve bitiş saati.',
+    )
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name='Sıra')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-is_default', 'sort_order', 'name']
+        verbose_name = 'Mesai planı'
+        verbose_name_plural = 'Mesai planları'
+
+    def __str__(self):
+        return self.name
+
+    def summary(self) -> str:
+        from core_settings.work_schedule import format_plan_summary
+
+        return format_plan_summary(self)
+
+
 class ColorOptionMixin(models.Model):
     color = models.CharField(max_length=7, default='#3b82f6', verbose_name="Renk")
 

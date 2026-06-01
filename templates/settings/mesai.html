@@ -1,0 +1,170 @@
+{% extends 'settings/base.html' %}
+{% block title %}Mesai planları{% endblock %}
+{% block content %}
+<div class="pb-12 space-y-8">
+    {% include 'settings/_page_header.html' %}
+    <p class="text-sm text-slate-600 -mt-4">
+        Haftalık çalışma saatlerini plan olarak tanımlayın. Varsayılan plan montaj programı ve operasyon kurallarında referans alınır.
+        {% if work_schedule_default %}
+        Şu anki varsayılan: <strong class="text-amber-800">{{ work_schedule_default.name }}</strong>
+        <span class="text-slate-500">({{ work_schedule_default.summary }})</span>
+        {% endif %}
+    </p>
+
+    <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            <h3 class="font-bold text-slate-900">Kayıtlı planlar</h3>
+            <a href="{% url 'settings_work_schedule' %}" class="text-sm font-semibold text-amber-700 hover:underline">+ Yeni plan</a>
+        </div>
+        <div class="divide-y divide-slate-100">
+            {% for plan in work_schedule_plans %}
+            <article class="p-5 flex flex-col lg:flex-row lg:items-start gap-4 {% if work_schedule_edit and work_schedule_edit.id == plan.id %}bg-amber-50/50{% endif %}">
+                <div class="flex-1 min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h4 class="font-bold text-slate-900">{{ plan.name }}</h4>
+                        {% if plan.is_default %}
+                        <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Varsayılan</span>
+                        {% endif %}
+                        {% if not plan.is_active %}
+                        <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Pasif</span>
+                        {% endif %}
+                    </div>
+                    {% if plan.notes %}
+                    <p class="text-sm text-slate-500 mt-1">{{ plan.notes }}</p>
+                    {% endif %}
+                    <p class="text-xs text-slate-600 mt-2 font-medium">{{ plan.summary }}</p>
+                </div>
+                <div class="flex flex-wrap gap-2 shrink-0">
+                    <a href="{% url 'settings_work_schedule' %}?plan={{ plan.id }}" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Düzenle</a>
+                    {% if not plan.is_default %}
+                    <form method="post" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="set_default_work_schedule_plan" value="1">
+                        <input type="hidden" name="plan_id" value="{{ plan.id }}">
+                        <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 hover:bg-amber-100">Varsayılan yap</button>
+                    </form>
+                    {% endif %}
+                    <form method="post" class="inline" onsubmit="return confirm('Bu mesai planı silinsin mi?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="delete_work_schedule_plan" value="1">
+                        <input type="hidden" name="plan_id" value="{{ plan.id }}">
+                        <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-700 hover:bg-red-100">Sil</button>
+                    </form>
+                </div>
+            </article>
+            {% empty %}
+            <p class="p-8 text-center text-slate-400 text-sm">Henüz mesai planı yok. Aşağıdan ekleyin.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm">
+        <h3 class="font-bold text-slate-900 mb-1">
+            {% if work_schedule_edit %}Planı düzenle: {{ work_schedule_edit.name }}{% else %}Yeni mesai planı{% endif %}
+        </h3>
+        <p class="text-xs text-slate-500 mb-6">Çalışma günü işaretli günlerde başlangıç ve bitiş saati zorunludur (24 saat, örn. 09:00).</p>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            <input type="hidden" name="save_work_schedule_plan" value="1">
+            {% if work_schedule_edit %}
+            <input type="hidden" name="plan_id" value="{{ work_schedule_edit.id }}">
+            {% endif %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-slate-700">Plan adı</label>
+                    <input type="text" name="plan_name" required maxlength="120"
+                           value="{% if work_schedule_edit %}{{ work_schedule_edit.name }}{% else %}Standart mesai{% endif %}"
+                           class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                           placeholder="Örn. Kış mesaisi, Saha ekibi">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-slate-700">Sıra</label>
+                    <input type="number" name="plan_sort_order" min="0" step="1"
+                           value="{% if work_schedule_edit %}{{ work_schedule_edit.sort_order }}{% else %}0{% endif %}"
+                           class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                </div>
+                <div class="space-y-2 md:col-span-2">
+                    <label class="text-sm font-semibold text-slate-700">Açıklama (isteğe bağlı)</label>
+                    <textarea name="plan_notes" rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                              placeholder="Kimler için geçerli, sezon notu…">{% if work_schedule_edit %}{{ work_schedule_edit.notes }}{% endif %}</textarea>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-6 text-sm">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="plan_is_active" class="rounded accent-amber-600"
+                           {% if not work_schedule_edit or work_schedule_edit.is_active %}checked{% endif %}>
+                    <span class="font-medium text-slate-700">Aktif</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="plan_is_default" class="rounded accent-amber-600"
+                           {% if work_schedule_edit and work_schedule_edit.is_default %}checked{% elif not work_schedule_edit and not work_schedule_plans %}checked{% endif %}>
+                    <span class="font-medium text-slate-700">Varsayılan plan</span>
+                </label>
+            </div>
+
+            <div class="overflow-x-auto rounded-2xl border border-slate-200">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                        <tr>
+                            <th class="px-4 py-3 w-32">Gün</th>
+                            <th class="px-4 py-3 w-24">Çalışma</th>
+                            <th class="px-4 py-3">Başlangıç</th>
+                            <th class="px-4 py-3">Bitiş</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for row in work_schedule_rows %}
+                        <tr class="hover:bg-slate-50/80">
+                            <td class="px-4 py-3 font-semibold text-slate-800">{{ row.label }}</td>
+                            <td class="px-4 py-3">
+                                <input type="checkbox" name="day_{{ row.key }}_work" class="w-4 h-4 accent-amber-600 rounded day-work-toggle"
+                                       data-day="{{ row.key }}" {% if row.work %}checked{% endif %}>
+                            </td>
+                            <td class="px-4 py-3">
+                                <input type="time" name="day_{{ row.key }}_start" value="{{ row.start }}"
+                                       class="day-time w-full p-2 bg-white border border-slate-200 rounded-lg text-sm"
+                                       data-day="{{ row.key }}" {% if not row.work %}disabled{% endif %}>
+                            </td>
+                            <td class="px-4 py-3">
+                                <input type="time" name="day_{{ row.key }}_end" value="{{ row.end }}"
+                                       class="day-time w-full p-2 bg-white border border-slate-200 rounded-lg text-sm"
+                                       data-day="{{ row.key }}" {% if not row.work %}disabled{% endif %}>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex flex-wrap gap-3 justify-end">
+                {% if work_schedule_edit %}
+                <a href="{% url 'settings_work_schedule' %}" class="px-6 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200">İptal</a>
+                {% endif %}
+                <button type="submit" class="px-8 py-3 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700">
+                    {% if work_schedule_edit %}Güncelle{% else %}Plan ekle{% endif %}
+                </button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.querySelectorAll('.day-work-toggle').forEach(function (cb) {
+    const day = cb.dataset.day;
+    const sync = function () {
+        document.querySelectorAll('.day-time[data-day="' + day + '"]').forEach(function (inp) {
+            inp.disabled = !cb.checked;
+            if (!cb.checked) {
+                inp.value = '';
+            }
+        });
+    };
+    cb.addEventListener('change', sync);
+    sync();
+});
+</script>
+{% endblock %}

@@ -113,6 +113,12 @@ SETTINGS_SECTION_META = {
         'title': 'Çözüm ortağı türleri',
         'icon': 'handshake',
     },
+    'mesai': {
+        'template': 'settings/mesai.html',
+        'url_name': 'settings_work_schedule',
+        'title': 'Mesai planları',
+        'icon': 'clock',
+    },
 }
 
 
@@ -150,9 +156,27 @@ class SiteSettingsView(TemplateView):
             'solution_partner_types': SolutionPartnerType.objects.all(),
         }
 
+    def _build_work_schedule_context(self):
+        from core_settings.models import WorkSchedulePlan
+        from core_settings.work_schedule import get_default_work_schedule_plan, plan_display_rows
+
+        plans = WorkSchedulePlan.objects.all()
+        edit_id = self.request.GET.get('plan')
+        edit_plan = None
+        if edit_id and str(edit_id).isdigit():
+            edit_plan = plans.filter(pk=int(edit_id)).first()
+        return {
+            'work_schedule_plans': plans,
+            'work_schedule_edit': edit_plan,
+            'work_schedule_rows': plan_display_rows(edit_plan),
+            'work_schedule_default': get_default_work_schedule_plan(),
+        }
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(self._build_options_context())
+        if self.section == 'mesai':
+            context.update(self._build_work_schedule_context())
         meta = SETTINGS_SECTION_META[self.section]
         context['page_title'] = meta['title']
         context['page_icon'] = meta['icon']
@@ -162,7 +186,103 @@ class SiteSettingsView(TemplateView):
         return redirect(SETTINGS_SECTION_META[self.section]['url_name'])
 
     def post(self, request, *args, **kwargs):
-        if 'update_site' in request.POST:
+        if 'save_work_schedule_plan' in request.POST:
+            from core_settings.models import WorkSchedulePlan
+            from core_settings.work_schedule import set_default_plan, weekly_hours_from_request
+
+            name = (request.POST.get('plan_name') or '').strip()
+            if not name:
+                messages.error(request, 'Plan adı zorunludur.')
+                return self._redirect_after_post()
+
+            plan_id = request.POST.get('plan_id')
+            weekly = weekly_hours_from_request(request.POST)
+            notes = (request.POST.get('plan_notes') or '').strip()
+            is_default = request.POST.get('plan_is_default') == 'on'
+            is_active = request.POST.get('plan_is_active', 'on') == 'on'
+            sort_raw = request.POST.get('plan_sort_order', '0')
+            try:
+                sort_order = max(0, int(sort_raw))
+            except (TypeError, ValueError):
+                sort_order = 0
+
+            if plan_id and str(plan_id).isdigit():
+                plan = WorkSchedulePlan.objects.filter(pk=int(plan_id)).first()
+                if not plan:
+                    messages.error(request, 'Plan bulunamadı.')
+                    return self._redirect_after_post()
+                plan.name = name
+                plan.notes = notes
+                plan.weekly_hours = weekly
+                plan.is_active = is_active
+                plan.sort_order = sort_order
+                plan.save()
+                messages.success(request, f'"{plan.name}" güncellendi.')
+            else:
+                plan = WorkSchedulePlan.objects.create(
+                    name=name,
+                    notes=notes,
+                    weekly_hours=weekly,
+                    is_active=is_active,
+                    sort_order=sort_order,
+                    is_default=is_default and is_active,
+                )
+                messages.success(request, f'"{plan.name}" eklendi.')
+
+            if is_default and is_active:
+                set_default_plan(plan)
+            elif plan.is_default and not is_active:
+                plan.is_default = False
+                plan.save(update_fields=['is_default', 'updated_at'])
+
+            return redirect('settings_work_schedule')
+
+        elif 'delete_work_schedule_plan' in request.POST:
+            from core_settings.models import WorkSchedulePlan
+            from core_settings.work_schedule import default_weekly_hours, set_default_plan
+
+            plan_id = request.POST.get('plan_id')
+            if not plan_id or not str(plan_id).isdigit():
+                messages.error(request, 'Geçersiz plan.')
+                return self._redirect_after_post()
+            plan = WorkSchedulePlan.objects.filter(pk=int(plan_id)).first()
+            if not plan:
+                messages.error(request, 'Plan bulunamadı.')
+                return self._redirect_after_post()
+            was_default = plan.is_default
+            name = plan.name
+            plan.delete()
+            if was_default:
+                remaining = WorkSchedulePlan.objects.filter(is_active=True).order_by('sort_order', 'name').first()
+                if remaining:
+                    set_default_plan(remaining)
+                else:
+                    WorkSchedulePlan.objects.create(
+                        name='Standart mesai',
+                        is_default=True,
+                        is_active=True,
+                        weekly_hours=default_weekly_hours(),
+                    )
+            messages.info(request, f'"{name}" silindi.')
+            return redirect('settings_work_schedule')
+
+        elif 'set_default_work_schedule_plan' in request.POST:
+            from core_settings.models import WorkSchedulePlan
+            from core_settings.work_schedule import set_default_plan
+
+            plan_id = request.POST.get('plan_id')
+            plan = WorkSchedulePlan.objects.filter(pk=int(plan_id)).first() if plan_id else None
+            if not plan:
+                messages.error(request, 'Plan bulunamadı.')
+            else:
+                if not plan.is_active:
+                    plan.is_active = True
+                    plan.save(update_fields=['is_active', 'updated_at'])
+                set_default_plan(plan)
+                messages.success(request, f'"{plan.name}" varsayılan plan yapıldı.')
+            return redirect('settings_work_schedule')
+
+        elif 'update_site' in request.POST:
             settings = SiteSettings.objects.first()
             form = GeneralSiteSettingsForm(request.POST, request.FILES, instance=settings)
             try:
