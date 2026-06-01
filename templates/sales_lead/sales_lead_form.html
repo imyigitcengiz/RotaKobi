@@ -43,8 +43,8 @@
                     <tr>
                         <td class="px-3 py-2 font-semibold">{{ p.project_display }}</td>
                         <td class="px-3 py-2">{{ p.sale_date|date:"d.m.Y" }}</td>
-                        <td class="px-3 py-2 text-right">{% if p.sale_amount %}{{ p.sale_amount|floatformat:2 }} ₺{% else %}-{% endif %}</td>
-                        <td class="px-3 py-2 text-right">{{ p.remaining_balance|floatformat:2 }} ₺</td>
+                        <td class="px-3 py-2 text-right">{% if p.sale_amount %}{{ p.sale_amount|floatformat:2 }} {{ currency_symbol }}{% else %}-{% endif %}</td>
+                        <td class="px-3 py-2 text-right">{{ p.remaining_balance|floatformat:2 }} {{ currency_symbol }}</td>
                         <td class="px-3 py-2 text-right">
                             <a href="{% url 'sales_lead_edit' p.pk %}" class="text-brand-600 hover:underline font-semibold">Düzenle</a>
                         </td>

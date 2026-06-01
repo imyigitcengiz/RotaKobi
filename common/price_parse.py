@@ -4,13 +4,15 @@ from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
 
+from common.currency import strip_currency_symbols
+
 
 def parse_tr_decimal(value) -> Decimal | None:
     if value is None or value == '':
         return None
     if isinstance(value, Decimal):
         return value
-    s = str(value).strip().replace(' ', '').replace('₺', '')
+    s = strip_currency_symbols(str(value).replace(' ', ''))
     if not s:
         return None
     if ',' in s:

@@ -104,7 +104,7 @@
                 <button type="button" class="sc-insert-var px-2 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 text-[11px] font-bold" data-var="normal_fiyat">+ Normal fiyat</button>
                 <button type="button" class="sc-insert-var px-2 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 text-[11px] font-bold" data-var="indirimli_fiyat">+ İndirimli fiyat</button>
             </div>
-            <textarea id="scMessage" rows="4" placeholder="Merhaba [name], #[servis_no] ücretli servis — normal: [normal_fiyat] ₺, indirimli: [indirimli_fiyat] ₺" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"></textarea>
+            <textarea id="scMessage" rows="4" placeholder="Merhaba [name], #[servis_no] ücretli servis — normal: [normal_fiyat] {{ currency_symbol }}, indirimli: [indirimli_fiyat] {{ currency_symbol }}" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"></textarea>
             <div class="flex flex-wrap items-center gap-4 text-sm">
                 <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="scAutoSend" checked class="accent-green-600"> Otomatik gönder</label>
                 <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="scActive" checked class="accent-green-600"> Aktif</label>

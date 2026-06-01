@@ -4,6 +4,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script src="{% static 'js/erp-ui.js' %}" defer></script>
+<script>window.COOLOPS_CURRENCY = { code: '{{ currency_code|default:"TRY" }}', symbol: '{{ currency_symbol|default:"₺" }}', position: '{{ currency_position|default:"after" }}' };</script>
 {% if user.is_authenticated %}
 <script src="{% static 'js/erp-shell.js' %}" defer></script>
 {% endif %}

@@ -14,5 +14,15 @@ def site_settings(request):
         except Exception:
             return None
 
-    return {'site_settings': cache_get(request, 'site_settings', _load)}
+    settings = cache_get(request, 'site_settings', _load)
+    from common.currency import currency_from_settings
+
+    cur = currency_from_settings(settings)
+    return {
+        'site_settings': settings,
+        'currency_code': cur.code,
+        'currency_symbol': cur.symbol,
+        'currency_label': cur.label,
+        'currency_position': cur.position,
+    }
 

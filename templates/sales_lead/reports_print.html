@@ -26,7 +26,7 @@ Oluşturma: {{ report_generated_at|date:"d.m.Y H:i" }} · {{ report_totals.count
     {% for row in monthly_stats|slice:":3" %}
     <div class="kpi">
         <div class="kpi-label">{{ row.label }} (tamamlanan)</div>
-        <div class="kpi-value">{{ row.count }} satış · {{ row.amount|floatformat:2 }} ₺</div>
+        <div class="kpi-value">{{ row.count }} satış · {{ row.amount|floatformat:2 }} {{ currency_symbol }}</div>
     </div>
     {% endfor %}
 </div>
@@ -59,7 +59,7 @@ Oluşturma: {{ report_generated_at|date:"d.m.Y H:i" }} · {{ report_totals.count
         <tr>
             <td>{{ row.label }}</td>
             <td class="num">{{ row.count }}</td>
-            <td class="num">{{ row.amount|floatformat:2 }} ₺</td>
+            <td class="num">{{ row.amount|floatformat:2 }} {{ currency_symbol }}</td>
         </tr>
         {% endfor %}
     </tbody>
@@ -108,8 +108,8 @@ Oluşturma: {{ report_generated_at|date:"d.m.Y H:i" }} · {{ report_totals.count
             <td>{{ sale.customer.region|default:"-" }}</td>
             <td>{{ sale.sale_date|date:"d.m.Y" }}</td>
             <td>{{ sale.status_label }}</td>
-            <td class="num">{% if sale.sale_amount %}{{ sale.sale_amount|floatformat:2 }} ₺{% else %}-{% endif %}</td>
-            <td class="num">{% if sale.down_payment %}{{ sale.down_payment|floatformat:2 }} ₺{% else %}-{% endif %}</td>
+            <td class="num">{% if sale.sale_amount %}{{ sale.sale_amount|floatformat:2 }} {{ currency_symbol }}{% else %}-{% endif %}</td>
+            <td class="num">{% if sale.down_payment %}{{ sale.down_payment|floatformat:2 }} {{ currency_symbol }}{% else %}-{% endif %}</td>
             {% if max_interim_count > 1 %}
                 {% for cell in sale.report_interim_cells %}
                 <td class="num">{% if cell %}{{ cell.display }}{% else %}-{% endif %}</td>
@@ -117,11 +117,11 @@ Oluşturma: {{ report_generated_at|date:"d.m.Y H:i" }} · {{ report_totals.count
             {% else %}
                 <td class="num">
                     {% with cell=sale.report_interim_cells.0 %}
-                    {% if cell %}{{ cell.display }}{% elif sale.interim_payments_total %}{{ sale.interim_payments_total|floatformat:2 }} ₺{% else %}-{% endif %}
+                    {% if cell %}{{ cell.display }}{% elif sale.interim_payments_total %}{{ sale.interim_payments_total|floatformat:2 }} {{ currency_symbol }}{% else %}-{% endif %}
                     {% endwith %}
                 </td>
             {% endif %}
-            <td class="num"><strong>{{ sale.remaining_balance|floatformat:2 }} ₺</strong></td>
+            <td class="num"><strong>{{ sale.remaining_balance|floatformat:2 }} {{ currency_symbol }}</strong></td>
             <td>{{ sale.notes|default:"-"|truncatechars:60 }}</td>
             <td class="col-project-ref">{% if sale.report_project_ref %}{{ sale.report_project_ref|truncatechars:40 }}{% else %}—{% endif %}</td>
         </tr>
@@ -140,7 +140,7 @@ Oluşturma: {{ report_generated_at|date:"d.m.Y H:i" }} · {{ report_totals.count
         <tr>
             <td>{{ row.customer__region }}</td>
             <td class="num">{{ row.total }}</td>
-            <td class="num">{{ row.amount|default:0|floatformat:2 }} ₺</td>
+            <td class="num">{{ row.amount|default:0|floatformat:2 }} {{ currency_symbol }}</td>
         </tr>
         {% endfor %}
     </tbody>

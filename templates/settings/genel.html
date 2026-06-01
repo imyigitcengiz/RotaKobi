@@ -28,6 +28,14 @@
                     <label class="text-sm font-semibold text-slate-700">Firma adresi</label>
                     {{ settings_form.company_address }}
                 </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-slate-700">Para birimi</label>
+                    {{ settings_form.currency_code }}
+                    <p class="text-xs text-slate-500">
+                        Satış, muhasebe, servis fiyatları ve raporlarda gösterilir.
+                        {% if site_settings %}Şu an: <strong>{{ site_settings.currency_symbol }}</strong> ({{ site_settings.currency_label }}){% endif %}
+                    </p>
+                </div>
                 <div class="space-y-2 md:col-span-2">
                     <label class="text-sm font-semibold text-slate-700">Varsayılan hava durumu şehri</label>
                     {{ settings_form.weather_city }}

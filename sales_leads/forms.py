@@ -33,6 +33,16 @@ def _post_list(data, key):
     return [value]
 
 
+def _apply_currency_field_labels(form, mapping):
+    from core_settings.models import SiteSettings
+    from common.currency import currency_from_settings
+
+    sym = currency_from_settings(SiteSettings.objects.first()).symbol
+    for field_name, base_label in mapping.items():
+        if field_name in form.fields:
+            form.fields[field_name].label = f'{base_label} ({sym})'
+
+
 class SalesLeadForm(forms.Form):
     use_existing_customer = forms.BooleanField(
         required=False,
@@ -73,7 +83,7 @@ class SalesLeadForm(forms.Form):
         min_value=0,
         max_digits=12,
         decimal_places=2,
-        label='Toplam (₺)',
+        label='Toplam',
         widget=forms.NumberInput(attrs={'class': MONEY, 'step': '0.01', 'placeholder': '0,00'}),
     )
     down_payment = forms.DecimalField(
@@ -81,7 +91,7 @@ class SalesLeadForm(forms.Form):
         min_value=0,
         max_digits=12,
         decimal_places=2,
-        label='Peşinat (₺)',
+        label='Peşinat',
         widget=forms.NumberInput(attrs={'class': MONEY, 'step': '0.01', 'placeholder': '0,00'}),
     )
     assigned_to = forms.ModelChoiceField(
@@ -109,6 +119,7 @@ class SalesLeadForm(forms.Form):
         self.instance = instance
         self.add_project_for_customer = add_project_for_customer
         super().__init__(*args, **kwargs)
+        _apply_currency_field_labels(self, {'sale_amount': 'Toplam', 'down_payment': 'Peşinat'})
 
         if instance:
             customer = instance.customer

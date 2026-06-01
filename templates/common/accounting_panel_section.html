@@ -24,18 +24,18 @@
     </div>
     <div class="rounded-2xl bg-amber-50 border border-amber-100 px-4 py-3">
         <p class="text-[10px] font-bold uppercase text-amber-700/80">Bekleyen avans</p>
-        <p class="text-xl font-black text-amber-800 mt-0.5">{{ accounting_payroll_advances|default:0 }} ₺</p>
-        <p class="text-[11px] text-amber-600/80">Brüt {{ accounting_payroll_gross|default:0 }} ₺</p>
+        <p class="text-xl font-black text-amber-800 mt-0.5">{{ accounting_payroll_advances|default:0 }} {{ currency_symbol }}</p>
+        <p class="text-[11px] text-amber-600/80">Brüt {{ accounting_payroll_gross|default:0 }} {{ currency_symbol }}</p>
     </div>
     {% endif %}
     {% if accounting_show_finance %}
     <div class="rounded-2xl bg-sky-50 border border-sky-100 px-4 py-3">
         <p class="text-[10px] font-bold uppercase text-sky-700/80">Gelir (ay)</p>
-        <p class="text-xl font-black text-sky-800 mt-0.5">{{ accounting_finance_income|default:0 }} ₺</p>
+        <p class="text-xl font-black text-sky-800 mt-0.5">{{ accounting_finance_income|default:0 }} {{ currency_symbol }}</p>
     </div>
     <div class="rounded-2xl bg-rose-50 border border-rose-100 px-4 py-3">
         <p class="text-[10px] font-bold uppercase text-rose-700/80">Gider (ay)</p>
-        <p class="text-xl font-black text-rose-800 mt-0.5">{{ accounting_finance_expense|default:0 }} ₺</p>
+        <p class="text-xl font-black text-rose-800 mt-0.5">{{ accounting_finance_expense|default:0 }} {{ currency_symbol }}</p>
     </div>
     {% endif %}
 </div>
@@ -84,7 +84,7 @@
         <h4 class="text-lg font-bold text-slate-900">{{ gy.mh_gelir_gider }}</h4>
         <p class="text-sm text-slate-500 mt-2">Ofis giderleri, tahsilatlar ve genel nakit hareketleri.</p>
         {% if accounting_finance_net is not None %}
-        <span class="inline-flex mt-3 px-2.5 py-1 rounded-lg {% if accounting_finance_net >= 0 %}bg-emerald-100 text-emerald-800{% else %}bg-red-100 text-red-800{% endif %} text-[11px] font-bold">Net {{ accounting_finance_net }} ₺</span>
+        <span class="inline-flex mt-3 px-2.5 py-1 rounded-lg {% if accounting_finance_net >= 0 %}bg-emerald-100 text-emerald-800{% else %}bg-red-100 text-red-800{% endif %} text-[11px] font-bold">Net {{ accounting_finance_net }} {{ currency_symbol }}</span>
         {% endif %}
     </a>
     <a href="{% url 'accounting_cash' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-emerald-300 transition-all p-6">
@@ -94,7 +94,7 @@
         <h4 class="text-lg font-bold text-slate-900">{{ gy.mh_kasa }}</h4>
         <p class="text-sm text-slate-500 mt-2">Açılış bakiyesi, gelir-gider ve tahsilatlarla güncel kasa.</p>
         {% if accounting_cash_balance is not None %}
-        <span class="inline-flex mt-3 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-bold">Bakiye {{ accounting_cash_balance }} ₺</span>
+        <span class="inline-flex mt-3 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-bold">Bakiye {{ accounting_cash_balance }} {{ currency_symbol }}</span>
         {% endif %}
     </a>
     <a href="{% url 'accounting_stock' %}" class="group block bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-violet-300 transition-all p-6">

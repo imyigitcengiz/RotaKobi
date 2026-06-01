@@ -83,7 +83,7 @@
 
                         <td class="px-4 py-3 font-semibold">{{ row.count }}</td>
 
-                        <td class="px-4 py-3">{{ row.amount|floatformat:2 }} ₺</td>
+                        <td class="px-4 py-3">{{ row.amount|floatformat:2 }} {{ currency_symbol }}</td>
 
                     </tr>
 
@@ -111,7 +111,7 @@
 
                 <span class="font-medium text-slate-700">{{ row.label }}</span>
 
-                <span class="font-bold text-brand-600">{{ row.total }} · {{ row.amount|default:0|floatformat:2 }} ₺</span>
+                <span class="font-bold text-brand-600">{{ row.total }} · {{ row.amount|default:0|floatformat:2 }} {{ currency_symbol }}</span>
 
             </li>
 
@@ -131,7 +131,7 @@
 
         <h2 class="font-bold text-slate-900">Detaylı Satış Raporu</h2>
 
-        <p class="text-xs text-slate-500 mt-1">{{ report_totals.count }} kayıt · Toplam {{ report_totals.sale_amount|floatformat:2 }} ₺ · Kalan {{ report_totals.remaining|floatformat:2 }} ₺</p>
+        <p class="text-xs text-slate-500 mt-1">{{ report_totals.count }} kayıt · Toplam {{ report_totals.sale_amount|floatformat:2 }} {{ currency_symbol }} · Kalan {{ report_totals.remaining|floatformat:2 }} {{ currency_symbol }}</p>
 
         <p class="text-xs text-slate-400 mt-1">MÜŞTERİ · ÜRÜNLER (öncelikli) · YER · TARİH · DURUM · ÖDEME PLANI · NOT · PROJE REF.</p>
 
@@ -209,9 +209,9 @@
                         <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold {% if sale.status == 'completed' %}bg-emerald-100 text-emerald-800{% elif sale.status == 'pending' %}bg-amber-100 text-amber-900{% else %}bg-slate-100 text-slate-600{% endif %}">{{ sale.status_label }}</span>
                     </td>
 
-                    <td class="px-3 py-3 text-right">{% if sale.sale_amount %}{{ sale.sale_amount|floatformat:2 }} ₺{% else %}-{% endif %}</td>
+                    <td class="px-3 py-3 text-right">{% if sale.sale_amount %}{{ sale.sale_amount|floatformat:2 }} {{ currency_symbol }}{% else %}-{% endif %}</td>
 
-                    <td class="px-3 py-3 text-right">{% if sale.down_payment %}{{ sale.down_payment|floatformat:2 }} ₺{% else %}-{% endif %}</td>
+                    <td class="px-3 py-3 text-right">{% if sale.down_payment %}{{ sale.down_payment|floatformat:2 }} {{ currency_symbol }}{% else %}-{% endif %}</td>
 
                     {% if max_interim_count > 1 %}
                         {% for cell in sale.report_interim_cells %}
@@ -220,14 +220,14 @@
                     {% else %}
                         <td class="px-3 py-3 text-right text-xs">
                             {% with cell=sale.report_interim_cells.0 %}
-                            {% if cell %}{{ cell.display }}{% elif sale.interim_payments_total %}{{ sale.interim_payments_total|floatformat:2 }} ₺{% else %}-{% endif %}
+                            {% if cell %}{{ cell.display }}{% elif sale.interim_payments_total %}{{ sale.interim_payments_total|floatformat:2 }} {{ currency_symbol }}{% else %}-{% endif %}
                             {% endwith %}
                         </td>
                     {% endif %}
 
                     <td class="px-3 py-3 text-right font-semibold {% if sale.remaining_balance > 0 %}text-amber-700{% else %}text-emerald-700{% endif %}">
 
-                        {{ sale.remaining_balance|floatformat:2 }} ₺
+                        {{ sale.remaining_balance|floatformat:2 }} {{ currency_symbol }}
 
                     </td>
 
@@ -285,7 +285,7 @@
 
                     <td class="px-4 py-3 font-semibold">{{ row.total }}</td>
 
-                    <td class="px-4 py-3">{{ row.amount|default:0|floatformat:2 }} ₺</td>
+                    <td class="px-4 py-3">{{ row.amount|default:0|floatformat:2 }} {{ currency_symbol }}</td>
 
                 </tr>
 

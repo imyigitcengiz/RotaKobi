@@ -3,38 +3,38 @@
 <div class="rounded-xl bg-emerald-50/80 border border-emerald-100 px-3 py-2">
     {% if row.salary_payment.gross_amount %}
     <p class="text-[11px] text-slate-600 leading-relaxed">
-        <span class="font-semibold text-slate-800">{{ row.salary_payment.gross_amount }} ₺</span> maaş
+        <span class="font-semibold text-slate-800">{{ row.salary_payment.gross_amount }} {{ currency_symbol }}</span> maaş
         {% if row.advances_deducted and row.advances_deducted > 0 %}
-        <span class="text-amber-700 font-semibold"> − {{ row.advances_deducted }} ₺ avans</span>
+        <span class="text-amber-700 font-semibold"> − {{ row.advances_deducted }} {{ currency_symbol }} avans</span>
         {% endif %}
         <span class="text-slate-400"> = </span>
-        <span class="font-black text-emerald-800">{{ row.salary_payment.amount }} ₺</span>
+        <span class="font-black text-emerald-800">{{ row.salary_payment.amount }} {{ currency_symbol }}</span>
     </p>
     {% else %}
-    <p class="font-bold text-emerald-800">{{ row.salary_payment.amount }} ₺</p>
+    <p class="font-bold text-emerald-800">{{ row.salary_payment.amount }} {{ currency_symbol }}</p>
     {% endif %}
     <p class="text-[10px] font-bold uppercase text-emerald-700/90 mt-0.5">Ödendi</p>
 </div>
 {% elif row.gross > 0 and row.net is not None and row.net >= 0 %}
 <div class="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2">
     <p class="text-[11px] text-slate-600 leading-relaxed">
-        <span class="font-semibold text-slate-800">{{ row.gross }} ₺</span> maaş
+        <span class="font-semibold text-slate-800">{{ row.gross }} {{ currency_symbol }}</span> maaş
         {% if row.advances_total > 0 %}
-        <span class="text-amber-700 font-semibold"> − {{ row.advances_total }} ₺ avans</span>
+        <span class="text-amber-700 font-semibold"> − {{ row.advances_total }} {{ currency_symbol }} avans</span>
         {% else %}
         <span class="text-slate-400"> − avans yok</span>
         {% endif %}
         <span class="text-slate-400"> = </span>
-        <span class="font-black text-slate-900">{{ row.net }} ₺</span>
+        <span class="font-black text-slate-900">{{ row.net }} {{ currency_symbol }}</span>
     </p>
     <p class="text-[10px] font-bold uppercase text-emerald-700 mt-0.5">Bu ay alınacak</p>
 </div>
 {% elif row.gross > 0 and row.net is not None and row.net < 0 %}
 <div class="rounded-xl bg-red-50 border border-red-100 px-3 py-2">
     <p class="text-[11px] text-red-800 leading-relaxed">
-        <span class="font-semibold">{{ row.gross }} ₺</span> maaş
-        <span class="font-semibold"> − {{ row.advances_total }} ₺ avans</span>
-        <span class="text-red-600 font-black"> = avans fazla ({{ row.net }} ₺)</span>
+        <span class="font-semibold">{{ row.gross }} {{ currency_symbol }}</span> maaş
+        <span class="font-semibold"> − {{ row.advances_total }} {{ currency_symbol }} avans</span>
+        <span class="text-red-600 font-black"> = avans fazla ({{ row.net }} {{ currency_symbol }})</span>
     </p>
 </div>
 {% elif row.gross <= 0 %}

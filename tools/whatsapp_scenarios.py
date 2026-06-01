@@ -107,12 +107,11 @@ def build_service_context(service, *, old_status_name: str | None = None) -> dic
 
 
 def _format_price(value) -> str:
-    if value is None or value == '':
-        return '-'
-    try:
-        return f'{float(value):,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
-    except (TypeError, ValueError):
-        return str(value)
+    from core_settings.models import SiteSettings
+    from common.currency import format_money
+
+    settings = SiteSettings.objects.first()
+    return format_money(value, settings=settings, decimals=2, include_symbol=True)
 
 
 def build_sales_lead_context(lead, *, old_status_code: str | None = None) -> dict:

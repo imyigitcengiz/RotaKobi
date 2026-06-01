@@ -33,7 +33,7 @@
                     <td class="px-4 py-3 font-semibold">{{ q.customer.name }}</td>
                     <td class="px-4 py-3 font-bold text-slate-900">{{ q.products_primary }}</td>
                     <td class="px-4 py-3">{{ q.quote_date|date:"d.m.Y" }}</td>
-                    <td class="px-4 py-3 text-right">{% if q.sale_amount %}{{ q.sale_amount|floatformat:2 }} ₺{% else %}-{% endif %}</td>
+                    <td class="px-4 py-3 text-right">{% if q.sale_amount %}{{ q.sale_amount|floatformat:2 }} {{ currency_symbol }}{% else %}-{% endif %}</td>
                     <td class="px-4 py-3">{{ q.get_status_display }}</td>
                     <td class="px-4 py-3 text-right">
                         {% if not q.converted_lead_id %}

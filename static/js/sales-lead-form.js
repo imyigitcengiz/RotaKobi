@@ -30,7 +30,7 @@
             <input type="number" name="interim_payment_amount" step="0.01" min="0"
                    value="${amount != null && amount !== '' ? amount : ''}"
                    placeholder="0,00" class="${MONEY} flex-1 min-w-[7rem]">
-            <span class="text-xs text-slate-500 shrink-0">₺</span>
+            <span class="text-xs text-slate-500 shrink-0 currency-sym">${(window.COOLOPS_CURRENCY && window.COOLOPS_CURRENCY.symbol) || '₺'}</span>
             <button type="button" class="remove-interim p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Kaldır">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>

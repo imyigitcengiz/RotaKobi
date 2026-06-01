@@ -29,15 +29,15 @@
                 </select>
             </div>
             <div class="space-y-1.5">
-                <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Avans tutarı (₺) <span class="text-red-500">*</span></label>
+                <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Avans tutarı ({{ currency_symbol }}) <span class="text-red-500">*</span></label>
                 <input type="number" name="amount" step="0.01" min="0.01" required inputmode="decimal" class="acct-input w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm" placeholder="0,00">
                 <p class="acct-field-hint">Bu tutar seçili dönemde personelin maaşından düşülür.</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <span class="text-xs font-bold text-slate-500 self-center">Hızlı:</span>
-                <button type="button" data-acct-quick-amount data-amount="1000" class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-xs font-bold border border-amber-100">1.000 ₺</button>
-                <button type="button" data-acct-quick-amount data-amount="2500" class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-xs font-bold border border-amber-100">2.500 ₺</button>
-                <button type="button" data-acct-quick-amount data-amount="5000" class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-xs font-bold border border-amber-100">5.000 ₺</button>
+                <button type="button" data-acct-quick-amount data-amount="1000" class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-xs font-bold border border-amber-100">1.000 {{ currency_symbol }}</button>
+                <button type="button" data-acct-quick-amount data-amount="2500" class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-xs font-bold border border-amber-100">2.500 {{ currency_symbol }}</button>
+                <button type="button" data-acct-quick-amount data-amount="5000" class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-xs font-bold border border-amber-100">5.000 {{ currency_symbol }}</button>
             </div>
             <div class="space-y-1.5">
                 <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Ödeme tarihi</label>
@@ -88,7 +88,7 @@
             <input type="hidden" name="period" value="{{ period_str }}">
             {% if filter_personnel %}<input type="hidden" name="payment_personnel" value="{{ filter_personnel }}">{% endif %}
             <div class="space-y-1.5">
-                <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Aylık brüt maaş (₺)</label>
+                <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Aylık brüt maaş ({{ currency_symbol }})</label>
                 <input type="number" name="monthly_salary" step="0.01" min="0" inputmode="decimal" class="acct-input w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm" placeholder="0,00">
             </div>
             <div class="space-y-1.5">

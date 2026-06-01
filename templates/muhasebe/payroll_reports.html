@@ -44,19 +44,19 @@
         <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="p-3 rounded-xl bg-brand-50 border border-brand-100">
                 <p class="text-[10px] font-bold text-brand-700 uppercase">Brüt toplam</p>
-                <p class="text-lg font-bold text-brand-900">{{ totals.gross }} ₺</p>
+                <p class="text-lg font-bold text-brand-900">{{ totals.gross }} {{ currency_symbol }}</p>
             </div>
             <div class="p-3 rounded-xl bg-amber-50 border border-amber-100">
                 <p class="text-[10px] font-bold text-amber-700 uppercase">Avans toplam</p>
-                <p class="text-lg font-bold text-amber-900">{{ totals.advances }} ₺</p>
+                <p class="text-lg font-bold text-amber-900">{{ totals.advances }} {{ currency_symbol }}</p>
             </div>
             <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
                 <p class="text-[10px] font-bold text-emerald-700 uppercase">Ödenen net</p>
-                <p class="text-lg font-bold text-emerald-900">{{ totals.net_paid }} ₺</p>
+                <p class="text-lg font-bold text-emerald-900">{{ totals.net_paid }} {{ currency_symbol }}</p>
             </div>
             <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <p class="text-[10px] font-bold text-slate-600 uppercase">Bekleyen net</p>
-                <p class="text-lg font-bold text-slate-900">{{ totals.pending_net }} ₺</p>
+                <p class="text-lg font-bold text-slate-900">{{ totals.pending_net }} {{ currency_symbol }}</p>
             </div>
         </div>
     </section>
@@ -83,13 +83,13 @@
                             {{ row.personnel.name }}
                             {% if row.personnel.team %}<span class="block text-xs text-slate-400">{{ row.personnel.team.name }}</span>{% endif %}
                         </td>
-                        <td class="px-4 py-3">{{ row.gross }} ₺</td>
+                        <td class="px-4 py-3">{{ row.gross }} {{ currency_symbol }}</td>
                         <td class="px-4 py-3">
-                            {{ row.advances_all }} ₺
-                            {% if row.advances_open %}<span class="block text-[10px] text-amber-600">{{ row.advances_open }} ₺ bekliyor</span>{% endif %}
+                            {{ row.advances_all }} {{ currency_symbol }}
+                            {% if row.advances_open %}<span class="block text-[10px] text-amber-600">{{ row.advances_open }} {{ currency_symbol }} bekliyor</span>{% endif %}
                         </td>
-                        <td class="px-4 py-3">{% if row.net_expected is not None %}{{ row.net_expected }} ₺{% else %}—{% endif %}</td>
-                        <td class="px-4 py-3 font-bold">{% if row.net_paid %}{{ row.net_paid }} ₺{% else %}—{% endif %}</td>
+                        <td class="px-4 py-3">{% if row.net_expected is not None %}{{ row.net_expected }} {{ currency_symbol }}{% else %}—{% endif %}</td>
+                        <td class="px-4 py-3 font-bold">{% if row.net_paid %}{{ row.net_paid }} {{ currency_symbol }}{% else %}—{% endif %}</td>
                         <td class="px-4 py-3">
                             {% if row.status == 'Ödendi' %}
                             <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700">{{ row.status }}</span>

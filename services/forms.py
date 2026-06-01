@@ -62,8 +62,12 @@ class ServiceRecordForm(forms.ModelForm):
         self.fields['solution_partner'].empty_label = 'Çözüm ortağı seçin (opsiyonel)'
         self.fields['service_personnel'].queryset = ServicePersonnel.objects.filter(is_active=True).select_related('team', 'department').order_by('name')
         self.fields['service_personnel'].empty_label = 'Servis personeli seçin (opsiyonel)'
-        self.fields['list_price'].label = 'Normal fiyat (₺)'
-        self.fields['discounted_price'].label = 'İndirimli fiyat (₺)'
+        from core_settings.models import SiteSettings
+        from common.currency import currency_from_settings
+
+        sym = currency_from_settings(SiteSettings.objects.first()).symbol
+        self.fields['list_price'].label = f'Normal fiyat ({sym})'
+        self.fields['discounted_price'].label = f'İndirimli fiyat ({sym})'
 
         customer = self._resolve_customer()
         if customer:

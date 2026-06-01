@@ -6,11 +6,22 @@
     return Number.isFinite(n) ? n : 0;
   }
 
+  function currencySym() {
+    return (window.COOLOPS_CURRENCY && window.COOLOPS_CURRENCY.symbol) || '₺';
+  }
+
   function formatMoney(value) {
     return parseMoney(value).toLocaleString('tr-TR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
+  }
+
+  function moneyWithSym(value) {
+    const sym = currencySym();
+    const num = formatMoney(value);
+    const pos = (window.COOLOPS_CURRENCY && window.COOLOPS_CURRENCY.position) || 'after';
+    return pos === 'before' ? sym + num : num + ' ' + sym;
   }
 
   function todayIso() {
@@ -35,15 +46,15 @@
     const addAdv = parseMoney(extraAdvance);
     const totalAdv = currentAdv + addAdv;
     const net = gross - totalAdv;
-    let text = formatMoney(gross) + ' ₺ brüt maaş';
+    let text = moneyWithSym(gross) + ' brüt maaş';
     if (totalAdv > 0) {
-      text += ' − ' + formatMoney(totalAdv) + ' ₺ avans';
+      text += ' − ' + moneyWithSym(totalAdv) + ' avans';
     }
     text += ' = ';
     if (net >= 0) {
-      text += formatMoney(net) + ' ₺ net ödeme';
+      text += moneyWithSym(net) + ' net ödeme';
     } else {
-      text += 'avans fazla (' + formatMoney(net) + ' ₺)';
+      text += 'avans fazla (' + moneyWithSym(net) + ')';
     }
     return text;
   }
@@ -127,7 +138,7 @@
         const grossInput = form.querySelector('input[name="gross_amount"]');
         if (grossInput) {
           grossInput.value = '';
-          grossInput.placeholder = row.gross ? row.gross + ' ₺ (aylık)' : 'Aylık maaş kullanılır';
+          grossInput.placeholder = row.gross ? row.gross + ' ' + currencySym() + ' (aylık)' : 'Aylık maaş kullanılır';
         }
         setField(form, 'notes', '');
         refreshPreview(pid, 0);

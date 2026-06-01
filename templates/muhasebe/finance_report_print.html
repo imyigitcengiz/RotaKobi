@@ -8,15 +8,15 @@
 <div class="kpi-row">
     <div class="kpi">
         <div class="kpi-label">Gelir</div>
-        <div class="kpi-value" style="color:#047857">+ {{ finance_income_total }} ₺</div>
+        <div class="kpi-value" style="color:#047857">+ {{ finance_income_total }} {{ currency_symbol }}</div>
     </div>
     <div class="kpi">
         <div class="kpi-label">Gider</div>
-        <div class="kpi-value" style="color:#b91c1c">− {{ finance_expense_total }} ₺</div>
+        <div class="kpi-value" style="color:#b91c1c">− {{ finance_expense_total }} {{ currency_symbol }}</div>
     </div>
     <div class="kpi">
         <div class="kpi-label">Net nakit</div>
-        <div class="kpi-value">{{ finance_net_total }} ₺</div>
+        <div class="kpi-value">{{ finance_net_total }} {{ currency_symbol }}</div>
     </div>
 </div>
 
@@ -39,7 +39,7 @@
             <td>{% if rec.record_type == 'income' %}Gelir{% else %}Gider{% if rec.category %} ({{ rec.get_category_display }}){% endif %}{% endif %}</td>
             <td><strong>{{ rec.title }}</strong>{% if rec.sales_lead %}<br><span style="font-size:10px;color:#64748b">{{ rec.sales_lead.customer.name }}</span>{% endif %}</td>
             <td style="font-size:11px">{% if rec.cash_account %}{{ rec.cash_account.name }}{% endif %}{% if rec.operational_project %} · {{ rec.operational_project.name }}{% endif %}{% if not rec.cash_account and not rec.operational_project %}—{% endif %}</td>
-            <td class="num">{% if rec.record_type == 'income' %}+{% else %}−{% endif %} {{ rec.amount }} ₺</td>
+            <td class="num">{% if rec.record_type == 'income' %}+{% else %}−{% endif %} {{ rec.amount }} {{ currency_symbol }}</td>
             <td>{{ rec.notes|default:"-" }}</td>
         </tr>
         {% empty %}

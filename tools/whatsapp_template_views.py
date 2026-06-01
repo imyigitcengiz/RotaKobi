@@ -94,8 +94,8 @@ RULE_PRESETS = [
         'message': (
             'Merhaba [name],\n\n'
             '#[servis_no] servis kaydınız ücretli servis olarak işaretlendi.\n'
-            'Normal fiyat: [normal_fiyat] ₺\n'
-            'İndirimli fiyat: [indirimli_fiyat] ₺\n'
+            'Normal fiyat: [normal_fiyat]\n'
+            'İndirimli fiyat: [indirimli_fiyat]\n'
             'Arıza: [arıza]\n'
             'Onayınız halinde işleme alınacaktır.'
         ),

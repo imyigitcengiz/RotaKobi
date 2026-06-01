@@ -665,7 +665,12 @@ class AccountingPayrollView(TemplateView):
                     notes=form.cleaned_data.get('notes') or '',
                     recorded_by=request.user if request.user.is_authenticated else None,
                 )
-                messages.success(request, f'{payment.personnel.name} için {payment.amount} ₺ avans kaydedildi.')
+                from common.currency import format_money
+
+                messages.success(
+                    request,
+                    f'{payment.personnel.name} için {format_money(payment.amount)} avans kaydedildi.',
+                )
             else:
                 messages.error(request, 'Hızlı avans kaydedilemedi.')
         elif 'bulk_pay_salaries' in request.POST:

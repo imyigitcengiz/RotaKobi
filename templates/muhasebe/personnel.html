@@ -112,7 +112,7 @@
                 <div class="space-y-1.5"><label class="text-xs font-bold text-slate-600 uppercase">Ünvan</label>{{ personnel_form.job_title }}</div>
                 <div class="space-y-1.5"><label class="text-xs font-bold text-slate-600 uppercase">Ekip</label>{{ personnel_form.team }}</div>
                 <div class="space-y-1.5"><label class="text-xs font-bold text-slate-600 uppercase">Telefon</label>{{ personnel_form.company_phone }}</div>
-                <div class="space-y-1.5"><label class="text-xs font-bold text-slate-600 uppercase">Aylık brüt maaş (₺)</label>{{ personnel_form.monthly_salary }}</div>
+                <div class="space-y-1.5"><label class="text-xs font-bold text-slate-600 uppercase">Aylık brüt maaş ({{ currency_symbol }})</label>{{ personnel_form.monthly_salary }}</div>
                 <div class="space-y-1.5"><label class="text-xs font-bold text-slate-600 uppercase">İlk maaş tarihi</label>{{ personnel_form.salary_pay_date }}</div>
                 <div class="space-y-1.5"><label class="text-xs font-bold text-slate-600 uppercase">Not</label>{{ personnel_form.notes }}</div>
                 {% if show_product_groups %}
@@ -152,7 +152,7 @@
                         <div class="mt-3 flex flex-wrap gap-4 text-sm">
                             <div>
                                 <p class="text-[10px] font-bold uppercase text-slate-400">Brüt maaş</p>
-                                <p class="font-bold text-slate-900 acct-kpi-value">{% if p.monthly_salary %}{{ p.monthly_salary }} ₺{% else %}—{% endif %}</p>
+                                <p class="font-bold text-slate-900 acct-kpi-value">{% if p.monthly_salary %}{{ p.monthly_salary }} {{ currency_symbol }}{% else %}—{% endif %}</p>
                             </div>
                             <div>
                                 <p class="text-[10px] font-bold uppercase text-slate-400">Ödeme günü</p>
@@ -161,7 +161,7 @@
                             {% if can_payroll and pr %}
                             <div>
                                 <p class="text-[10px] font-bold uppercase text-slate-400">Avans (dönem)</p>
-                                <p class="font-bold text-amber-800 acct-kpi-value">{% if pr.advance_items %}{{ pr.advances_total }} ₺{% else %}—{% endif %}</p>
+                                <p class="font-bold text-amber-800 acct-kpi-value">{% if pr.advance_items %}{{ pr.advances_total }} {{ currency_symbol }}{% else %}—{% endif %}</p>
                             </div>
                             <div class="min-w-[140px]">
                                 <p class="text-[10px] font-bold uppercase text-slate-400 mb-1">Net</p>

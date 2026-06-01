@@ -8,7 +8,7 @@
 <div class="max-w-5xl mx-auto space-y-6">
     <div class="rounded-2xl bg-emerald-50 border border-emerald-100 px-5 py-4">
         <p class="text-[10px] font-bold uppercase text-emerald-700">Toplam bakiye</p>
-        <p class="text-3xl font-black text-emerald-900">{{ accounts_total_balance|floatformat:2 }} ₺</p>
+        <p class="text-3xl font-black text-emerald-900">{{ accounts_total_balance|floatformat:2 }} {{ currency_symbol }}</p>
     </div>
 
     <form method="post" class="bg-white rounded-3xl border border-slate-200 p-5 grid md:grid-cols-2 gap-3">
@@ -18,7 +18,7 @@
         <select name="account_type" class="acct-input px-3 py-2 border rounded-xl text-sm">
             {% for val, label in account_type_choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
         </select>
-        <input name="opening_balance" placeholder="Açılış (₺)" value="0" class="acct-input px-3 py-2 border rounded-xl text-sm">
+        <input name="opening_balance" placeholder="Açılış ({{ currency_symbol }})" value="0" class="acct-input px-3 py-2 border rounded-xl text-sm">
         <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_default"> Varsayılan hesap</label>
         <button type="submit" class="md:col-span-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold w-fit">Hesap ekle</button>
     </form>
@@ -31,7 +31,7 @@
                     <p class="font-bold text-slate-900">{{ row.account.name }}</p>
                     <p class="text-xs text-slate-500">{{ row.account.get_account_type_display }}{% if row.account.is_default %} · varsayılan{% endif %}</p>
                 </div>
-                <p class="text-xl font-black text-emerald-800">{{ row.current_balance|floatformat:2 }} ₺</p>
+                <p class="text-xl font-black text-emerald-800">{{ row.current_balance|floatformat:2 }} {{ currency_symbol }}</p>
             </div>
             <p class="text-xs text-slate-400 mt-3">Gelir +{{ row.income|floatformat:2 }} · Gider −{{ row.expense|floatformat:2 }}</p>
         </article>

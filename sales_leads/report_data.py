@@ -11,6 +11,12 @@ from django.utils import timezone
 from sales_leads.models import SalesLead
 
 
+def _money(value) -> str:
+    from common.currency import format_money
+
+    return format_money(value, decimals=2)
+
+
 def _completed_leads():
     return SalesLead.objects.filter(status=SalesLead.STATUS_COMPLETED)
 
@@ -100,9 +106,9 @@ def _attach_lead_report_fields(lead, *, col_count: int) -> None:
                 'amount': payment.amount,
                 'payment_date': payment.payment_date,
                 'display': (
-                    f'{payment.payment_date.strftime("%d.%m.%Y")} · {payment.amount:.2f} ₺'
+                    f'{payment.payment_date.strftime("%d.%m.%Y")} · {_money(payment.amount)}'
                     if payment.payment_date
-                    else f'{payment.amount:.2f} ₺'
+                    else _money(payment.amount)
                 ),
             })
         else:

@@ -43,17 +43,17 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div class="rounded-2xl bg-emerald-50 border border-emerald-100 px-5 py-4">
             <p class="text-[10px] font-bold uppercase text-emerald-700">Gelir</p>
-            <p class="acct-kpi-value text-2xl font-black text-emerald-800 mt-1">+ {{ finance_income_total }} ₺</p>
+            <p class="acct-kpi-value text-2xl font-black text-emerald-800 mt-1">+ {{ finance_income_total }} {{ currency_symbol }}</p>
             <p class="text-xs text-emerald-700/70 mt-1">{{ finance_period_label }}</p>
         </div>
         <div class="rounded-2xl bg-red-50 border border-red-100 px-5 py-4">
             <p class="text-[10px] font-bold uppercase text-red-700">Gider</p>
-            <p class="acct-kpi-value text-2xl font-black text-red-800 mt-1">− {{ finance_expense_total }} ₺</p>
+            <p class="acct-kpi-value text-2xl font-black text-red-800 mt-1">− {{ finance_expense_total }} {{ currency_symbol }}</p>
             <p class="text-xs text-red-700/70 mt-1">{{ finance_period_label }}</p>
         </div>
         <div class="rounded-2xl {% if finance_net_total >= 0 %}bg-sky-50 border-sky-100{% else %}bg-amber-50 border-amber-100{% endif %} border px-5 py-4">
             <p class="text-[10px] font-bold uppercase {% if finance_net_total >= 0 %}text-sky-700{% else %}text-amber-800{% endif %}">Net nakit</p>
-            <p class="acct-kpi-value text-2xl font-black {% if finance_net_total >= 0 %}text-sky-900{% else %}text-amber-900{% endif %} mt-1">{{ finance_net_total }} ₺</p>
+            <p class="acct-kpi-value text-2xl font-black {% if finance_net_total >= 0 %}text-sky-900{% else %}text-amber-900{% endif %} mt-1">{{ finance_net_total }} {{ currency_symbol }}</p>
             <p class="text-xs text-slate-500 mt-1">Gelir − gider</p>
         </div>
     </div>
@@ -90,7 +90,7 @@
                     {{ finance_form.title }}
                 </div>
                 <div class="space-y-1.5">
-                    <label class="text-xs font-bold text-slate-600 uppercase">Tutar (₺) <span class="text-red-500">*</span></label>
+                    <label class="text-xs font-bold text-slate-600 uppercase">Tutar ({{ currency_symbol }}) <span class="text-red-500">*</span></label>
                     {{ finance_form.amount }}
                 </div>
                 <div class="space-y-1.5">
@@ -159,7 +159,7 @@
                             {% if not rec.sales_lead and not rec.operational_project and not rec.cash_account %}—{% endif %}
                         </td>
                         <td class="px-4 py-3 font-bold acct-kpi-value {% if rec.record_type == 'income' %}text-emerald-700{% else %}text-red-700{% endif %}">
-                            {% if rec.record_type == 'income' %}+{% else %}−{% endif %} {{ rec.amount }} ₺
+                            {% if rec.record_type == 'income' %}+{% else %}−{% endif %} {{ rec.amount }} {{ currency_symbol }}
                         </td>
                         <td class="px-4 py-3 text-slate-500 text-xs">{{ rec.notes|default:"—" }}</td>
                         <td class="px-4 py-3 text-right">

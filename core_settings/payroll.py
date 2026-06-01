@@ -190,7 +190,13 @@ def create_salary_payment(
 
     auto_note = ''
     if adv_total:
-        auto_note = f'Brüt {gross} ₺ — avans {adv_total} ₺ düşüldü, net {net} ₺'
+        from common.currency import format_money
+
+        auto_note = (
+            f'Brüt {format_money(gross, include_symbol=True)} — '
+            f'avans {format_money(adv_total, include_symbol=True)} düşüldü, '
+            f'net {format_money(net, include_symbol=True)}'
+        )
     combined_notes = ' | '.join(filter(None, [auto_note, notes.strip()]))
 
     payment = PersonnelPayment.objects.create(

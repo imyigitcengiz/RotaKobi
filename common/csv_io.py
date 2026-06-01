@@ -58,7 +58,9 @@ def parse_decimal(value: str):
 
     if value is None:
         return None
-    s = str(value).strip().replace(' ', '').replace('₺', '')
+    from common.currency import strip_currency_symbols
+
+    s = strip_currency_symbols(str(value).replace(' ', ''))
     if not s or s in ('-', '—'):
         return None
     s = s.replace('.', '').replace(',', '.') if s.count(',') == 1 and s.count('.') > 1 else s.replace(',', '.')

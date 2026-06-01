@@ -9,12 +9,12 @@
     <div class="grid sm:grid-cols-3 gap-3">
         <div class="rounded-2xl bg-violet-50 border border-violet-100 px-5 py-4">
             <p class="text-[10px] font-bold uppercase text-violet-700">Açık borç</p>
-            <p class="text-2xl font-black text-violet-900">{{ payable_total|floatformat:2 }} ₺</p>
+            <p class="text-2xl font-black text-violet-900">{{ payable_total|floatformat:2 }} {{ currency_symbol }}</p>
             <p class="text-xs text-violet-700/80">{{ payable_count }} kayıt</p>
         </div>
         <div class="rounded-2xl bg-red-50 border border-red-100 px-5 py-4">
             <p class="text-[10px] font-bold uppercase text-red-700">Vadesi geçen</p>
-            <p class="text-2xl font-black text-red-900">{{ payable_overdue_total|floatformat:2 }} ₺</p>
+            <p class="text-2xl font-black text-red-900">{{ payable_overdue_total|floatformat:2 }} {{ currency_symbol }}</p>
         </div>
         <div class="rounded-2xl bg-white border border-slate-200 px-5 py-4">
             <form method="get" class="flex items-end gap-2">
@@ -30,7 +30,7 @@
         <input type="hidden" name="action" value="create">
         <input name="supplier_name" required placeholder="Tedarikçi adı" class="acct-input px-3 py-2 border rounded-xl text-sm">
         <input name="invoice_ref" placeholder="Fatura no" class="acct-input px-3 py-2 border rounded-xl text-sm">
-        <input name="amount" required placeholder="Tutar (₺)" class="acct-input px-3 py-2 border rounded-xl text-sm">
+        <input name="amount" required placeholder="Tutar ({{ currency_symbol }})" class="acct-input px-3 py-2 border rounded-xl text-sm">
         <input type="date" name="due_date" class="acct-input px-3 py-2 border rounded-xl text-sm">
         <input name="notes" placeholder="Not" class="acct-input px-3 py-2 border rounded-xl text-sm md:col-span-2">
         <button type="submit" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-bold">Borç ekle</button>
@@ -45,7 +45,7 @@
                 {% for row in payable_rows %}
                 <tr class="{% if row.is_overdue %}bg-red-50/40{% endif %}">
                     <td class="px-4 py-3"><p class="font-semibold">{{ row.payable.supplier_name }}</p>{% if row.payable.invoice_ref %}<p class="text-xs text-slate-400">{{ row.payable.invoice_ref }}</p>{% endif %}</td>
-                    <td class="px-4 py-3 text-right font-bold text-violet-800">{{ row.remaining|floatformat:2 }} ₺</td>
+                    <td class="px-4 py-3 text-right font-bold text-violet-800">{{ row.remaining|floatformat:2 }} {{ currency_symbol }}</td>
                     <td class="px-4 py-3">{% if row.payable.due_date %}{{ row.payable.due_date|date:"d.m.Y" }}{% else %}—{% endif %}</td>
                     <td class="px-4 py-3 text-right">
                         <form method="post" class="inline-flex gap-1 items-center">

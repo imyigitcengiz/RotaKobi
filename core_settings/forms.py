@@ -51,11 +51,15 @@ class SiteSettingsForm(forms.ModelForm):
 class GeneralSiteSettingsForm(forms.ModelForm):
     class Meta:
         model = SiteSettings
-        fields = ['site_name', 'logo', 'company_phone', 'company_address', 'weather_city']
+        fields = [
+            'site_name', 'logo', 'company_phone', 'company_address',
+            'currency_code', 'weather_city',
+        ]
         widgets = {
             'site_name': forms.TextInput(attrs={'class': INPUT}),
             'company_phone': forms.TextInput(attrs={'class': INPUT}),
             'company_address': forms.Textarea(attrs={'class': INPUT, 'rows': 2}),
+            'currency_code': forms.Select(attrs={'class': INPUT}),
             'weather_city': forms.TextInput(
                 attrs={'class': INPUT, 'placeholder': 'İstanbul'},
             ),

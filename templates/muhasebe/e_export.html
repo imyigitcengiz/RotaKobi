@@ -15,10 +15,10 @@
     </form>
 
     <div class="grid sm:grid-cols-2 gap-3">
-        <div class="rounded-2xl bg-white border px-4 py-3"><p class="text-xs text-slate-500">Gelir</p><p class="font-bold">{{ export_finance_income|floatformat:2 }} ₺</p></div>
-        <div class="rounded-2xl bg-white border px-4 py-3"><p class="text-xs text-slate-500">Gider</p><p class="font-bold">{{ export_finance_expense|floatformat:2 }} ₺</p></div>
-        <div class="rounded-2xl bg-white border px-4 py-3"><p class="text-xs text-slate-500">Maaş/avans</p><p class="font-bold">{{ export_payroll|floatformat:2 }} ₺</p></div>
-        <div class="rounded-2xl bg-white border px-4 py-3"><p class="text-xs text-slate-500">Satış ({{ export_sales_count }})</p><p class="font-bold">{{ export_sales_total|floatformat:2 }} ₺</p></div>
+        <div class="rounded-2xl bg-white border px-4 py-3"><p class="text-xs text-slate-500">Gelir</p><p class="font-bold">{{ export_finance_income|floatformat:2 }} {{ currency_symbol }}</p></div>
+        <div class="rounded-2xl bg-white border px-4 py-3"><p class="text-xs text-slate-500">Gider</p><p class="font-bold">{{ export_finance_expense|floatformat:2 }} {{ currency_symbol }}</p></div>
+        <div class="rounded-2xl bg-white border px-4 py-3"><p class="text-xs text-slate-500">Maaş/avans</p><p class="font-bold">{{ export_payroll|floatformat:2 }} {{ currency_symbol }}</p></div>
+        <div class="rounded-2xl bg-white border px-4 py-3"><p class="text-xs text-slate-500">Satış ({{ export_sales_count }})</p><p class="font-bold">{{ export_sales_total|floatformat:2 }} {{ currency_symbol }}</p></div>
     </div>
 
     <form method="post" class="bg-violet-50 rounded-3xl border border-violet-100 p-5 flex flex-wrap gap-3 items-end">

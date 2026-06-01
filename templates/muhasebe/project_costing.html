@@ -7,9 +7,9 @@
 {% block content %}
 <div class="max-w-6xl mx-auto space-y-6">
     <div class="grid sm:grid-cols-3 gap-3">
-        <div class="rounded-2xl bg-sky-50 border border-sky-100 px-5 py-4"><p class="text-[10px] font-bold uppercase text-sky-700">Toplam ciro</p><p class="text-2xl font-black">{{ costing_total_revenue|floatformat:2 }} ₺</p></div>
-        <div class="rounded-2xl bg-amber-50 border border-amber-100 px-5 py-4"><p class="text-[10px] font-bold uppercase text-amber-700">Toplam gider</p><p class="text-2xl font-black">{{ costing_total_expenses|floatformat:2 }} ₺</p></div>
-        <div class="rounded-2xl bg-emerald-50 border border-emerald-100 px-5 py-4"><p class="text-[10px] font-bold uppercase text-emerald-700">Toplam marj</p><p class="text-2xl font-black">{{ costing_total_margin|floatformat:2 }} ₺</p></div>
+        <div class="rounded-2xl bg-sky-50 border border-sky-100 px-5 py-4"><p class="text-[10px] font-bold uppercase text-sky-700">Toplam ciro</p><p class="text-2xl font-black">{{ costing_total_revenue|floatformat:2 }} {{ currency_symbol }}</p></div>
+        <div class="rounded-2xl bg-amber-50 border border-amber-100 px-5 py-4"><p class="text-[10px] font-bold uppercase text-amber-700">Toplam gider</p><p class="text-2xl font-black">{{ costing_total_expenses|floatformat:2 }} {{ currency_symbol }}</p></div>
+        <div class="rounded-2xl bg-emerald-50 border border-emerald-100 px-5 py-4"><p class="text-[10px] font-bold uppercase text-emerald-700">Toplam marj</p><p class="text-2xl font-black">{{ costing_total_margin|floatformat:2 }} {{ currency_symbol }}</p></div>
     </div>
     <p class="text-xs text-slate-500">Giderleri satış kaydına bağlamak için <a href="{% url 'accounting_finance' %}" class="text-brand-600 font-semibold underline">Gelir & gider</a> formundaki satış alanını kullanın.</p>
     <section class="bg-white rounded-3xl border border-slate-200 overflow-hidden">
@@ -21,9 +21,9 @@
                 {% for row in costing_rows %}
                 <tr>
                     <td class="px-4 py-3"><p class="font-semibold">{{ row.lead.customer.name }}</p><p class="text-xs text-slate-400">{{ row.lead.project_display }}</p></td>
-                    <td class="px-4 py-3 text-right">{{ row.revenue|floatformat:2 }} ₺</td>
-                    <td class="px-4 py-3 text-right text-amber-800">{{ row.expenses|floatformat:2 }} ₺</td>
-                    <td class="px-4 py-3 text-right font-bold {% if row.margin >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">{{ row.margin|floatformat:2 }} ₺</td>
+                    <td class="px-4 py-3 text-right">{{ row.revenue|floatformat:2 }} {{ currency_symbol }}</td>
+                    <td class="px-4 py-3 text-right text-amber-800">{{ row.expenses|floatformat:2 }} {{ currency_symbol }}</td>
+                    <td class="px-4 py-3 text-right font-bold {% if row.margin >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">{{ row.margin|floatformat:2 }} {{ currency_symbol }}</td>
                     <td class="px-4 py-3 text-right text-slate-500">{% if row.margin_pct is not None %}{{ row.margin_pct|floatformat:1 }}%{% else %}—{% endif %}</td>
                 </tr>
                 {% empty %}

@@ -19,7 +19,7 @@
     </div>
     <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
         <p class="text-xs font-bold text-slate-500 uppercase">Bu Ay Ciro</p>
-        <p class="text-3xl font-bold text-emerald-600 mt-2">{{ month_amount|floatformat:0 }} ₺</p>
+        <p class="text-3xl font-bold text-emerald-600 mt-2">{{ month_amount|floatformat:0 }} {{ currency_symbol }}</p>
     </div>
     <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
         <p class="text-xs font-bold text-slate-500 uppercase">Bekleyen</p>
@@ -55,7 +55,7 @@
                 <tr>
                     <td class="px-4 py-3">{{ rep.assigned_to__first_name }} {{ rep.assigned_to__last_name|default:rep.assigned_to__username }}</td>
                     <td class="px-4 py-3">{{ rep.total }}</td>
-                    <td class="px-4 py-3">{{ rep.amount|default:0|floatformat:0 }} ₺</td>
+                    <td class="px-4 py-3">{{ rep.amount|default:0|floatformat:0 }} {{ currency_symbol }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -86,8 +86,8 @@
                     <td class="px-4 py-3 font-semibold">{{ sale.customer.name }}</td>
                     <td class="px-4 py-3 text-slate-600">{{ sale.project_display }}</td>
                     <td class="px-4 py-3">{{ sale.sale_date|date:"d.m.Y" }}</td>
-                    <td class="px-4 py-3 text-right">{% if sale.sale_amount %}{{ sale.sale_amount|floatformat:2 }} ₺{% else %}-{% endif %}</td>
-                    <td class="px-4 py-3 text-right font-semibold">{{ sale.remaining_balance|floatformat:2 }} ₺</td>
+                    <td class="px-4 py-3 text-right">{% if sale.sale_amount %}{{ sale.sale_amount|floatformat:2 }} {{ currency_symbol }}{% else %}-{% endif %}</td>
+                    <td class="px-4 py-3 text-right font-semibold">{{ sale.remaining_balance|floatformat:2 }} {{ currency_symbol }}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="5" class="px-4 py-10 text-center text-slate-400">Henüz satış kaydı yok.</td></tr>

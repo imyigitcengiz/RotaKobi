@@ -10,6 +10,12 @@ from django.utils import timezone
 from sales_leads.models import SalesLead
 
 
+def _money(value) -> str:
+    from common.currency import format_money
+
+    return format_money(value, decimals=2)
+
+
 def build_receivables_context(*, overdue_days: int = 30) -> dict:
     today = timezone.localdate()
     leads = list(
@@ -78,6 +84,6 @@ def _receivable_whatsapp_text(lead, remaining: Decimal) -> str:
     ) or lead.project_display
     return (
         f'Merhaba {lead.customer.name}, '
-        f'{products} için kalan ödeme tutarı {remaining:.2f} ₺. '
+        f'{products} için kalan ödeme tutarı {_money(remaining)}. '
         f'Ödeme planınız hakkında bilgi alabilir miyiz?'
     )

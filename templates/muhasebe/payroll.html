@@ -34,17 +34,17 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div class="rounded-2xl bg-white border border-slate-200 px-4 py-4 shadow-sm">
             <p class="text-[10px] font-bold uppercase text-slate-500">Brüt maaş toplamı</p>
-            <p class="acct-kpi-value text-2xl font-black text-slate-900 mt-1">{{ payroll_summary.total_gross }} ₺</p>
+            <p class="acct-kpi-value text-2xl font-black text-slate-900 mt-1">{{ payroll_summary.total_gross }} {{ currency_symbol }}</p>
             <p class="text-xs text-slate-500 mt-1">{{ period_label }}</p>
         </div>
         <div class="rounded-2xl bg-amber-50 border border-amber-100 px-4 py-4">
             <p class="text-[10px] font-bold uppercase text-amber-700">Avans toplamı</p>
-            <p class="acct-kpi-value text-2xl font-black text-amber-800 mt-1">− {{ payroll_summary.total_advances }} ₺</p>
+            <p class="acct-kpi-value text-2xl font-black text-amber-800 mt-1">− {{ payroll_summary.total_advances }} {{ currency_symbol }}</p>
             <p class="text-xs text-amber-700/80 mt-1">Maaştan düşülür</p>
         </div>
         <div class="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-4">
             <p class="text-[10px] font-bold uppercase text-emerald-700">Net ödenecek</p>
-            <p class="acct-kpi-value text-2xl font-black text-emerald-800 mt-1">{{ payroll_summary.total_net }} ₺</p>
+            <p class="acct-kpi-value text-2xl font-black text-emerald-800 mt-1">{{ payroll_summary.total_net }} {{ currency_symbol }}</p>
             <p class="text-xs text-emerald-700/80 mt-1">{{ pending_pay_count }} bekleyen</p>
         </div>
         <div class="rounded-2xl bg-violet-50 border border-violet-100 px-4 py-4">
@@ -110,7 +110,7 @@
                             {% if row.personnel.team %}<p class="text-xs text-slate-500">{{ row.personnel.team.name }}</p>{% endif %}
                         </td>
                         <td class="px-4 py-4">
-                            <p class="acct-kpi-value font-bold text-slate-900">{% if row.gross %}{{ row.gross }} ₺{% else %}<span class="text-slate-400 font-normal">Tanımsız</span>{% endif %}</p>
+                            <p class="acct-kpi-value font-bold text-slate-900">{% if row.gross %}{{ row.gross }} {{ currency_symbol }}{% else %}<span class="text-slate-400 font-normal">Tanımsız</span>{% endif %}</p>
                             <button type="button" class="mt-1 text-xs font-bold text-brand-600 hover:underline"
                                     data-payroll-action="settings"
                                     data-personnel-id="{{ row.personnel.id }}"
@@ -130,11 +130,11 @@
                         </td>
                         <td class="px-4 py-4">
                             {% if row.advance_items %}
-                            <p class="font-bold text-amber-800">{{ row.advances_total }} ₺</p>
+                            <p class="font-bold text-amber-800">{{ row.advances_total }} {{ currency_symbol }}</p>
                             <ul class="mt-2 space-y-1.5">
                                 {% for adv in row.advance_items %}
                                 <li class="flex items-center justify-between gap-2 text-xs text-slate-600 bg-amber-50/50 rounded-lg px-2 py-1">
-                                    <span>{{ adv.payment_date|date:"d.m.Y" }} · {{ adv.amount }} ₺{% if adv.notes %} · {{ adv.notes }}{% endif %}</span>
+                                    <span>{{ adv.payment_date|date:"d.m.Y" }} · {{ adv.amount }} {{ currency_symbol }}{% if adv.notes %} · {{ adv.notes }}{% endif %}</span>
                                     {% if not row.is_paid %}
                                     <form method="post" class="shrink-0" data-acct-confirm="Bu avans kaydı silinsin mi?">
                                         {% csrf_token %}
@@ -245,9 +245,9 @@
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 font-bold acct-kpi-value">
-                            {{ pay.amount }} ₺
+                            {{ pay.amount }} {{ currency_symbol }}
                             {% if pay.gross_amount and pay.payment_type == 'salary' %}
-                            <span class="block text-xs font-normal text-slate-400">brüt {{ pay.gross_amount }} ₺</span>
+                            <span class="block text-xs font-normal text-slate-400">brüt {{ pay.gross_amount }} {{ currency_symbol }}</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 text-slate-500 text-xs max-w-[200px] truncate">{{ pay.notes|default:"—" }}</td>

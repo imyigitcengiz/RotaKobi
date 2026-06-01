@@ -20,15 +20,15 @@
         <div class="rounded-2xl bg-brand-50 border border-brand-100 px-4 py-3">
             <p class="text-[10px] font-bold uppercase text-brand-700">Satış</p>
             <p class="text-xl font-black text-brand-900">{{ sales_count }}</p>
-            <p class="text-xs text-brand-700/70">{{ sale_total|floatformat:2 }} ₺ toplam</p>
+            <p class="text-xs text-brand-700/70">{{ sale_total|floatformat:2 }} {{ currency_symbol }} toplam</p>
         </div>
         <div class="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3">
             <p class="text-[10px] font-bold uppercase text-emerald-700">Tahsil edilen</p>
-            <p class="text-xl font-black text-emerald-900">{{ collected_total|floatformat:2 }} ₺</p>
+            <p class="text-xl font-black text-emerald-900">{{ collected_total|floatformat:2 }} {{ currency_symbol }}</p>
         </div>
         <div class="rounded-2xl bg-amber-50 border border-amber-100 px-4 py-3">
             <p class="text-[10px] font-bold uppercase text-amber-700">Alacak</p>
-            <p class="text-xl font-black text-amber-900">{{ receivable_total|floatformat:2 }} ₺</p>
+            <p class="text-xl font-black text-amber-900">{{ receivable_total|floatformat:2 }} {{ currency_symbol }}</p>
         </div>
         <div class="rounded-2xl bg-violet-50 border border-violet-100 px-4 py-3">
             <p class="text-[10px] font-bold uppercase text-violet-700">Servis</p>
@@ -62,8 +62,8 @@
                         <p class="text-xs text-slate-500">{{ sale.sale_date|date:"d.m.Y" }} · {{ sale.get_status_display }}</p>
                     </div>
                     <div class="text-right shrink-0">
-                        <p class="font-bold">{{ sale.sale_amount|default:0|floatformat:2 }} ₺</p>
-                        {% if sale.remaining_balance > 0 %}<p class="text-xs text-amber-700 font-bold">Kalan {{ sale.remaining_balance|floatformat:2 }} ₺</p>{% endif %}
+                        <p class="font-bold">{{ sale.sale_amount|default:0|floatformat:2 }} {{ currency_symbol }}</p>
+                        {% if sale.remaining_balance > 0 %}<p class="text-xs text-amber-700 font-bold">Kalan {{ sale.remaining_balance|floatformat:2 }} {{ currency_symbol }}</p>{% endif %}
                         <a href="{% url 'sales_lead_edit' sale.pk %}" class="text-xs text-brand-600 font-semibold hover:underline">Aç</a>
                     </div>
                 </li>

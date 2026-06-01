@@ -1,5 +1,6 @@
 from django.db import models
 
+from common.currency import CURRENCY_CODE_CHOICES, DEFAULT_CURRENCY_CODE, currency_from_settings
 from common.storage_paths import site_logo_upload_to
 
 from .color_utils import DEFAULT_HEX, normalize_hex
@@ -21,6 +22,13 @@ class SiteSettings(models.Model):
     logo = models.ImageField(upload_to=site_logo_upload_to, null=True, blank=True)
     company_phone = models.CharField(max_length=50, blank=True, null=True, verbose_name="Firma Telefonu")
     company_address = models.TextField(blank=True, null=True, verbose_name="Firma Adresi")
+    currency_code = models.CharField(
+        max_length=3,
+        choices=CURRENCY_CODE_CHOICES,
+        default=DEFAULT_CURRENCY_CODE,
+        verbose_name='Para birimi',
+        help_text='Tüm tutar alanları ve raporlarda kullanılır.',
+    )
     bulk_print_default_sort = models.CharField(
         max_length=20,
         choices=BULK_PRINT_SORT_CHOICES,
@@ -128,6 +136,14 @@ class SiteSettings(models.Model):
 
     def __str__(self):
         return self.site_name
+
+    @property
+    def currency_symbol(self) -> str:
+        return currency_from_settings(self).symbol
+
+    @property
+    def currency_label(self) -> str:
+        return currency_from_settings(self).label
 
 
 class ColorOptionMixin(models.Model):

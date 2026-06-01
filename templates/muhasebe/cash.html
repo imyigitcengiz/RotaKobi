@@ -12,20 +12,20 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div class="rounded-2xl bg-sky-50 border border-sky-100 px-5 py-4 sm:col-span-1">
             <p class="text-[10px] font-bold uppercase text-sky-700">Güncel kasa</p>
-            <p class="acct-kpi-value text-3xl font-black text-sky-900 mt-1">{{ cash_snapshot.current_balance|floatformat:2 }} ₺</p>
+            <p class="acct-kpi-value text-3xl font-black text-sky-900 mt-1">{{ cash_snapshot.current_balance|floatformat:2 }} {{ currency_symbol }}</p>
         </div>
         <div class="rounded-2xl bg-white border border-slate-200 px-5 py-4">
             <p class="text-[10px] font-bold uppercase text-slate-500">Gelir/gider net</p>
-            <p class="text-xl font-bold text-emerald-700 mt-1">+ {{ cash_snapshot.finance_income|floatformat:2 }} ₺</p>
-            <p class="text-xl font-bold text-red-700">− {{ cash_snapshot.finance_expense|floatformat:2 }} ₺</p>
+            <p class="text-xl font-bold text-emerald-700 mt-1">+ {{ cash_snapshot.finance_income|floatformat:2 }} {{ currency_symbol }}</p>
+            <p class="text-xl font-bold text-red-700">− {{ cash_snapshot.finance_expense|floatformat:2 }} {{ currency_symbol }}</p>
         </div>
         <div class="rounded-2xl bg-white border border-slate-200 px-5 py-4">
             <p class="text-[10px] font-bold uppercase text-slate-500">Otomatik kalemler</p>
             {% if cash_snapshot.include_sales %}
-            <p class="text-sm font-semibold text-emerald-700 mt-1">+ Satış tahsilat {{ cash_snapshot.sales_in|floatformat:2 }} ₺</p>
+            <p class="text-sm font-semibold text-emerald-700 mt-1">+ Satış tahsilat {{ cash_snapshot.sales_in|floatformat:2 }} {{ currency_symbol }}</p>
             {% endif %}
             {% if cash_snapshot.include_payroll %}
-            <p class="text-sm font-semibold text-amber-800">− Maaş/avans {{ cash_snapshot.payroll_out|floatformat:2 }} ₺</p>
+            <p class="text-sm font-semibold text-amber-800">− Maaş/avans {{ cash_snapshot.payroll_out|floatformat:2 }} {{ currency_symbol }}</p>
             {% endif %}
         </div>
     </div>
@@ -37,7 +37,7 @@
                 {% csrf_token %}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="space-y-1.5">
-                        <label class="text-xs font-bold text-slate-600 uppercase">Açılış bakiyesi (₺)</label>
+                        <label class="text-xs font-bold text-slate-600 uppercase">Açılış bakiyesi ({{ currency_symbol }})</label>
                         <input type="number" step="0.01" name="opening_balance" value="{{ cash_settings.opening_balance }}" class="acct-input w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm">
                     </div>
                     <div class="space-y-1.5">

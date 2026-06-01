@@ -12,12 +12,12 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div class="rounded-2xl bg-amber-50 border border-amber-100 px-5 py-4">
             <p class="text-[10px] font-bold uppercase text-amber-700">Toplam alacak</p>
-            <p class="text-2xl font-black text-amber-900 mt-1">{{ receivable_total|floatformat:2 }} ₺</p>
+            <p class="text-2xl font-black text-amber-900 mt-1">{{ receivable_total|floatformat:2 }} {{ currency_symbol }}</p>
             <p class="text-xs text-amber-700/80">{{ receivable_count }} kayıt</p>
         </div>
         <div class="rounded-2xl bg-red-50 border border-red-100 px-5 py-4">
             <p class="text-[10px] font-bold uppercase text-red-700">{{ receivable_overdue_days }}+ gün geciken</p>
-            <p class="text-2xl font-black text-red-900 mt-1">{{ receivable_overdue_total|floatformat:2 }} ₺</p>
+            <p class="text-2xl font-black text-red-900 mt-1">{{ receivable_overdue_total|floatformat:2 }} {{ currency_symbol }}</p>
             <p class="text-xs text-red-700/80">{{ receivable_overdue_count }} kayıt</p>
         </div>
         <div class="rounded-2xl bg-white border border-slate-200 px-5 py-4">
@@ -38,7 +38,7 @@
             {% for row in receivable_customer_totals|slice:":12" %}
             <a href="{% url 'customer_overview' row.customer.id %}" class="px-3 py-2 rounded-xl bg-slate-50 border border-slate-100 text-sm hover:bg-slate-100">
                 <span class="font-semibold">{{ row.customer.name }}</span>
-                <span class="text-amber-800 font-bold ml-1">{{ row.total|floatformat:2 }} ₺</span>
+                <span class="text-amber-800 font-bold ml-1">{{ row.total|floatformat:2 }} {{ currency_symbol }}</span>
                 <span class="text-slate-400 text-xs">({{ row.count }})</span>
             </a>
             {% endfor %}
@@ -67,7 +67,7 @@
                             <p class="font-bold text-slate-900">{{ row.products_primary }}</p>
                             {% if row.lead.project %}<p class="text-xs text-slate-400">{{ row.lead.project }}</p>{% endif %}
                         </td>
-                        <td class="px-4 py-3 text-right font-black text-amber-800">{{ row.remaining|floatformat:2 }} ₺</td>
+                        <td class="px-4 py-3 text-right font-black text-amber-800">{{ row.remaining|floatformat:2 }} {{ currency_symbol }}</td>
                         <td class="px-4 py-3">{{ row.lead.sale_date|date:"d.m.Y" }} <span class="text-xs text-slate-400">({{ row.days_since }} gün)</span></td>
                         <td class="px-4 py-3">{% if row.is_overdue %}<span class="text-xs font-bold text-red-700">Gecikmiş</span>{% else %}<span class="text-xs text-slate-500">Bekliyor</span>{% endif %}</td>
                         <td class="px-4 py-3 text-right whitespace-nowrap">
