@@ -1,17 +1,21 @@
 {% comment %}
-CSV indir / yükle buton çifti.
-Kullanım: {% include 'common/csv_io_buttons.html' with import_type='finance' export_url=export_url %}
+CSV indir / yükle — mobilde yatay kaydırmalı şerit.
+{% if import_type %}
+{% include 'common/csv_io_buttons.html' with import_type='finance' export_url=export_url %}
+{% endif %}
 {% endcomment %}
 {% if import_type %}
-<div class="inline-flex flex-wrap items-center gap-2">
+<div class="erp-csv-io" role="group" aria-label="CSV işlemleri">
     {% if export_url %}
-    <a href="{{ export_url }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-        <i data-lucide="download" class="w-4 h-4"></i> CSV indir
+    <a href="{{ export_url }}" class="erp-csv-io__btn erp-csv-io__btn--download erp-touch-target">
+        <i data-lucide="download" class="w-4 h-4 shrink-0" aria-hidden="true"></i>
+        <span>CSV indir</span>
     </a>
     {% endif %}
     <a href="{% url 'csv_import_wizard' %}?type={{ import_type }}&next={{ request.get_full_path|urlencode }}"
-       class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-brand-200 bg-brand-50 text-brand-800 text-sm font-semibold hover:bg-brand-100">
-        <i data-lucide="upload" class="w-4 h-4"></i> CSV yükle
+       class="erp-csv-io__btn erp-csv-io__btn--upload erp-touch-target">
+        <i data-lucide="upload" class="w-4 h-4 shrink-0" aria-hidden="true"></i>
+        <span>CSV yükle</span>
     </a>
 </div>
 {% endif %}

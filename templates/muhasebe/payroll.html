@@ -55,33 +55,33 @@
     </div>
 
     {# Birincil işlemler #}
-    <div class="flex flex-wrap gap-2 items-center">
-        <button type="button" data-payroll-action="advance" data-period="{{ period_str }}" data-period-label="{{ period_label }}"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700">
-            <i data-lucide="banknote" class="w-4 h-4"></i> Avans ekle
-        </button>
-        <button type="button" data-payroll-action="salary" data-period="{{ period_str }}" data-period-label="{{ period_label }}"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700">
-            <i data-lucide="wallet" class="w-4 h-4"></i> Maaş öde
-        </button>
-        {% if pending_pay_count %}
-        <form method="post" class="inline" data-acct-confirm="{{ pending_pay_count }} personelin bekleyen net maaşı ödensin mi? Avanslar mahsup edilir.">
-            {% csrf_token %}
-            <input type="hidden" name="bulk_pay_salaries" value="1">
-            <input type="hidden" name="period" value="{{ period_str }}">
-            {% if filter_personnel %}<input type="hidden" name="payment_personnel" value="{{ filter_personnel }}">{% endif %}
-            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-700">
-                <i data-lucide="users" class="w-4 h-4"></i> Toplu öde ({{ pending_pay_count }})
+        <div class="erp-page-actions-bar erp-page-actions-bar--stack">
+            <button type="button" data-payroll-action="advance" data-period="{{ period_str }}" data-period-label="{{ period_label }}"
+                class="erp-touch-target inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 whitespace-nowrap">
+                <i data-lucide="banknote" class="w-4 h-4"></i> Avans ekle
             </button>
-        </form>
-        {% endif %}
-        <div class="ml-auto flex flex-wrap gap-2">
-            <a href="{% url 'accounting_personnel' %}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Personel</a>
-            <a href="{% url 'accounting_payroll_export' %}?period_from={{ period_str }}&period_to={{ period_str }}{% if filter_personnel %}&personnel={{ filter_personnel }}{% endif %}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">CSV indir</a>
-            <a href="{% url 'csv_import_wizard' %}?type=payroll&next={{ request.get_full_path|urlencode }}" class="px-3 py-2 rounded-xl border border-violet-200 bg-violet-50 text-violet-800 text-sm font-semibold hover:bg-violet-100">CSV yükle</a>
-            <a href="{% url 'accounting_reports' %}" class="px-3 py-2 rounded-xl border border-violet-200 text-sm font-semibold text-violet-800 hover:bg-violet-50">{{ gy.mh_raporlar }}</a>
+            <button type="button" data-payroll-action="salary" data-period="{{ period_str }}" data-period-label="{{ period_label }}"
+                class="erp-touch-target inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 whitespace-nowrap">
+                <i data-lucide="wallet" class="w-4 h-4"></i> Maaş öde
+            </button>
+            {% if pending_pay_count %}
+            <form method="post" class="inline shrink-0" data-acct-confirm="{{ pending_pay_count }} personelin bekleyen net maaşı ödensin mi? Avanslar mahsup edilir.">
+                {% csrf_token %}
+                <input type="hidden" name="bulk_pay_salaries" value="1">
+                <input type="hidden" name="period" value="{{ period_str }}">
+                {% if filter_personnel %}<input type="hidden" name="payment_personnel" value="{{ filter_personnel }}">{% endif %}
+                <button type="submit" class="erp-touch-target inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 whitespace-nowrap">
+                    <i data-lucide="users" class="w-4 h-4"></i> Toplu öde ({{ pending_pay_count }})
+                </button>
+            </form>
+            {% endif %}
+            <a href="{% url 'accounting_personnel' %}" class="erp-touch-target px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap">Personel</a>
+            <div class="erp-csv-io">
+                <a href="{% url 'accounting_payroll_export' %}?period_from={{ period_str }}&period_to={{ period_str }}{% if filter_personnel %}&personnel={{ filter_personnel }}{% endif %}" class="erp-csv-io__btn erp-csv-io__btn--download erp-touch-target"><i data-lucide="download" class="w-4 h-4 shrink-0"></i><span>CSV indir</span></a>
+                <a href="{% url 'csv_import_wizard' %}?type=payroll&next={{ request.get_full_path|urlencode }}" class="erp-csv-io__btn erp-csv-io__btn--upload erp-touch-target"><i data-lucide="upload" class="w-4 h-4 shrink-0"></i><span>CSV yükle</span></a>
+            </div>
+            <a href="{% url 'accounting_reports' %}" class="erp-touch-target px-3 py-2 rounded-xl border border-violet-200 text-sm font-semibold text-violet-800 hover:bg-violet-50 whitespace-nowrap">{{ gy.mh_raporlar }}</a>
         </div>
-    </div>
 
     {# Personel tablosu — salt okunur özet + panel işlemleri #}
     <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">

@@ -12,40 +12,41 @@
 {% endblock %}
 
 {% block header_actions %}
-<a href="{% url 'accounting_reports' %}" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200">← {{ gy.mh_raporlar }}</a>
-
-<form method="get" class="flex flex-wrap items-center gap-2">
-    <select name="status" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white" onchange="this.form.submit()">
-        <option value="">Tüm durumlar</option>
-        {% for value, label in report_status_choices %}
-        <option value="{{ value }}" {% if report_status_filter == value %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-    </select>
-    {% if report_status_filter %}
-    <a href="{% url 'sales_lead_reports' %}" class="px-3 py-2 text-sm text-slate-600 hover:underline">Filtreyi kaldır</a>
-    {% endif %}
-</form>
-
-{% if user_perms.sales_export %}
-<a href="{% url 'sales_lead_export_csv' %}?format=report{% if report_status_filter %}&status={{ report_status_filter }}{% endif %}" class="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-xl hover:bg-slate-900 text-sm font-semibold">
-    <i data-lucide="download" class="w-4 h-4"></i> CSV indir
-</a>
-{% endif %}
-{% if user_perms.sales_manage %}
-<a href="{% url 'csv_import_wizard' %}?type=sales&next={{ request.get_full_path|urlencode }}" class="flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 text-sm font-semibold">
-    <i data-lucide="upload" class="w-4 h-4"></i> CSV yükle
-</a>
-{% endif %}
-<a href="{% url 'sales_lead_reports_print' %}{% if report_status_filter %}?status={{ report_status_filter }}{% endif %}" target="_blank" class="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-xl hover:bg-brand-700 text-sm font-semibold">
-    <i data-lucide="printer" class="w-4 h-4"></i> Yazdır
-</a>
-<a href="{% url 'accounting_data_exchange' %}" class="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-    <i data-lucide="arrow-up-down" class="w-4 h-4"></i> İçe/dışa aktar
-</a>
-
+<div class="erp-module-header__bottom erp-module-header__actions">
+    <div class="erp-page-actions-bar erp-page-actions-bar--stack">
+        <a href="{% url 'accounting_reports' %}" class="erp-touch-target px-3 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200 whitespace-nowrap">← {{ gy.mh_raporlar }}</a>
+        <form method="get" class="inline-flex items-center gap-2 shrink-0">
+            <select name="status" class="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white min-h-[2.75rem]" onchange="this.form.submit()">
+                <option value="">Tüm durumlar</option>
+                {% for value, label in report_status_choices %}
+                <option value="{{ value }}" {% if report_status_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            {% if report_status_filter %}
+            <a href="{% url 'sales_lead_reports' %}" class="px-3 py-2 text-sm text-slate-600 hover:underline whitespace-nowrap">Filtreyi kaldır</a>
+            {% endif %}
+        </form>
+        <div class="erp-csv-io">
+        {% if user_perms.sales_export %}
+        <a href="{% url 'sales_lead_export_csv' %}?format=report{% if report_status_filter %}&status={{ report_status_filter }}{% endif %}" class="erp-csv-io__btn erp-csv-io__btn--download erp-touch-target">
+            <i data-lucide="download" class="w-4 h-4 shrink-0"></i><span>CSV indir</span>
+        </a>
+        {% endif %}
+        {% if user_perms.sales_manage %}
+        <a href="{% url 'csv_import_wizard' %}?type=sales&next={{ request.get_full_path|urlencode }}" class="erp-csv-io__btn erp-csv-io__btn--upload erp-touch-target">
+            <i data-lucide="upload" class="w-4 h-4 shrink-0"></i><span>CSV yükle</span>
+        </a>
+        {% endif %}
+        </div>
+        <a href="{% url 'sales_lead_reports_print' %}{% if report_status_filter %}?status={{ report_status_filter }}{% endif %}" target="_blank" class="erp-touch-target inline-flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-xl hover:bg-brand-700 text-sm font-semibold whitespace-nowrap">
+            <i data-lucide="printer" class="w-4 h-4"></i> Yazdır
+        </a>
+        <a href="{% url 'accounting_data_exchange' %}" class="erp-touch-target inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap">
+            <i data-lucide="arrow-up-down" class="w-4 h-4"></i> İçe/dışa aktar
+        </a>
+    </div>
+</div>
 {% endblock %}
-
-
 
 {% block content %}
 

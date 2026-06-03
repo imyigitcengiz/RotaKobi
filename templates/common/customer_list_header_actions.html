@@ -1,23 +1,25 @@
-<div class="flex flex-wrap items-center justify-end gap-2">
+<div class="erp-page-actions-bar erp-page-actions-bar--stack justify-end">
     {% include 'common/nav_media_library_btn.html' %}
     {% if user_access.services %}
-    <a href="{% url 'service_create' %}" class="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-xl hover:bg-slate-900 text-sm font-semibold shadow-lg shadow-slate-200">
+    <a href="{% url 'service_create' %}" class="erp-touch-target inline-flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-xl hover:bg-slate-900 text-sm font-semibold shadow-lg shadow-slate-200 whitespace-nowrap">
         <i data-lucide="wrench" class="w-4 h-4"></i> Yeni Servis
     </a>
     {% endif %}
     {% if user_perms.contact_customers %}
-    <a href="{% url 'customer_create' %}" class="flex items-center gap-2 bg-white text-slate-800 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 text-sm font-semibold">
+    <a href="{% url 'customer_create' %}" class="erp-touch-target inline-flex items-center gap-2 bg-white text-slate-800 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 text-sm font-semibold whitespace-nowrap">
         <i data-lucide="user-plus" class="w-4 h-4"></i> Yeni Müşteri
     </a>
-    <a href="{% url 'customer_export_csv' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="flex items-center gap-2 bg-white text-slate-800 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 text-sm font-semibold">
-        <i data-lucide="download" class="w-4 h-4"></i> CSV indir
-    </a>
-    <a href="{% url 'csv_import_wizard' %}?type=customers&next={{ request.get_full_path|urlencode }}" class="flex items-center gap-2 bg-brand-50 text-brand-800 border border-brand-200 px-4 py-2 rounded-xl hover:bg-brand-100 text-sm font-semibold">
-        <i data-lucide="upload" class="w-4 h-4"></i> CSV yükle
-    </a>
+    <div class="erp-csv-io">
+        <a href="{% url 'customer_export_csv' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="erp-csv-io__btn erp-csv-io__btn--download erp-touch-target">
+            <i data-lucide="download" class="w-4 h-4 shrink-0"></i> CSV indir
+        </a>
+        <a href="{% url 'csv_import_wizard' %}?type=customers&next={{ request.get_full_path|urlencode }}" class="erp-csv-io__btn erp-csv-io__btn--upload erp-touch-target">
+            <i data-lucide="upload" class="w-4 h-4 shrink-0"></i> CSV yükle
+        </a>
+    </div>
     {% endif %}
     {% if user_perms.sales_manage %}
-    <a href="{% url 'sales_lead_create' %}" class="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-xl hover:bg-brand-700 text-sm font-semibold shadow-lg shadow-brand-200">
+    <a href="{% url 'sales_lead_create' %}" class="erp-touch-target inline-flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-xl hover:bg-brand-700 text-sm font-semibold shadow-lg shadow-brand-200 whitespace-nowrap">
         <i data-lucide="plus" class="w-4 h-4"></i> Yeni Satış
     </a>
     {% endif %}

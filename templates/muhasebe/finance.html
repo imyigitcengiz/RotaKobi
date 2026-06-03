@@ -11,7 +11,8 @@
 {% block content %}
 <div class="max-w-6xl mx-auto space-y-6">
     <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
-        <form method="get" class="flex flex-wrap items-end gap-3">
+        <form method="get" class="erp-filter-form">
+            <div class="erp-filter-form__fields">
             <div class="space-y-1.5">
                 <label class="text-xs font-bold text-slate-600 uppercase">Dönem</label>
                 <input type="month" name="period" value="{{ finance_period_str }}" class="acct-input px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold">
@@ -24,18 +25,23 @@
                     <option value="expense" {% if finance_filter_type == 'expense' %}selected{% endif %}>Yalnız gider</option>
                 </select>
             </div>
-            <button type="submit" class="px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold">Göster</button>
-            <div class="flex flex-wrap gap-2 ml-auto">
-                <a href="{% url 'accounting_finance_print' %}?period={{ finance_period_str }}{% if finance_filter_type %}&record_type={{ finance_filter_type }}{% endif %}" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-600 text-white text-sm font-bold hover:bg-brand-700">
+            </div>
+            <div class="erp-filter-form__actions">
+                <button type="submit" class="erp-filter-form__submit px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold">Göster</button>
+                <a href="{% url 'accounting_finance_print' %}?period={{ finance_period_str }}{% if finance_filter_type %}&record_type={{ finance_filter_type }}{% endif %}" target="_blank" class="erp-touch-target inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-600 text-white text-sm font-bold hover:bg-brand-700 whitespace-nowrap">
                     <i data-lucide="printer" class="w-4 h-4"></i> Yazdır
                 </a>
-                <a href="{% url 'accounting_finance_export' %}?period={{ finance_period_str }}{% if finance_filter_type %}&record_type={{ finance_filter_type }}{% endif %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                    <i data-lucide="download" class="w-4 h-4"></i> CSV indir
-                </a>
-                <a href="{% url 'csv_import_wizard' %}?type=finance&next={{ request.get_full_path|urlencode }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm font-semibold hover:bg-emerald-100">
-                    <i data-lucide="upload" class="w-4 h-4"></i> CSV yükle
-                </a>
-                <a href="{% url 'accounting_data_exchange' %}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"><i data-lucide="arrow-up-down" class="w-4 h-4"></i> {{ gy.mh_veri_alisverisi }}</a>
+                <div class="erp-csv-io">
+                    <a href="{% url 'accounting_finance_export' %}?period={{ finance_period_str }}{% if finance_filter_type %}&record_type={{ finance_filter_type }}{% endif %}" class="erp-csv-io__btn erp-csv-io__btn--download erp-touch-target">
+                        <i data-lucide="download" class="w-4 h-4 shrink-0" aria-hidden="true"></i>
+                        <span>CSV indir</span>
+                    </a>
+                    <a href="{% url 'csv_import_wizard' %}?type=finance&next={{ request.get_full_path|urlencode }}" class="erp-csv-io__btn erp-csv-io__btn--upload erp-touch-target">
+                        <i data-lucide="upload" class="w-4 h-4 shrink-0" aria-hidden="true"></i>
+                        <span>CSV yükle</span>
+                    </a>
+                </div>
+                <a href="{% url 'accounting_data_exchange' %}" class="erp-touch-target inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap"><i data-lucide="arrow-up-down" class="w-4 h-4"></i> {{ gy.mh_veri_alisverisi }}</a>
             </div>
         </form>
     </section>

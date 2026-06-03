@@ -3,8 +3,10 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Servis Listesi Raporu</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/erp-shell.css' %}">
     <style id="layoutPrint"></style>
     <style>
         * { box-sizing: border-box; }
@@ -14,59 +16,6 @@
             color: #1e293b;
             line-height: 1.45;
             background: #f1f5f9;
-        }
-
-        .no-print {
-            margin: 0 auto;
-            max-width: 980px;
-            padding: 16px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-        }
-        .no-print.full-width { width: 100%; flex-basis: 100%; max-width: 980px; }
-        .no-print button,
-        .no-print select,
-        .no-print a.btn {
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            border: 1px solid #cbd5e1;
-            background: #fff;
-            color: #334155;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-        }
-        .no-print button.primary { background: #0284c7; border-color: #0284c7; color: #fff; }
-        .no-print button.dark { background: #475569; border-color: #475569; color: #fff; }
-        .no-print button.active { background: #0f172a; border-color: #0f172a; color: #fff; }
-        .no-print select { min-width: 200px; }
-
-        .col-picker {
-            gap: 14px !important;
-            padding-top: 8px;
-            border-top: 1px dashed #cbd5e1;
-            align-items: flex-start !important;
-        }
-        .col-picker .group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-        }
-        .col-picker label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #475569;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            white-space: nowrap;
         }
 
         .report {
@@ -241,24 +190,32 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body class="layout-portrait">
-    <div class="no-print">
-        <label for="sortSelect"><strong>Sıralama</strong></label>
-        <select id="sortSelect" aria-label="Sıralama">
-            {% for value, label in sort_options %}
-            <option value="{{ value }}" {% if current_sort == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-        </select>
-        <strong>Kağıt</strong>
-        <button type="button" id="btnPortrait" class="active" onclick="setLayout('portrait')">A4 Dikey</button>
-        <button type="button" id="btnLandscape" onclick="setLayout('landscape')">A4 Yatay</button>
-        <a class="btn" href="{% url 'service_bulk_print' %}?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}download=csv">CSV</a>
-        <a class="btn" href="{% url 'service_bulk_print' %}?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}download=xlsx">Excel (.xlsx)</a>
-        <button type="button" class="btn" onclick="downloadJpeg()">JPEG indir</button>
-        <button type="button" class="primary" onclick="window.print()">Yazdır</button>
-        <button type="button" class="dark" onclick="window.close()">Kapat</button>
+    <div class="no-print bulk-print-toolbar">
+        <div class="bulk-print-toolbar__row">
+            <span class="bulk-print-toolbar__label">Sıralama</span>
+            <select id="sortSelect" aria-label="Sıralama">
+                {% for value, label in sort_options %}
+                <option value="{{ value }}" {% if current_sort == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="bulk-print-toolbar__row bulk-print-toolbar__row--scroll">
+            <span class="bulk-print-toolbar__label">Kağıt</span>
+            <button type="button" id="btnPortrait" class="active" onclick="setLayout('portrait')">A4 Dikey</button>
+            <button type="button" id="btnLandscape" onclick="setLayout('landscape')">A4 Yatay</button>
+        </div>
+        <div class="bulk-print-toolbar__row bulk-print-toolbar__row--scroll bulk-print-toolbar__row--io">
+            <a class="bulk-print-btn" href="{% url 'service_bulk_print' %}?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}download=csv">CSV indir</a>
+            <a class="bulk-print-btn" href="{% url 'service_bulk_print' %}?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}download=xlsx">Excel</a>
+            <button type="button" class="bulk-print-btn" onclick="downloadJpeg()">JPEG</button>
+            <button type="button" class="primary" onclick="window.print()">Yazdır</button>
+        </div>
+        <div class="bulk-print-toolbar__row bulk-print-toolbar__row--close">
+            <button type="button" class="bulk-print-btn bulk-print-btn--close dark" onclick="window.close()">Kapat</button>
+        </div>
 
-        <div class="no-print full-width col-picker">
-            <span class="group"><strong>Sütunlar</strong></span>
+        <div class="bulk-print-toolbar__row col-picker">
+            <span class="bulk-print-toolbar__label">Sütunlar</span>
             <span class="group">
                 <label><input type="checkbox" checked data-col="0"> Müşteri</label>
                 <label><input type="checkbox" checked data-col="1"> Bölge</label>
