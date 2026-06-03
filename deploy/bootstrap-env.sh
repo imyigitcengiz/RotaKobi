@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Coolify / Dokploy / 1Panel — ortam değişkenlerini otomatik tamamlar.
+# Coolify / Dokploy / Plesk / 1Panel — ortam değişkenlerini otomatik tamamlar.
 # docker-entrypoint.sh kaynaklar; elle .env yazmadan deploy mümkün.
 set -euo pipefail
+
+_BOOTSTRAP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=panel-domain.sh
+source "$_BOOTSTRAP_DIR/panel-domain.sh"
 
 # Eski KOBIOPS_* env (geriye dönük uyumluluk)
 _legacy_env() {
@@ -22,73 +26,6 @@ _data_dir="${DATA_DIR:-/data}"
 export DATA_DIR="$_data_dir"
 mkdir -p "$_data_dir" 2>/dev/null || true
 
-_strip_url_host() {
-  local raw="${1:-}"
-  raw="${raw#https://}"
-  raw="${raw#http://}"
-  raw="${raw%%/*}"
-  raw="${raw%%:*}"
-  echo "$raw"
-}
-
-_detect_fqdn() {
-  local fqdn=""
-  for key in SERVICE_FQDN_APP SERVICE_FQDN COOLIFY_FQDN KOBIOPS_DOMAIN PLESK_DOMAIN DOMAIN APP_DOMAIN HOSTNAME DOKPLOY_FQDN; do
-    fqdn="${!key:-}"
-    if [[ -n "$fqdn" ]]; then
-      _strip_url_host "$fqdn"
-      return 0
-    fi
-  done
-  for key in SERVICE_URL_APP SERVICE_URL KOBIOPS_PUBLIC_URL DOKPLOY_DEPLOY_URL DOKPLOY_URL APP_URL WEBSITE_URL; do
-    local url="${!key:-}"
-    if [[ -n "$url" ]]; then
-      _strip_url_host "$url"
-      return 0
-    fi
-  done
-  return 1
-}
-
-_detect_url() {
-  local url=""
-  for key in SERVICE_URL_APP SERVICE_URL KOBIOPS_PUBLIC_URL DOKPLOY_DEPLOY_URL DOKPLOY_URL APP_URL WEBSITE_URL; do
-    url="${!key:-}"
-    if [[ -n "$url" ]]; then
-      local host
-      host="$(_strip_url_host "$url")"
-      if _is_http_only_host "$host"; then
-        echo "http://${host}"
-      else
-        echo "$url"
-      fi
-      return 0
-    fi
-  done
-  local fqdn
-  fqdn="$(_detect_fqdn 2>/dev/null || true)"
-  if [[ -n "$fqdn" ]]; then
-    if [[ "$fqdn" == *".sslip.io"* || "$fqdn" == *".traefik.me"* ]]; then
-      echo "http://${fqdn}"
-    else
-      echo "https://${fqdn}"
-    fi
-    return 0
-  fi
-  return 1
-}
-
-_detect_ip() {
-  local ip=""
-  if command -v hostname >/dev/null 2>&1; then
-    ip="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
-  fi
-  if [[ -z "$ip" ]] && command -v ip >/dev/null 2>&1; then
-    ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' || true)"
-  fi
-  echo "${ip:-127.0.0.1}"
-}
-
 _gen_secret() {
   if command -v openssl >/dev/null 2>&1; then
     openssl rand -base64 48 | tr -d '\n/+=' | head -c 64
@@ -97,13 +34,6 @@ _gen_secret() {
   else
     date +%s | sha256sum | head -c 64
   fi
-}
-
-_is_http_only_host() {
-  case "$1" in
-    *.sslip.io|*.traefik.me) return 0 ;;
-    *) return 1 ;;
-  esac
 }
 
 # --- SECRET KEY (kalıcı: /data/.django_secret_key) ---
@@ -133,60 +63,10 @@ if [[ -z "${DJANGO_SECRET_KEY:-}" ]]; then
   fi
 fi
 
-# --- ALLOWED_HOSTS ---
-if [[ -z "${DJANGO_ALLOWED_HOSTS:-}" ]]; then
-  _ip="$(_detect_ip)"
-  _fqdn=""
-  _fqdn="$(_detect_fqdn 2>/dev/null || true)"
-  if [[ -n "$_fqdn" ]]; then
-    export DJANGO_ALLOWED_HOSTS="localhost,127.0.0.1,${_ip},${_fqdn}"
-    echo "[cool-ops] ALLOWED_HOSTS otomatik: ${_fqdn}"
-  else
-    export DJANGO_ALLOWED_HOSTS="localhost,127.0.0.1,${_ip}"
-    echo "[cool-ops] ALLOWED_HOSTS otomatik (IP): ${_ip}"
-  fi
-fi
-
-# --- CSRF + HTTPS ---
-if [[ -z "${DJANGO_CSRF_TRUSTED_ORIGINS:-}" ]]; then
-  _url=""
-  _url="$(_detect_url 2>/dev/null || true)"
-  _fqdn=""
-  _fqdn="$(_detect_fqdn 2>/dev/null || true)"
-  _ip="$(_detect_ip)"
-  _app_port="${PORT:-80}"
-  _csrf="http://127.0.0.1:${_app_port},http://localhost:${_app_port},http://${_ip}:${_app_port}"
-  if [[ -n "$_url" ]]; then
-    _csrf="${_csrf},${_url}"
-    export DJANGO_CSRF_TRUSTED_ORIGINS="$_csrf"
-    if [[ "$_url" == https://* ]]; then
-      export DJANGO_SECURE_SSL="${DJANGO_SECURE_SSL:-1}"
-    elif [[ -z "${DJANGO_SECURE_SSL:-}" ]]; then
-      export DJANGO_SECURE_SSL=0
-    fi
-    echo "[cool-ops] CSRF otomatik: ${_url}"
-  elif [[ -n "$_fqdn" ]]; then
-    if _is_http_only_host "$_fqdn"; then
-      _csrf="${_csrf},http://${_fqdn}"
-      export DJANGO_SECURE_SSL="${DJANGO_SECURE_SSL:-0}"
-    else
-      _csrf="${_csrf},https://${_fqdn}"
-      export DJANGO_SECURE_SSL="${DJANGO_SECURE_SSL:-1}"
-    fi
-    export DJANGO_CSRF_TRUSTED_ORIGINS="$_csrf"
-    echo "[cool-ops] CSRF otomatik (FQDN): ${_fqdn}"
-  fi
-fi
-
-# sslip / traefik.me → HTTPS redirect kapalı (Traefik 404 önlenir)
-if [[ -n "${DJANGO_ALLOWED_HOSTS:-}" ]]; then
-  if [[ "${DJANGO_ALLOWED_HOSTS}" == *".sslip.io"* || "${DJANGO_ALLOWED_HOSTS}" == *".traefik.me"* ]]; then
-    export DJANGO_SECURE_SSL=0
-  fi
-fi
-
-# sslip / traefik.me test domainleri — üretimde kapalı (DJANGO_ALLOW_SSLIP_HOSTS=0)
-export DJANGO_ALLOW_SSLIP_HOSTS="${DJANGO_ALLOW_SSLIP_HOSTS:-0}"
+# --- Panel domain (Coolify / Dokploy / Plesk / 1Panel / VPS) ---
+panel_domain_normalize
+panel_domain_warn_legacy
+panel_domain_apply_django
 
 # İlk kurulum: süper admin yoksa oluşturulur (admin/admin). Şifre sıfırlama: DJANGO_ENSURE_SUPERADMIN_RESET=1
 # İsteğe bağlı özel şifre: DJANGO_SUPERADMIN_PASSWORD=...
@@ -234,9 +114,4 @@ export DJANGO_SERVE_MEDIA="${DJANGO_SERVE_MEDIA:-1}"
 export GY_REQUIRE_PERSISTENT_VOLUME="${GY_REQUIRE_PERSISTENT_VOLUME:-1}"
 export DJANGO_DEBUG="${DJANGO_DEBUG:-0}"
 
-_app_port="${PORT:-80}"
-if _fqdn="$(_detect_fqdn 2>/dev/null || true)" && [[ -n "$_fqdn" ]]; then
-  echo "[cool-ops] Tarayıcı URL (port ekleme): http://${_fqdn}/"
-  echo "[cool-ops] Coolify domain ayarı: http://${_fqdn}:80  veya Generate Domain"
-  echo "[cool-ops] UYARI: sunucu-ip:8000 = Coolify paneli, uygulama değil."
-fi
+panel_domain_log_url

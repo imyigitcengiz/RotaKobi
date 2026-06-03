@@ -10,7 +10,7 @@ Panelde 3 adım — `.env` ve Persistent Storage UI **gerekmez**:
 
 1. GitHub: `imyigitcengiz/cool-ops`
 2. **Docker Compose** build pack (`docker-compose.yaml` — Coolify varsayılan) — **Dockerfile tek başına değil**
-3. Domain → servis **`app`**, port **8080**, URL: `https://domain.com:8080` → Deploy
+3. Domain → servis **`app`**, port **80** → **Generate Domain** → Deploy
 
 Named volume `kobiops_gy_data` compose ile otomatik oluşur; veri rebuild'lerde kalır.
 
@@ -57,10 +57,10 @@ cd /opt/cool-ops && ./deploy/install.sh panel.firma.com
 | Kaynak | Ne sağlar |
 |--------|-----------|
 | `docker-compose.yaml` | Üretim varsayılanları (port, /data, WhatsApp URL, volume) |
-| `bootstrap-env.sh` | Secret, ALLOWED_HOSTS, CSRF (domain'den otomatik) |
-| Coolify `SERVICE_FQDN_APP` / `SERVICE_URL_APP` | Domain tanımlayınca otomatik enjekte |
+| `bootstrap-env.sh` + `panel-domain.sh` | Secret, ALLOWED_HOSTS, CSRF (domain otomatik) |
+| Panel domain enjekte | Coolify/Dokploy `SERVICE_*` · Plesk/1Panel/VPS `KOBIOPS_DOMAIN` |
 
-**Referans şablon** (isteğe bağlı override için): [.env.example](.env.example)
+**Referans:** [deploy/DOMAIN.md](deploy/DOMAIN.md) · [deploy/panel.env.template](deploy/panel.env.template)
 
 Tüm değişkenler 4 grupta:
 - **A) Otomatik** — boş bırakın

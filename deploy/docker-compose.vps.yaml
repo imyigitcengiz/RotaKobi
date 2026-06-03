@@ -8,3 +8,7 @@ services:
   app:
     ports:
       - "${KOBIOPS_HTTP_PORT:-8000}:80"
+    environment:
+      COOLOPS_COMPOSE_STACK: "1"
+      SERVICE_FQDN_APP: ${KOBIOPS_DOMAIN:-}
+      SERVICE_URL_APP: ${KOBIOPS_PUBLIC_URL:-}

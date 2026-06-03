@@ -49,12 +49,10 @@ fi
 KOBIOPS_HTTP_PORT="${KOBIOPS_HTTP_PORT:-8000}"
 export KOBIOPS_DOMAIN KOBIOPS_HTTP_PORT
 
-if [[ -z "${KOBIOPS_PUBLIC_URL:-}" ]]; then
-  if [[ "$KOBIOPS_DOMAIN" == *".sslip.io"* ]]; then
-    KOBIOPS_PUBLIC_URL="http://${KOBIOPS_DOMAIN}"
-  else
-    KOBIOPS_PUBLIC_URL="https://${KOBIOPS_DOMAIN}"
-  fi
+if [[ -z "${KOBIOPS_PUBLIC_URL:-}" && -n "${KOBIOPS_DOMAIN:-}" ]]; then
+  # shellcheck source=panel-domain.sh
+  source "$ROOT/deploy/panel-domain.sh"
+  export KOBIOPS_PUBLIC_URL="$(panel_domain_origin_from_fqdn "$KOBIOPS_DOMAIN")"
 fi
 export KOBIOPS_PUBLIC_URL
 

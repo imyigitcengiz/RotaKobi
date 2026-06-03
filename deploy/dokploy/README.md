@@ -1,5 +1,7 @@
 # CoolOPS — Dokploy kurulumu (tak-çalıştır)
 
+Otomatik domain: [DOMAIN.md](../DOMAIN.md) · Env: [dokploy.env.minimal](dokploy.env.minimal)
+
 [Dokploy](https://dokploy.com) ile Docker Compose modunda panel + WhatsApp köprüsü birlikte çalışır.
 
 ## 3 adımda deploy
@@ -9,8 +11,8 @@
 1. **Project** → **Docker Compose** → **Create**
 2. **Source:** GitHub → `imyigitcengiz/cool-ops`, branch `main`  
    **Compose file path:** `docker-compose.yaml`
-3. **Environment** → [dokploy.env.example](./dokploy.env.example) veya [dokploy.env.minimal](./dokploy.env.minimal)
-4. **Domains** → servis **`app`**, port **`80`**, HTTPS **kapalı** (sslip.io) → **Deploy**
+3. **Environment** → [dokploy.env.minimal](./dokploy.env.minimal) (APP_URL yazmayın)
+4. **Domains** → servis **`app`**, port **`80`** → **Deploy** (domain otomatik enjekte edilir)
 
 Overlay için env: `COMPOSE_FILE=docker-compose.yaml:deploy/dokploy/docker-compose.dokploy.yaml`
 
@@ -21,12 +23,10 @@ Overlay için env: `COMPOSE_FILE=docker-compose.yaml:deploy/dokploy/docker-compo
    veya Git path: `deploy/dokploy/docker-compose.raw.yaml`
 3. **Environment:**
    ```env
-   APP_URL=http://panel.ornek.sslip.io
    DJANGO_ENSURE_SUPERADMIN=1
-   DJANGO_ALLOW_SSLIP_HOSTS=1
    DJANGO_DEBUG=0
    ```
-4. **Domains** → **`app`**, port **80**, HTTPS kapalı → **Deploy**
+4. **Domains** → **`app`**, port **80** → **Deploy**
 
 Raw dosya: `app` + `whatsapp_bridge` + `dokploy-network` + volume’ler — overlay gerekmez.
 
@@ -35,13 +35,13 @@ Raw dosya: `app` + `whatsapp_bridge` + `dokploy-network` + volume’ler — over
 | Dosya | Ne için |
 |-------|---------|
 | [dokploy.env.example](./dokploy.env.example) | Dokploy UI'ya yapıştır — açıklamalı tam şablon |
-| [dokploy.env.minimal](./dokploy.env.minimal) | Sadece 5 satır, hızlı başlangıç |
+| [dokploy.env.minimal](./dokploy.env.minimal) | Hızlı başlangıç (domain otomatik) |
 | [../../.env.example](../../.env.example) | Tüm değişkenler referansı (Coolify, VPS, override) |
 
 Repo kökünde `.env` oluşturmanız **gerekmez** — Dokploy Environment sekmesi yeterli.  
-Secret, ALLOWED_HOSTS ve CSRF → `bootstrap-env.sh` otomatik doldurur.
+Secret, ALLOWED_HOSTS ve CSRF → `bootstrap-env.sh` + Dokploy domain enjekte eder (`SERVICE_FQDN_APP`).
 
-- URL (sslip.io): `http://glgede-yaam-coolops-....sslip.io/giris/` (**https değil**)
+- Panel URL: Dokploy **Domains** sekmesindeki adres + `/giris/`
 - İlk giriş: **admin** / **admin**
 - Şifre sıfırlama (tek redeploy): `DJANGO_ENSURE_SUPERADMIN_RESET=1` → sonra `0`
 - Mevcut kurulumda şifre bilinmiyorsa: app konteynerinde `cat /data/.initial_admin_password`
@@ -72,13 +72,7 @@ Genel referans: [`.env.example`](../.env.example)
 
 `DJANGO_SECRET_KEY` içinde `$` varsa tek tırnak: `DJANGO_SECRET_KEY='abc$xyz'`
 
-Dokploy domain birincil URL için (gelecek sürümler / manuel):
-
-```env
-APP_URL=https://panel.sizin-domain.com
-```
-
-`bootstrap-env.sh` bunu CSRF için kullanır.
+Domain tanımlayınca Dokploy `SERVICE_FQDN_APP` / `SERVICE_URL_APP` gönderir — **APP_URL yazmayın**.
 
 ## GitHub otomatik deploy
 
@@ -90,7 +84,7 @@ Dokploy → **Deployments** → **Webhook** → GitHub push event.
 |---------|--------|
 | **404 page not found** | Domain servisi **`app`**, port **80**. sslip.io → **http://** (https değil). Overlay'de `traefik.docker.network=dokploy-network` olmalı — redeploy. Dokploy → **Reload Traefik**. Log: `daphne 0.0.0.0:80` |
 | **Deploy error / Restarting** | Logs → app konteyneri. `KRİTİK: /data` → volume bağlı mı? Eski stack `kobi-ops` çalışıyorsa durdurun. |
-| DisallowedHost | `APP_URL=http://tam-domain.sslip.io` (slash yok) + redeploy |
+| DisallowedHost | Environment'tan eski `APP_URL` / `DJANGO_ALLOWED_HOSTS` satırlarını silin → redeploy |
 | 404 / sslip | `DJANGO_SECURE_SSL` otomatik 0; http:// kullanın |
 | CSRF | Domain ile CSRF otomatik; redeploy |
 | Port 80 meşgul | Dokploy overlay kullanın; host ports kapatın |

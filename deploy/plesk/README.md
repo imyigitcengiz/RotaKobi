@@ -1,5 +1,8 @@
 # CoolOPS — Plesk dağıtımı
 
+Domain otomatik: `deploy.sh` vhost yolundan veya `KOBIOPS_DOMAIN` → [DOMAIN.md](../DOMAIN.md)  
+Env: [plesk.env.example](plesk.env.example) · Stacks: [plesk-stack.env.example](plesk-stack.env.example)
+
 Plesk’te iki yol desteklenir. **Önerilen:** Git + otomatik deploy script (güncelleme kolay). **Alternatif:** Plesk **Docker** eklentisi → **Stacks** (tamamen panelden).
 
 | | Git + `deploy.sh` | Docker Stacks |

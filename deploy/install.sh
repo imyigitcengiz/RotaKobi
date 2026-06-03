@@ -104,6 +104,7 @@ SECRET="$(gen_secret)"
 HOSTS="localhost,127.0.0.1,${IP}"
 CSRF="http://127.0.0.1:8080,http://localhost:8080,http://${IP}:8080"
 SECURE_SSL=0
+PUBLIC_URL=""
 
 if [[ -n "$DOMAIN" ]]; then
   DOMAIN="${DOMAIN#https://}"
@@ -115,13 +116,16 @@ if [[ -n "$DOMAIN" ]]; then
     if is_http_only_domain "$DOMAIN"; then
       CSRF="${CSRF},http://${DOMAIN}"
       SECURE_SSL=0
+      PUBLIC_URL="http://${DOMAIN}"
     else
       CSRF="${CSRF},https://${DOMAIN}"
       SECURE_SSL=1
+      PUBLIC_URL="https://${DOMAIN}"
     fi
   else
     HOSTS="${HOSTS},${DOMAIN}"
     CSRF="${CSRF},http://${DOMAIN}:8080"
+    PUBLIC_URL=""
   fi
 fi
 
@@ -134,7 +138,9 @@ DJANGO_SECURE_SSL=${SECURE_SSL}
 DJANGO_DEBUG=0
 DJANGO_ENSURE_SUPERADMIN=1
 PORT=80
-KOBIOPS_HTTP_PORT=8080
+KOBIOPS_HTTP_PORT=8000
+$(if [[ -n "${DOMAIN:-}" ]] && ! is_ipv4 "$DOMAIN" 2>/dev/null; then echo "KOBIOPS_DOMAIN=${DOMAIN}"; fi)
+$(if [[ -n "${PUBLIC_URL:-}" ]]; then echo "KOBIOPS_PUBLIC_URL=${PUBLIC_URL}"; fi)
 
 WHATSAPP_BRIDGE_URL=http://whatsapp_bridge:3939
 DJANGO_WHATSAPP_BRIDGE_CAN_SPAWN=0

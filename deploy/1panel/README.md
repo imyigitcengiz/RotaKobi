@@ -2,6 +2,9 @@
 
 1Panel **Docker Compose Stack** ile panel + WhatsApp köprüsü birlikte çalışır.
 
+Domain otomatik: stack env **`KOBIOPS_DOMAIN`** → `SERVICE_FQDN_APP` (bootstrap).  
+Detay: [DOMAIN.md](../DOMAIN.md) · Env: [1panel.env.example](1panel.env.example)
+
 ## Hızlı kurulum (SSH)
 
 ```bash
@@ -12,67 +15,39 @@ chmod +x deploy/install.sh
 ./deploy/install.sh panel.sizin-domain.com
 ```
 
-`install.sh` `.env` üretir, secret/host/CSRF ayarlar, `docker compose up -d --build` çalıştırır.
+`install.sh` `.env` üretir (`KOBIOPS_DOMAIN` dahil), `docker compose up -d --build` çalıştırır.
 
 Domain yoksa: `./deploy/install.sh` → `http://SUNUCU_IP:8000/giris/`
 
 ## 1Panel arayüzü ile
 
 1. **Konteyner** → **Compose** → **Oluştur**
-2. **Kaynak:** `/opt/cool-ops` (klonladığınız dizin — mutlak yol)
+2. **Kaynak:** `/opt/cool-ops` (mutlak yol)
 3. **Compose dosyası:** `docker-compose.yaml`
-4. **Ortam değişkeni** (1Panel stack ayarlarında):
-   ```
-   COMPOSE_FILE=docker-compose.yaml:deploy/1panel/docker-compose.1panel.yaml
-   ```
-   > 1Panel zaten **80** portunu kullanır. Varsayılan compose host'ta `80:80` açmaya çalışır ve **başarısız olur** — container listesi boş kalır.
-5. **Başlat / Deploy** — ilk build 5–15 dk sürebilir
-
-Container'lar **Konteyner → Compose** altında stack adı `cool-ops` ile görünür; tek tek **Konteyner** listesinde hemen çıkmayabilir.
-
-İsteğe bağlı `.env`: `cp .env.example .env`
-
-## Reverse proxy (HTTPS)
-
-1Panel **Web sitesi** / OpenResty:
-
-- Domain → proxy `http://127.0.0.1:8080` (yukarıdaki 1Panel overlay ile)
-- WebSocket açık (ekip sohbeti)
-
-Domain ekledikten sonra redeploy veya `./deploy/install.sh panel.sizin-domain.com --force`
+4. **Ortam değişkenleri:** [1panel.env.example](1panel.env.example) içeriğini yapıştırın  
+   (`COMPOSE_FILE=...1panel.yaml` zorunlu — port 80 çakışmasını önler)
+5. **Web sitesi** → reverse proxy → `http://127.0.0.1:8080`
+6. Stack env'de `KOBIOPS_DOMAIN=panel.sizin-domain.com` → **Deploy**
 
 ## Kalıcı veri
 
-| Volume | Mount | İçerik |
-|--------|--------|--------|
-| `kobiops_gy_data` | `/data` | SQLite, medya, yedekler |
-| `coolops_whatsapp_session` | köprü oturumu | WhatsApp QR |
-
-Stack silinirken **volume silmeyin**.
+| Volume | Mount |
+|--------|--------|
+| `kobiops_gy_data` | `/data` |
+| `kobiops_whatsapp_session` | WhatsApp oturumu |
 
 ## İlk giriş
 
 - `https://panel.sizin-domain.com/giris/`
 - **admin** / **admin** → sonra `DJANGO_ENSURE_SUPERADMIN=0`
 
-## Güncelleme
-
-```bash
-cd /opt/cool-ops
-git pull
-docker compose up -d --build
-```
-
 ## Sorun giderme
 
 | Belirti | Çözüm |
 |---------|--------|
-| Container görünmüyor | **Compose** sekmesine bakın (stack `cool-ops`). SSH: `cd /opt/cool-ops && docker compose ps -a` |
-| Compose hemen düşüyor | Muhtemelen **port 80 çakışması** — `COMPOSE_FILE=...1panel.yaml` kullanın veya `docker compose logs` |
-| Build hatası | `docker compose logs app --tail 100` — RAM ≥ 2 GB |
-| 502 | Reverse proxy hedefi `127.0.0.1:8080` mi? `docker compose ps` |
-| CSRF | `./deploy/install.sh domain --force` |
-| WhatsApp | `docker compose logs whatsapp_bridge` |
-| Veri kaybı | Volume korundu mu? |
+| Container yok | **Compose** sekmesi; `COMPOSE_FILE=...1panel.yaml` |
+| 502 | Proxy `127.0.0.1:8080`; `docker compose ps` |
+| CSRF / DisallowedHost | `KOBIOPS_DOMAIN` doğru; redeploy |
+| Elle APP_URL yazmayın | [DOMAIN.md](../DOMAIN.md) |
 
 Detay: [DEPLOY.md](../../DEPLOY.md)
