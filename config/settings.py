@@ -226,16 +226,38 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+_db_url = os.environ.get('DATABASE_URL', '').strip()
+_db_host = os.environ.get('DB_HOST', '').strip()
 
-_db_path = os.environ.get('DJANGO_DB_PATH', '').strip()
-if _db_path:
-    DATABASES['default']['NAME'] = Path(_db_path)
+if _db_url:
+    try:
+        import dj_database_url
+        DATABASES = {
+            'default': dj_database_url.config(default=_db_url)
+        }
+    except ImportError:
+        pass
+elif _db_host:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'coolops'),
+            'USER': os.environ.get('DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': _db_host,
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+    _db_path = os.environ.get('DJANGO_DB_PATH', '').strip()
+    if _db_path:
+        DATABASES['default']['NAME'] = Path(_db_path)
 
 
 # Password validation — kurumsal politika config.settings_security içinde
@@ -265,6 +287,20 @@ MEDIA_ROOT = BASE_DIR / 'media'
 _media_root = os.environ.get('DJANGO_MEDIA_ROOT', '').strip()
 if _media_root:
     MEDIA_ROOT = Path(_media_root)
+
+# Google Cloud Storage
+GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', '').strip()
+if GS_BUCKET_NAME:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    GS_DEFAULT_ACL = os.environ.get('GS_DEFAULT_ACL', 'publicRead')
+    GS_QUERYSTRING_AUTH = False
 
 AUTH_USER_MODEL = 'users.User'
 

@@ -229,6 +229,8 @@ def write_persistence_marker(root: Path | None = None) -> dict:
 
 def auto_backup_sqlite(root: Path | None = None) -> Path | None:
     """migrate öncesi mevcut db.sqlite3 kopyası (volume içinde)."""
+    if settings.DATABASES['default']['ENGINE'] != 'django.db.backends.sqlite3':
+        return None
     db = db_path()
     if not db.is_file() or db.stat().st_size < 512:
         return None
@@ -259,6 +261,9 @@ def auto_backup_sqlite(root: Path | None = None) -> Path | None:
 
 def check_before_migrate() -> None:
     if not is_containerized_production():
+        return
+    if settings.DATABASES['default']['ENGINE'] != 'django.db.backends.sqlite3':
+        logger.info('SQLite kullanılmıyor (%s); kalıcı veri kontrolü atlanıyor.', settings.DATABASES['default']['ENGINE'])
         return
 
     root = data_root()
@@ -309,5 +314,7 @@ def check_before_migrate() -> None:
 
 def check_after_migrate() -> dict | None:
     if not is_containerized_production():
+        return None
+    if settings.DATABASES['default']['ENGINE'] != 'django.db.backends.sqlite3':
         return None
     return write_persistence_marker(data_root())
