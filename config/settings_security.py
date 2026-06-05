@@ -11,8 +11,31 @@ from __future__ import annotations
 
 import os
 
+from common.panel_env import detect_panel_fqdn, detect_panel_origin, is_http_only_panel_host
+
 _IS_PROD = not os.environ.get('DJANGO_DEBUG', '1').lower() in ('1', 'true', 'yes')
-_USE_SSL = os.environ.get('DJANGO_SECURE_SSL', '').lower() in ('1', 'true', 'yes')
+
+
+def _resolve_use_ssl() -> bool:
+    """sslip.io / traefik.me veya DJANGO_SECURE_SSL=0 → HTTPS redirect kapalı."""
+    explicit = os.environ.get('DJANGO_SECURE_SSL', '').strip().lower()
+    if explicit in ('0', 'false', 'no'):
+        return False
+    fqdn = detect_panel_fqdn()
+    if fqdn and is_http_only_panel_host(fqdn):
+        return False
+    origin = detect_panel_origin()
+    if origin.startswith('http://'):
+        host = origin.split('://', 1)[-1].split('/')[0].split(':')[0]
+        if is_http_only_panel_host(host):
+            return False
+    allowed = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
+    if '.sslip.io' in allowed or '.traefik.me' in allowed:
+        return False
+    return explicit in ('1', 'true', 'yes')
+
+
+_USE_SSL = _resolve_use_ssl()
 
 # --- Parola politikası (kurumsal minimum) ---
 AUTH_PASSWORD_VALIDATORS = [

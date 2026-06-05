@@ -30,6 +30,17 @@ panel_domain_is_http_only() {
   esac
 }
 
+# Dokploy bazen konteyner ID'sini (5bffcfbd178d) SERVICE_FQDN_APP olarak enjekte eder
+panel_domain_is_plausible_fqdn() {
+  local h="${1:-}"
+  [[ -z "$h" ]] && return 1
+  case "$h" in
+    localhost|127.0.0.1|'[::1]') return 0 ;;
+  esac
+  [[ "$h" == *.* ]] || return 1
+  return 0
+}
+
 panel_domain_read_fqdn_key() {
   local key="$1"
   local val="${!key:-}"
@@ -119,14 +130,21 @@ panel_domain_normalize() {
   fi
 
   # Tüm paneller → tek SERVICE_FQDN_APP / SERVICE_URL_APP (Django + bootstrap)
+  if [[ -n "${SERVICE_FQDN_APP:-}" ]]; then
+    SERVICE_FQDN_APP="$(panel_domain_strip_host "$SERVICE_FQDN_APP")"
+    if ! panel_domain_is_plausible_fqdn "$SERVICE_FQDN_APP"; then
+      echo "[cool-ops] UYARI: Geçersiz SERVICE_FQDN_APP (${SERVICE_FQDN_APP}) — konteyner adı yok sayılıyor."
+      unset SERVICE_FQDN_APP
+    else
+      export SERVICE_FQDN_APP
+    fi
+  fi
   if [[ -z "${SERVICE_FQDN_APP:-}" ]]; then
     local fqdn=""
     fqdn="$(panel_domain_detect_fqdn 2>/dev/null || true)"
-    if [[ -n "$fqdn" ]]; then
+    if [[ -n "$fqdn" ]] && panel_domain_is_plausible_fqdn "$fqdn"; then
       export SERVICE_FQDN_APP="$fqdn"
     fi
-  else
-    export SERVICE_FQDN_APP="$(panel_domain_strip_host "$SERVICE_FQDN_APP")"
   fi
 
   if [[ -z "${SERVICE_URL_APP:-}" ]]; then
@@ -212,12 +230,25 @@ panel_domain_apply_django() {
 
   if [[ -n "${SERVICE_URL_APP:-}" ]]; then
     _url="${SERVICE_URL_APP%/}"
-    export DJANGO_CSRF_TRUSTED_ORIGINS="${_csrf_base},${_url}"
-    if [[ "$_url" == https://* ]]; then
+    _url_host="$(panel_domain_strip_host "$_url")"
+    # Dokploy bazen sslip.io için https:// enjekte eder — HTTP'ye normalize et
+    if [[ -n "$_url_host" ]] && panel_domain_is_http_only "$_url_host"; then
+      _url="http://${_url_host}"
+      export SERVICE_URL_APP="$_url"
+      if [[ -z "${SERVICE_FQDN_APP:-}" ]]; then
+        export SERVICE_FQDN_APP="$_url_host"
+      fi
+      if [[ -z "${DJANGO_ALLOWED_HOSTS:-}" ]] || [[ "${DJANGO_ALLOWED_HOSTS}" != *"${_url_host}"* ]]; then
+        export DJANGO_ALLOWED_HOSTS="localhost,127.0.0.1,${_ip},${_url_host}"
+        echo "[cool-ops] ALLOWED_HOSTS ← ${_url_host} (sslip URL)"
+      fi
+      export DJANGO_SECURE_SSL=0
+    elif [[ "$_url" == https://* ]]; then
       export DJANGO_SECURE_SSL="${DJANGO_SECURE_SSL:-1}"
     elif [[ -z "${DJANGO_SECURE_SSL:-}" ]]; then
       export DJANGO_SECURE_SSL=0
     fi
+    export DJANGO_CSRF_TRUSTED_ORIGINS="${_csrf_base},${_url}"
     echo "[cool-ops] CSRF ← ${_url}"
   elif [[ -z "${DJANGO_CSRF_TRUSTED_ORIGINS:-}" ]]; then
     _fqdn="$(panel_domain_detect_fqdn 2>/dev/null || true)"

@@ -14,7 +14,6 @@ PANEL_FQDN_ENV_KEYS = (
     'DOKPLOY_FQDN',
     'DOMAIN',
     'APP_DOMAIN',
-    'HOSTNAME',
     'COOLIFY_FQDN',
 )
 
@@ -42,6 +41,16 @@ def is_http_only_panel_host(host: str) -> bool:
     return host.endswith('.sslip.io') or host.endswith('.traefik.me')
 
 
+def is_plausible_public_fqdn(host: str) -> bool:
+    """Konteyner ID / docker hostname gibi sahte değerleri ele."""
+    host = (host or '').strip()
+    if not host:
+        return False
+    if host in ('localhost', '127.0.0.1', '[::1]'):
+        return True
+    return '.' in host
+
+
 def _origin_from_fqdn(fqdn: str) -> str:
     if is_http_only_panel_host(fqdn):
         return f'http://{fqdn}'
@@ -55,11 +64,11 @@ def _read_fqdn_key(key: str) -> str:
 def _detect_fqdn_raw() -> str:
     for key in PANEL_FQDN_ENV_KEYS:
         host = _read_fqdn_key(key)
-        if host:
+        if host and is_plausible_public_fqdn(host):
             return host
     for key in (*PANEL_URL_ENV_KEYS, 'APP_URL'):
         host = _strip_host(os.environ.get(key, ''))
-        if host:
+        if host and is_plausible_public_fqdn(host):
             return host
     return ''
 
@@ -83,6 +92,8 @@ def normalize_panel_service_env() -> tuple[str, str]:
         return fqdn, url
 
     fqdn = _read_fqdn_key('SERVICE_FQDN_APP')
+    if fqdn and not is_plausible_public_fqdn(fqdn):
+        fqdn = ''
     if not fqdn:
         kobi = _strip_host(os.environ.get('KOBIOPS_DOMAIN', ''))
         svc_raw = os.environ.get('SERVICE_FQDN_APP', '').strip()
@@ -115,6 +126,9 @@ def normalize_panel_service_env() -> tuple[str, str]:
 
     if url and '://' not in url:
         url = _origin_from_fqdn(_strip_host(url))
+
+    if fqdn and is_http_only_panel_host(fqdn):
+        url = f'http://{fqdn}'
 
     return fqdn, url
 
