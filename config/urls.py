@@ -45,6 +45,7 @@ urlpatterns = [
     path('muhasebe/', include('config.accounting_urls')),
     path('crm/', include('config.crm_urls')),
     path('ortak/', include('config.ortak_urls')),
+    path('restoran/', include('restaurant.urls')),
     path('chat/', include('chat.urls')),
     path('ayarlar/', include('config.site_settings_urls')),
 ]

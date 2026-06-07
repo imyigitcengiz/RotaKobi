@@ -15,6 +15,7 @@ MODULE_STATUS_ROADMAP = 'roadmap'
 
 VERTICALS: tuple[tuple[str, str, str, str, str], ...] = (
     ('kobi', 'KOBİ & Saha Servis', 'Montaj, teknik servis, B2B satış, saha ekibi', 'wrench', 'emerald'),
+    ('restaurant', 'Restoran & Kafe', 'Menü, masa, sipariş ve mutfak', 'utensils', 'amber'),
     ('universal', 'Evrensel', 'Ortak araçlar', 'layers', 'slate'),
 )
 
@@ -95,6 +96,23 @@ MODULES: tuple[dict, ...] = (
         'route_prefixes': ('/iletisim/', '/contact/pazarlama/'),
         'particle_slugs': ('p.outreach.campaigns',),
         'sort': 40,
+        'default_enabled': False,
+        'can_disable': True,
+    },
+    {
+        'slug': 'restaurant',
+        'kind': MODULE_KIND_APP,
+        'name': 'Restoran POS',
+        'summary': 'Menü, masa, sipariş ve mutfak — BiDoluPos migrasyonu.',
+        'access_perm': 'access.restaurant',
+        'hub_url_name': 'restaurant_hub',
+        'icon': 'utensils',
+        'verticals': ('restaurant', 'universal'),
+        'status': MODULE_STATUS_BETA,
+        'panel_section': 'restaurant',
+        'route_prefixes': ('/restoran/',),
+        'particle_slugs': (),
+        'sort': 35,
         'default_enabled': False,
         'can_disable': True,
     },

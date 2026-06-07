@@ -166,6 +166,7 @@ INSTALLED_APPS = [
     'analytics',
     'tools',
     'sales_leads',
+    'restaurant',
     'common',
     'chat',
 ]

@@ -1,0 +1,40 @@
+{% extends 'common/erp_unified_shell.html' %}
+{% block title %}Restoran{% endblock %}
+{% block body_class %} bg-slate-100{% endblock %}
+{% block shell_header %}
+<header class="erp-module-header">
+    <div class="erp-module-header__inner">
+        <div class="erp-module-header__top">
+            <div class="erp-module-header__lead">
+                {% include 'common/erp_sidebar_toggle.html' %}
+                <div class="erp-module-header__text min-w-0">
+                    <h1 class="erp-module-header__title">Restoran</h1>
+                    <p class="erp-module-header__subtitle">Menü, masa ve POS — geliştirme aşamasında</p>
+                </div>
+            </div>
+            <div class="erp-module-header__tools">
+                {% include 'common/erp_global_bar.html' %}
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+{% block shell_content %}
+<div class="max-w-3xl mx-auto px-4 py-6">
+    <dl class="grid grid-cols-3 gap-4 text-center">
+        <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <dt class="text-xs text-slate-500 uppercase tracking-wide">Kategori</dt>
+            <dd class="text-2xl font-bold text-slate-900 mt-1">{{ category_count }}</dd>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <dt class="text-xs text-slate-500 uppercase tracking-wide">Menü ürünü</dt>
+            <dd class="text-2xl font-bold text-slate-900 mt-1">{{ menu_item_count }}</dd>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <dt class="text-xs text-slate-500 uppercase tracking-wide">Masa</dt>
+            <dd class="text-2xl font-bold text-slate-900 mt-1">{{ table_count }}</dd>
+        </div>
+    </dl>
+    <p class="mt-8 text-xs text-slate-400 text-center">Dal: restoran-pos · docs/RESTORAN_MIGRATION.md</p>
+</div>
+{% endblock %}

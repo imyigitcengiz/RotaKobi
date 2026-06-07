@@ -38,6 +38,10 @@ tools/whatsapp_bridge/.wwebjs_auth/
 # Geçici
 *.bak
 *.tmp
+db.sqlite3.bak-*
+
+# BiDoluPos — yerel migrasyon referansı (ayrı repo; CoolOPS'a taşınırken)
+BiDoluPos/
 
 # Plesk (sunucuya özel)
 deploy/plesk/plesk.env

@@ -12,6 +12,8 @@ PERMISSIONS = [
      'Yardım Masası özet paneli ve kayıt listesine erişim.'),
     ('access.contact', 'Rehber modülü', 'Rehber', PERMISSION_KIND_ACCESS, 45,
      'Rehber özeti, müşteri, firma ve ilgili sayfalara erişim.'),
+    ('access.restaurant', 'Restoran modülü', 'Restoran', PERMISSION_KIND_ACCESS, 46,
+     'Menü, masa ve restoran POS (/restoran/).'),
     ('access.outreach', 'İletişim Merkezi modülü', 'İletişim', PERMISSION_KIND_ACCESS, 48,
      'Kampanya gönderimi ve mesaj kayıtları (/iletisim/).'),
     ('access.tools', 'Araçlar modülü', 'Araçlar', PERMISSION_KIND_ACCESS, 50,
