@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect
 
 from common.middleware import _is_api_request, permission_denied_redirect
-from users.impersonation import get_real_user
+from users.impersonation import get_real_user, is_impersonating
 
 
 def json_auth_required(view_func):
@@ -52,7 +52,7 @@ def permission_required(*codenames, any_perm=False):
                     return JsonResponse({'ok': False, 'error': 'Giriş gerekli.'}, status=401)
                 return redirect('login')
             real_user = get_real_user(request)
-            if real_user.is_superuser:
+            if real_user.is_superuser and not is_impersonating(request):
                 return view_func(*args, **kwargs)
             codes = [c for c in codenames if c]
             if not codes:

@@ -1,6 +1,6 @@
 """ERP/CRM modül adları — arayüz metinleri (URL ve izin kodları değişmez)."""
 
-APP_NAME = 'CoolOPS'
+APP_NAME = 'Kobi Hub'
 
 ANA_PANEL = 'Ana Panel'
 OZELLIKLER = 'Özellikler'

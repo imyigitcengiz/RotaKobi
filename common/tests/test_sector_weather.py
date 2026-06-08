@@ -94,6 +94,12 @@ class WeatherApiTests(TestCase):
         if role:
             self.user.role = role
             self.user.save()
+        from common.tests.helpers import ensure_brand_for_user, login_with_brand, set_user_modules
+
+        self.brand = ensure_brand_for_user(self.user, 'Weather Marka')
+        set_user_modules(self.user, slugs)
+        self._weather_client = __import__('django.test', fromlist=['Client']).Client()
+        login_with_brand(self._weather_client, self.user, self.brand)
 
     @patch('tools.weather_views.weather_for_site')
     def test_weather_api_ok(self, mock_weather):
@@ -107,18 +113,16 @@ class WeatherApiTests(TestCase):
             latitude=41.0,
             longitude=29.0,
         )
-        self.client.force_login(self.user)
-        resp = self.client.get('/tools/api/hava-durumu/')
+        resp = self._weather_client.get('/tools/api/hava-durumu/')
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertTrue(data['ok'])
         self.assertEqual(data['weather']['city'], 'İstanbul')
 
     def test_weather_api_disabled_module(self):
-        settings = SiteSettings.objects.first()
-        slugs = [s for s in settings.enabled_module_slugs if s != 'integration_weather']
-        settings.enabled_module_slugs = slugs
-        settings.save()
-        self.client.force_login(self.user)
-        resp = self.client.get('/tools/api/hava-durumu/')
+        slugs = [s for s in self.user.enabled_module_slugs if s != 'integration_weather']
+        from common.tests.helpers import set_user_modules
+
+        set_user_modules(self.user, slugs)
+        resp = self._weather_client.get('/tools/api/hava-durumu/')
         self.assertEqual(resp.status_code, 403)

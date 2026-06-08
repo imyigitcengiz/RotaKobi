@@ -27,22 +27,26 @@ class FinanceExtensionsTests(TestCase):
         if role:
             self.user.role = role
             self.user.save()
-        self.client.force_login(self.user)
-        from common.brand_scope import system_default_brand
-        from core_settings.models import BrandMembership
+        from common.tests.helpers import ensure_brand_for_user, login_with_brand, set_user_modules
 
-        self.brand = system_default_brand()
-        if self.brand:
-            BrandMembership.objects.get_or_create(
-                user=self.user,
-                brand=self.brand,
-                defaults={'role': BrandMembership.ROLE_OWNER, 'is_default': True},
-            )
+        self.brand = ensure_brand_for_user(self.user, 'Finans Test')
+        set_user_modules(self.user, full_finance_extension_slugs())
+        login_with_brand(self.client, self.user, self.brand)
 
     def _brand_kwargs(self):
         if self.brand:
             return {'brand_id': self.brand.pk}
         return {}
+
+    def _request(self):
+        from django.test import RequestFactory
+
+        from common.brand_scope import SESSION_ACTIVE_BRAND
+
+        request = RequestFactory().get('/muhasebe/borclar/')
+        request.user = self.user
+        request.session = {SESSION_ACTIVE_BRAND: self.brand.pk}
+        return request
 
     def test_payables_page_ok(self):
         response = self.client.get('/muhasebe/borclar/')
@@ -70,11 +74,15 @@ class FinanceExtensionsTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_payable_payment_creates_expense(self):
-        payable = create_payable(supplier_name='ABC Ltd', amount=Decimal('1000.00'))
-        record_payment(payable, Decimal('400.00'), self.user)
+        payable = create_payable(
+            supplier_name='ABC Ltd',
+            amount=Decimal('1000.00'),
+            brand=self.brand,
+        )
+        record_payment(payable, Decimal('400.00'), self.user, request=self._request())
         payable.refresh_from_db()
         self.assertEqual(payable.paid_amount, Decimal('400.00'))
-        ctx = build_payables_context()
+        ctx = build_payables_context(request=self._request())
         self.assertEqual(ctx['payable_count'], 1)
         self.assertEqual(ctx['payable_total'], Decimal('600.00'))
 
@@ -146,7 +154,7 @@ class FinanceExtensionsTests(TestCase):
         from django.utils import timezone
         from io import BytesIO
 
-        customer = Customer.objects.create(name='Import Müşteri')
+        customer = Customer.objects.create(name='Import Müşteri', **self._brand_kwargs())
         lead = SalesLead.objects.create(
             customer=customer,
             sale_date=timezone.localdate(),

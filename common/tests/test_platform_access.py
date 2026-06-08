@@ -60,9 +60,14 @@ class PlatformAccessTests(TestCase):
         self.assertRedirects(response, '/yonetim/yedekler/')
 
     def test_plain_user_backup_redirects_home(self):
+        from common.tests.helpers import ensure_brand_for_user, login_with_brand, set_user_modules
+        from common.kobi_lean_preset import lean_kobi_slugs
+
         role = Role.objects.filter(slug='admin').first()
         plain = User.objects.create_user(username='plain', password='test1234', role=role)
-        self.client.force_login(plain)
+        brand = ensure_brand_for_user(plain, 'Plain Marka')
+        set_user_modules(plain, lean_kobi_slugs())
+        login_with_brand(self.client, plain, brand)
         response = self.client.get('/ayarlar/yedekler/')
         self.assertRedirects(response, '/panel/')
 
@@ -75,9 +80,13 @@ class PlatformAccessTests(TestCase):
         self.assertLessEqual(len(response.redirect_chain), 1)
 
     def test_brand_owner_yonetim_redirects_without_loop(self):
+        from common.tests.helpers import login_with_brand, set_user_modules
+        from common.kobi_lean_preset import lean_kobi_slugs
+
         owner = User.objects.create_user(username='owner_yon', password='test1234')
-        create_brand_for_user(owner, 'Yon HQ')
-        self.client.force_login(owner)
+        brand = create_brand_for_user(owner, 'Yon HQ')
+        set_user_modules(owner, lean_kobi_slugs())
+        login_with_brand(self.client, owner, brand)
         response = self.client.get('/yonetim/', follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertLessEqual(len(response.redirect_chain), 2)

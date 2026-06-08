@@ -26,8 +26,6 @@ class Customer(models.Model):
         'core_settings.BusinessBrand',
         on_delete=models.PROTECT,
         related_name='customers',
-        null=True,
-        blank=True,
         verbose_name='Marka / firma',
     )
     name = models.CharField(max_length=255, verbose_name="Müşteri Adı")

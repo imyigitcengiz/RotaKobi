@@ -1,9 +1,11 @@
 {# Modül satırı — hub + alt menü #}
-<div class="erp-sidebar-module erp-sidebar-module--{{ mod.slug }}{% if mod.expanded %} erp-sidebar-module--expanded{% endif %}"
-     data-erp-sidebar-module="{{ mod.slug }}">
+<div class="erp-sidebar-module erp-sidebar-module--{{ mod.slug }}{% if mod.expanded %} erp-sidebar-module--expanded{% endif %}{% if mod.disabled %} opacity-50 pointer-events-none{% endif %}"
+     data-erp-sidebar-module="{{ mod.slug }}"
+     {% if mod.disabled %}title="{{ mod.disabled_tooltip|default:'Kapalı — Modül Merkezi' }}"{% endif %}>
     <div class="erp-sidebar-module__hub-row">
         <a href="{{ mod.hub_url }}"
-           class="erp-sidebar-module__hub{% if mod.expanded %} erp-sidebar-module__hub--current{% endif %}">
+           class="erp-sidebar-module__hub{% if mod.expanded %} erp-sidebar-module__hub--current{% endif %}"
+           {% if mod.disabled %}aria-disabled="true" tabindex="-1"{% endif %}>
             <span class="erp-sidebar-module__icon-wrap" aria-hidden="true">
                 <i data-lucide="{{ mod.icon }}" class="erp-sidebar-module__icon"></i>
             </span>

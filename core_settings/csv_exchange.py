@@ -90,7 +90,7 @@ def _row_val(row: dict, key: str, *legacy_keys: str) -> str:
     return _cell(row, *legacy_keys) if legacy_keys else ''
 
 
-def import_finance_rows(rows: list[dict], *, user=None) -> dict:
+def import_finance_rows(rows: list[dict], *, user=None, request=None) -> dict:
     created = 0
     skipped = 0
     with transaction.atomic():
@@ -123,7 +123,7 @@ def import_finance_rows(rows: list[dict], *, user=None) -> dict:
                 from core_settings.models import OperationalProject
                 operational_project = OperationalProject.objects.filter(name__iexact=project_name).first()
 
-            FinanceRecord.objects.create(
+            record = FinanceRecord(
                 record_type=record_type,
                 category=category,
                 title=title,
@@ -135,6 +135,17 @@ def import_finance_rows(rows: list[dict], *, user=None) -> dict:
                 operational_project=operational_project,
                 recorded_by=user if user and user.is_authenticated else None,
             )
+            if request is not None:
+                from common.brand_scope import assign_brand
+
+                assign_brand(record, request)
+            elif user:
+                from common.brand_scope import default_brand_for_user
+
+                brand = default_brand_for_user(user)
+                if brand:
+                    record.brand_id = brand.pk
+            record.save()
             created += 1
     return {'created': created, 'skipped': skipped}
 

@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from common.quick_search import QUICK_SEARCH_ITEMS, build_quick_search_results, search_entities
+from common.tests.helpers import default_test_brand
 from customers.models import Customer
 from tools.models import MapsScrapedFirm
 from users.models import Role, UserNotification
@@ -35,17 +36,20 @@ class QuickSearchTests(TestCase):
 
     def test_search_entities_by_customer_phone(self):
         user = get_user_model().objects.create_superuser('qs_phone', 'qs-phone@test.local', 'pass')
-        Customer.objects.create(name='Ali Veli', phone='0532 111 22 33')
+        brand = default_test_brand()
+        Customer.objects.create(name='Ali Veli', phone='0532 111 22 33', brand=brand)
         results = search_entities(user, '5321112233', limit=10)
         titles = [row['title'] for row in results]
         self.assertIn('Ali Veli', titles)
 
     def test_search_entities_by_firm_phone(self):
         user = get_user_model().objects.create_superuser('qs_firm_phone', 'qs-firm@test.local', 'pass')
+        brand = default_test_brand()
         MapsScrapedFirm.objects.create(
             name='Demo Firma AŞ',
             phone='0 (212) 555 66 77',
             phone_normalized='902125556677',
+            brand=brand,
         )
         results = search_entities(user, '2125556677', limit=10)
         titles = [row['title'] for row in results]

@@ -5,7 +5,7 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 
 from common.middleware import _is_api_request, permission_denied_redirect
-from users.impersonation import get_real_user
+from users.impersonation import get_real_user, is_impersonating
 
 
 class SuperuserRequiredMixin(UserPassesTestMixin):
@@ -63,7 +63,7 @@ class PermissionRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
         user = self.request.user
         real_user = get_real_user(self.request)
-        if real_user.is_superuser:
+        if real_user.is_superuser and not is_impersonating(self.request):
             return True
         perms = self.get_permission_required()
         if not perms:

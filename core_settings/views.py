@@ -612,7 +612,8 @@ class PersonnelNetworkView(TemplateView):
             else:
                 messages.error(request, 'Personel eklenemedi.')
         elif 'update_personnel' in request.POST:
-            obj = get_object_or_404(ServicePersonnel, pk=request.POST.get('id'))
+            from common.brand_scope import get_personnel_for_request
+            obj = get_personnel_for_request(request, request.POST.get('id'))
             obj.name = (request.POST.get('name') or '').strip()
             team_id = request.POST.get('team')
             obj.team_id = int(team_id) if team_id else None
@@ -623,7 +624,8 @@ class PersonnelNetworkView(TemplateView):
             obj.product_groups.set(request.POST.getlist('product_groups'))
             messages.success(request, f'{obj.name} güncellendi.')
         elif 'delete_personnel' in request.POST:
-            ServicePersonnel.objects.filter(id=request.POST.get('id')).delete()
+            from common.brand_scope import get_personnel_for_request
+            get_personnel_for_request(request, request.POST.get('id')).delete()
             messages.info(request, 'Personel silindi.')
         return redirect('personnel_network')
 
@@ -747,7 +749,8 @@ class AccountingPersonnelView(TemplateView):
             else:
                 messages.error(request, 'Personel eklenemedi.')
         elif 'update_personnel' in request.POST:
-            obj = get_object_or_404(ServicePersonnel, pk=request.POST.get('id'))
+            from common.brand_scope import get_personnel_for_request
+            obj = get_personnel_for_request(request, request.POST.get('id'))
             form = AccountingPersonnelForm(request.POST, instance=obj, show_product_groups=show_skills)
             if form.is_valid():
                 person = form.save()
@@ -756,7 +759,8 @@ class AccountingPersonnelView(TemplateView):
             else:
                 messages.error(request, 'Personel güncellenemedi.')
         elif 'delete_personnel' in request.POST:
-            ServicePersonnel.objects.filter(id=request.POST.get('id')).delete()
+            from common.brand_scope import get_personnel_for_request
+            get_personnel_for_request(request, request.POST.get('id')).delete()
             messages.info(request, 'Personel silindi.')
         return redirect(f"{reverse('accounting_personnel')}{period_qs}")
 
@@ -1360,8 +1364,15 @@ class AccountingFinanceView(TemplateView):
             if not can_manage_finance(request.user):
                 messages.error(request, 'Gelir/gider kaydı için yetkiniz yok.')
                 return self._finance_redirect(request)
-            FinanceRecord.objects.filter(id=request.POST.get('id')).delete()
-            messages.info(request, 'Kayıt silindi.')
+            fin_id = request.POST.get('id')
+            deleted, _ = filter_finance(
+                FinanceRecord.objects.filter(pk=fin_id),
+                request,
+            ).delete()
+            if deleted:
+                messages.info(request, 'Kayıt silindi.')
+            else:
+                messages.error(request, 'Kayıt bulunamadı veya bu markaya ait değil.')
         return self._finance_redirect(request)
 
 

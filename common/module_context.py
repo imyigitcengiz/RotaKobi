@@ -4,16 +4,35 @@ from __future__ import annotations
 
 from contextvars import ContextVar
 
-_module_user: ContextVar = ContextVar('module_user', default=None)
+_module_ctx: ContextVar = ContextVar('module_ctx', default=None)
 
 
-def bind_module_user(user):
-    return _module_user.set(user)
+def bind_module_user(user, request=None):
+    return _module_ctx.set({'user': user, 'request': request})
 
 
 def reset_module_user(token) -> None:
-    _module_user.reset(token)
+    _module_ctx.reset(token)
+
+
+def current_module_context():
+    ctx = _module_ctx.get()
+    if isinstance(ctx, dict):
+        return ctx
+    if ctx is not None:
+        return {'user': ctx, 'request': None}
+    return None
 
 
 def current_module_user():
-    return _module_user.get()
+    ctx = current_module_context()
+    if not ctx:
+        return None
+    return ctx.get('user')
+
+
+def current_module_request():
+    ctx = current_module_context()
+    if not ctx:
+        return None
+    return ctx.get('request')

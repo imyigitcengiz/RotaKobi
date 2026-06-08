@@ -2,12 +2,12 @@
 
 from django.contrib import messages
 from django.http import JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from common.module_context import bind_module_user, reset_module_user
 
-from common.middleware import _is_api_request
+from common.middleware import _is_api_request, _path_matches
 from common.module_catalog import (
     MODULE_KIND_INTEGRATION,
     MODULE_STATUS_ACTIVE,
@@ -30,10 +30,14 @@ class ModuleInstallMiddleware:
 
     def __call__(self, request):
         token = bind_module_user(
-            request.user if getattr(request, 'user', None) and request.user.is_authenticated else None
+            request.user if getattr(request, 'user', None) and request.user.is_authenticated else None,
+            request=request,
         )
         try:
             if request.user.is_authenticated and not request.user.is_superuser:
+                past_due = self._subscription_write_blocked(request)
+                if past_due is not None:
+                    return past_due
                 blocked = self._blocked_response(request)
                 if blocked is not None:
                     return blocked
@@ -42,8 +46,38 @@ class ModuleInstallMiddleware:
             reset_module_user(token)
 
     @staticmethod
-    def _api_forbidden(message: str):
-        return JsonResponse({'ok': False, 'error': 'module_disabled', 'detail': message}, status=403)
+    def _api_forbidden(message: str, *, error: str = 'module_disabled', status: int = 403):
+        return JsonResponse({'ok': False, 'error': error, 'detail': message}, status=status)
+
+    _SUBSCRIPTION_WRITE_EXEMPT = (
+        '/panel/abonelik/',
+        '/cikis/',
+        '/profil/',
+        '/static/',
+        '/media/',
+        '/api/billing/',
+        '/aktiflestir/',
+        '/giris/',
+        '/healthz/',
+    )
+
+    def _subscription_write_blocked(self, request):
+        if request.method in ('GET', 'HEAD', 'OPTIONS', 'TRACE'):
+            return None
+        path = request.path
+        if any(_path_matches(path, prefix) for prefix in self._SUBSCRIPTION_WRITE_EXEMPT):
+            return None
+        from core_settings.billing.subscription import subscription_blocks_writes
+
+        if not subscription_blocks_writes(request.user):
+            return None
+        msg = (
+            'Deneme süreniz sona erdi ve ödeme alınamadı. '
+            'Salt okunur moddasınız — Abonelik sayfasından ödeme yapın.'
+        )
+        if _is_api_request(request):
+            return self._api_forbidden(msg, error='subscription_past_due', status=403)
+        return render(request, 'errors/module_disabled.html', {'message': msg}, status=403)
 
     def _blocked_response(self, request):
         path = request.path
@@ -57,14 +91,12 @@ class ModuleInstallMiddleware:
                         msg = f'"{mod["name"]}" entegrasyonu kapalı. Abonelik sayfasından açabilirsiniz.'
                         if _is_api_request(request):
                             return self._api_forbidden(msg)
-                        messages.warning(request, msg)
-                        return redirect(reverse('subscription_dashboard') + '#moduller')
+                        return render(request, 'errors/module_disabled.html', {'message': msg}, status=403)
                 elif not module_route_allowed(slug):
                     msg = f'{mod["name"]} modülü kapalı. Abonelik sayfasından açabilirsiniz.'
                     if _is_api_request(request):
                         return self._api_forbidden(msg)
-                    messages.warning(request, msg)
-                    return redirect(reverse('subscription_dashboard') + '#moduller')
+                    return render(request, 'errors/module_disabled.html', {'message': msg}, status=403)
 
         particle_slug = resolve_path_particle_slug(path)
         if particle_slug:
@@ -73,8 +105,7 @@ class ModuleInstallMiddleware:
                 msg = f'"{p["name"]}" özelliği kapalı. Abonelik sayfasından açabilirsiniz.'
                 if _is_api_request(request):
                     return self._api_forbidden(msg)
-                messages.warning(request, msg)
-                return redirect(reverse('subscription_dashboard') + '#moduller')
+                return render(request, 'errors/module_disabled.html', {'message': msg}, status=403)
 
         return None
 

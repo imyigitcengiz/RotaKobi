@@ -82,6 +82,12 @@ class User(AbstractUser):
 
     @property
     def active_plan(self):
+        from core_settings.billing.subscription import get_active_subscription, refresh_subscription_status
+
+        refresh_subscription_status(self)
+        sub = get_active_subscription(self)
+        if sub and sub.plan_id:
+            return sub.plan
         if self.plan:
             return self.plan
         from core_settings.models import Plan

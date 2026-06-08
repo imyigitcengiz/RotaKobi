@@ -13,8 +13,10 @@ def ensure_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.get_or_create(user=instance)
         try:
             from chat.services import add_user_to_team_thread
+            from core_settings.models import BrandMembership
 
-            add_user_to_team_thread(instance)
+            for mem in BrandMembership.objects.filter(user=instance).select_related('brand'):
+                add_user_to_team_thread(instance, brand=mem.brand)
         except Exception:
             pass
 

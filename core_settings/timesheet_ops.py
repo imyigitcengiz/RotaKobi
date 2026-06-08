@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 from core_settings.models import ServicePersonnel, TimeEntry
@@ -21,15 +21,23 @@ def _month_bounds(year: int, month: int) -> tuple[date, date]:
     return start, end - timedelta(days=1)
 
 
-def build_timesheet_context(*, year: int | None = None, month: int | None = None) -> dict:
+def build_timesheet_context(*, request=None, year: int | None = None, month: int | None = None) -> dict:
     today = timezone.localdate()
     year = year or today.year
     month = month or today.month
     start, end = _month_bounds(year, month)
 
+    from common.brand_scope import filter_personnel, get_active_brand_id
+
+    entries_qs = TimeEntry.objects.filter(entry_date__gte=start, entry_date__lte=end)
+    bid = get_active_brand_id(request) if request is not None else None
+    if bid:
+        entries_qs = entries_qs.filter(
+            Q(personnel__brand_id=bid)
+            | Q(sales_lead__customer__brand_id=bid)
+        ).distinct()
     entries = list(
-        TimeEntry.objects.filter(entry_date__gte=start, entry_date__lte=end)
-        .select_related('personnel', 'sales_lead', 'operational_project')
+        entries_qs.select_related('personnel', 'sales_lead', 'operational_project')
         .order_by('-entry_date', '-created_at')
     )
     total_hours = sum((entry.hours for entry in entries), Decimal('0'))
@@ -48,6 +56,8 @@ def build_timesheet_context(*, year: int | None = None, month: int | None = None
     person_totals = sorted(by_person.values(), key=lambda item: -item['hours'])
 
     personnel_choices = ServicePersonnel.objects.filter(is_active=True).order_by('name')
+    if request is not None:
+        personnel_choices = filter_personnel(personnel_choices, request)
 
     return {
         'timesheet_entries': entries,

@@ -11,9 +11,11 @@ from common.brand_access import resolve_post_login_url, user_is_dealer_only
 from common.brand_scope import create_brand_for_user, set_active_brand, _brand_id_allowed_for_user
 from common.login_throttle import clear_login_attempts, is_login_blocked, register_failed_login
 from common.register_throttle import is_register_blocked, register_attempt
-from common.tenant import build_brand_public_url, tenant_login_url
-from core_settings.models import Plan, BillingInvoice
+from common.tenant import allocate_host_slug, build_brand_public_url, tenant_login_url
+from core_settings.billing.subscription import create_subscription_for_register
+from core_settings.models import Plan
 
+from .activation import send_activation_email, user_from_activation_token
 from .forms import UserLoginForm, UserPasswordChangeForm, UserProfileForm
 from .register_form import UserRegisterForm
 from .utils import get_or_create_user_profile
@@ -170,9 +172,10 @@ class UserRegisterView(View):
         if self._registration_blocked(request):
             return redirect('login')
         plan_id = request.GET.get('plan')
-        selected_plan = self._resolve_plan(plan_id) if plan_id else None
-        if plan_id and not selected_plan:
+        selected_plan = self._resolve_plan(plan_id) if plan_id else self._resolve_plan(None)
+        if plan_id and not Plan.objects.filter(pk=plan_id, is_active=True).exists():
             messages.warning(request, 'Seçilen plan bulunamadı; ücretsiz paketle devam edebilirsiniz.')
+            selected_plan = self._resolve_plan(None)
         form = UserRegisterForm()
         return render(request, 'users/register.html', self._register_context(form, selected_plan))
 
@@ -190,37 +193,89 @@ class UserRegisterView(View):
         register_attempt(request)
         form = UserRegisterForm(request.POST)
         plan_id = request.POST.get('plan_id') or request.POST.get('plan_pick')
-        selected_plan = self._resolve_plan(plan_id)
+        selected_plan = self._resolve_plan(plan_id) or self._resolve_plan(None)
+
+        if form.is_valid() and not selected_plan:
+            form.add_error(None, 'Kayıt için aktif bir ücretsiz plan bulunamadı. Lütfen yönetici ile iletişime geçin.')
 
         if form.is_valid():
             from users.models import Role
 
             user = form.save(commit=False)
+            user.is_active = False
             admin_role = Role.objects.filter(slug='admin').first()
             if admin_role:
                 user.role = admin_role
-            if selected_plan:
+            if selected_plan and selected_plan.price == 0:
                 user.plan = selected_plan
             user.save()
 
-            if selected_plan and selected_plan.price > 0:
-                BillingInvoice.objects.create(
-                    user=user,
-                    plan=selected_plan,
-                    amount=selected_plan.price,
-                    status='paid',
-                )
+            if selected_plan:
+                create_subscription_for_register(user, selected_plan)
 
             get_or_create_user_profile(user)
-            brand = create_brand_for_user(user, form.cleaned_data['brand_name'])
-            set_active_brand(request, brand.pk)
+            host_slug = allocate_host_slug(form.cleaned_data['brand_name'])
+            brand = create_brand_for_user(
+                user,
+                form.cleaned_data['brand_name'],
+                host_slug=host_slug,
+            )
 
-            login(request, user)
+            try:
+                send_activation_email(request, user)
+            except Exception:
+                messages.warning(
+                    request,
+                    'Hesap oluşturuldu ancak aktivasyon e-postası gönderilemedi. '
+                    'Lütfen destek ile iletişime geçin.',
+                )
+                return redirect('login')
+
             messages.success(
                 request,
-                f'Hesabınız ve "{brand.name}" markanız oluşturuldu. Hoş geldiniz!',
+                f'"{brand.name}" markanız oluşturuldu. '
+                f'E-posta adresinize ({user.email}) aktivasyon bağlantısı gönderildi.',
             )
-            return redirect('home')
+            return redirect('login')
 
         return render(request, 'users/register.html', self._register_context(form, selected_plan))
+
+
+class ActivateAccountView(View):
+    def get(self, request, token):
+        user = user_from_activation_token(token)
+        if not user:
+            messages.error(request, 'Aktivasyon bağlantısı geçersiz veya süresi dolmuş.')
+            return redirect('login')
+
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=['is_active'])
+
+        from core_settings.billing.subscription import get_active_subscription, refresh_subscription_status
+        from core_settings.models import Subscription
+
+        refresh_subscription_status(user)
+        sub = get_active_subscription(user)
+        login(request, user)
+
+        if user.brand_memberships.exists():
+            default_mem = user.brand_memberships.filter(is_default=True).first()
+            if not default_mem:
+                default_mem = user.brand_memberships.order_by('joined_at').first()
+            if default_mem:
+                set_active_brand(request, default_mem.brand_id)
+
+        if sub and sub.plan.price > 0 and sub.status in (
+            Subscription.STATUS_TRIALING,
+            Subscription.STATUS_PAST_DUE,
+        ):
+            messages.success(
+                request,
+                'Hesabınız aktifleştirildi. Ücretli plan için ödeme adımını tamamlayın.',
+            )
+            return redirect('subscription_checkout')
+
+        messages.success(request, 'Hesabınız aktifleştirildi. Hoş geldiniz!')
+        return redirect('home')
 

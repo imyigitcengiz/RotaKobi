@@ -88,6 +88,9 @@ def get_active_brand_id(request) -> int | None:
             if bid and _brand_id_allowed_for_user(request.user, bid):
                 request._active_brand_id = bid
                 return bid
+    if request.user.is_superuser:
+        request._active_brand_id = None
+        return None
     default = default_brand_for_user(request.user) or system_default_brand()
     bid = default.pk if default else None
     request._active_brand_id = bid
@@ -121,16 +124,35 @@ def ensure_session_brand(request) -> None:
     """Middleware: oturumda geçerli aktif marka yoksa varsayılanı yaz."""
     if not request.user.is_authenticated:
         return
+    if request.user.is_superuser and not request.session.get(SESSION_ACTIVE_BRAND):
+        return
     bid = get_active_brand_id(request)
     if bid:
         request.session[SESSION_ACTIVE_BRAND] = bid
 
 
 def filter_by_brand(qs: QuerySet, request, *, field: str = 'brand') -> QuerySet:
-    bid = get_active_brand_id(request)
-    if not bid or not hasattr(qs.model, field):
+    if not hasattr(qs.model, field):
         return qs
-    return qs.filter(**{f'{field}_id': bid})
+    user = getattr(request, 'user', None)
+    if user and user.is_authenticated and user.is_superuser:
+        session_brand = None
+        if hasattr(request, 'session'):
+            raw = request.session.get(SESSION_ACTIVE_BRAND)
+            if raw:
+                try:
+                    session_brand = int(raw)
+                except (TypeError, ValueError):
+                    session_brand = None
+        if not session_brand:
+            return qs
+        return qs.filter(**{f'{field}_id': session_brand})
+    bid = get_active_brand_id(request)
+    if bid:
+        return qs.filter(**{f'{field}_id': bid})
+    if user and user.is_authenticated:
+        return qs.none()
+    return qs.none()
 
 
 def filter_customers(qs: QuerySet, request) -> QuerySet:
@@ -187,6 +209,117 @@ def get_sales_quote_for_request(request, pk, *, queryset=None):
 
 def filter_finance(qs: QuerySet, request) -> QuerySet:
     return filter_by_brand(qs, request, field='brand')
+
+
+def filter_firms(qs: QuerySet, request) -> QuerySet:
+    return filter_by_brand(qs, request, field='brand')
+
+
+def get_firm_for_request(request, pk):
+    from django.shortcuts import get_object_or_404
+    from tools.models import MapsScrapedFirm
+
+    return get_object_or_404(filter_firms(MapsScrapedFirm.objects.all(), request), pk=pk)
+
+
+def filter_outreach_collections(qs: QuerySet, request) -> QuerySet:
+    return filter_by_brand(qs, request, field='brand')
+
+
+def get_outreach_collection_for_request(request, pk):
+    from django.shortcuts import get_object_or_404
+    from tools.models import OutreachCollection
+
+    return get_object_or_404(
+        filter_outreach_collections(OutreachCollection.objects.all(), request),
+        pk=pk,
+    )
+
+
+def filter_whatsapp_connections(qs: QuerySet, request) -> QuerySet:
+    return filter_by_brand(qs, request, field='brand')
+
+
+def get_whatsapp_connection_for_request(request, pk):
+    from django.shortcuts import get_object_or_404
+    from tools.models import WhatsappConnection
+
+    return get_object_or_404(
+        filter_whatsapp_connections(WhatsappConnection.objects.all(), request),
+        pk=pk,
+    )
+
+
+def filter_personnel(qs: QuerySet, request) -> QuerySet:
+    return filter_by_brand(qs, request, field='brand')
+
+
+def get_personnel_for_request(request, pk):
+    from django.shortcuts import get_object_or_404
+    from core_settings.models import ServicePersonnel
+
+    return get_object_or_404(
+        filter_personnel(ServicePersonnel.objects.all(), request),
+        pk=pk,
+    )
+
+
+def filter_solution_partners(qs: QuerySet, request) -> QuerySet:
+    return filter_by_brand(qs, request, field='brand')
+
+
+def get_solution_partner_for_request(request, pk):
+    from django.shortcuts import get_object_or_404
+    from core_settings.models import SolutionPartner
+
+    return get_object_or_404(
+        filter_solution_partners(SolutionPartner.objects.all(), request),
+        pk=pk,
+    )
+
+
+def filter_outreach_messages(qs: QuerySet, request) -> QuerySet:
+    bid = get_active_brand_id(request)
+    if not bid:
+        return qs.none()
+    return qs.filter(
+        Q(collection__brand_id=bid)
+        | Q(customer__brand_id=bid)
+        | Q(firm__brand_id=bid)
+    ).distinct()
+
+
+def users_share_brand(user_a, user_b, *, brand_id: int | None = None) -> bool:
+    """İki kullanıcı aynı aktif markada üye mi?"""
+    from core_settings.models import BrandMembership
+
+    if not user_a or not user_b or not user_a.is_authenticated or not user_b.is_authenticated:
+        return False
+    if user_a.pk == user_b.pk:
+        return True
+    qs = BrandMembership.objects.filter(brand__is_active=True)
+    if brand_id:
+        qs = qs.filter(brand_id=brand_id)
+    a_brands = set(qs.filter(user=user_a).values_list('brand_id', flat=True))
+    if not a_brands:
+        return False
+    return qs.filter(user=user_b, brand_id__in=a_brands).exists()
+
+
+def authorized_whatsapp_batch_qs(request, batch_id: str):
+    """Kampanya batch'i — başka markanın müşteri mesajı içeriyorsa boş döner."""
+    from tools.models import WhatsappOutboundMessage
+
+    batch_id = (batch_id or '').strip()
+    if not batch_id:
+        return WhatsappOutboundMessage.objects.none()
+    base = WhatsappOutboundMessage.objects.filter(batch_id=batch_id)
+    bid = get_active_brand_id(request)
+    if not bid:
+        return WhatsappOutboundMessage.objects.none()
+    if base.filter(customer__isnull=False).exclude(customer__brand_id=bid).exists():
+        return WhatsappOutboundMessage.objects.none()
+    return base
 
 
 def assign_brand(instance, request, *, field: str = 'brand') -> None:

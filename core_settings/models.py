@@ -19,7 +19,7 @@ class SiteSettings(models.Model):
         ('priority', 'Önceliğe Göre'),
     ]
 
-    site_name = models.CharField(max_length=255, default="CoolOPS")
+    site_name = models.CharField(max_length=255, default="Kobi Hub")
     logo = models.ImageField(upload_to=site_logo_upload_to, null=True, blank=True)
     company_phone = models.CharField(max_length=50, blank=True, null=True, verbose_name="Firma Telefonu")
     company_address = models.TextField(blank=True, null=True, verbose_name="Firma Adresi")
@@ -628,8 +628,6 @@ class ServicePersonnel(models.Model):
         BusinessBrand,
         on_delete=models.PROTECT,
         related_name='personnel',
-        null=True,
-        blank=True,
         verbose_name='Marka / firma',
     )
     name = models.CharField(max_length=120, verbose_name='Ad Soyad')
@@ -763,8 +761,6 @@ class FinanceRecord(models.Model):
         BusinessBrand,
         on_delete=models.PROTECT,
         related_name='finance_records',
-        null=True,
-        blank=True,
         verbose_name='Marka / firma',
     )
     TYPE_INCOME = 'income'
@@ -1046,8 +1042,6 @@ class SolutionPartner(models.Model):
         BusinessBrand,
         on_delete=models.PROTECT,
         related_name='solution_partners',
-        null=True,
-        blank=True,
         verbose_name='Marka / firma',
     )
     name = models.CharField(max_length=120, verbose_name='Ad')
@@ -1110,6 +1104,12 @@ class CashAccount(models.Model):
 
 
 class SupplierPayable(models.Model):
+    brand = models.ForeignKey(
+        'BusinessBrand',
+        on_delete=models.CASCADE,
+        related_name='supplier_payables',
+        verbose_name='Marka',
+    )
     supplier_name = models.CharField(max_length=120, verbose_name='Tedarikçi')
     invoice_ref = models.CharField(max_length=80, blank=True, verbose_name='Fatura / referans')
     amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Tutar (₺)')
@@ -1306,6 +1306,67 @@ class EExportSettings(models.Model):
 
     def __str__(self):
         return 'Dış aktarım ayarları'
+
+
+class Subscription(models.Model):
+    STATUS_TRIALING = 'trialing'
+    STATUS_ACTIVE = 'active'
+    STATUS_PAST_DUE = 'past_due'
+    STATUS_CANCELED = 'canceled'
+    STATUS_CHOICES = (
+        (STATUS_TRIALING, 'Deneme'),
+        (STATUS_ACTIVE, 'Aktif'),
+        (STATUS_PAST_DUE, 'Ödeme gecikmiş'),
+        (STATUS_CANCELED, 'İptal'),
+    )
+
+    user = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name='subscriptions',
+        verbose_name='Abonelik sahibi',
+    )
+    plan = models.ForeignKey(
+        'Plan',
+        on_delete=models.PROTECT,
+        related_name='subscriptions',
+        verbose_name='Plan',
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_TRIALING,
+        verbose_name='Durum',
+    )
+    current_period_end = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Dönem bitişi',
+    )
+    external_id = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Ödeme sağlayıcı kimliği',
+    )
+    trial_ends_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Deneme bitişi',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Abonelik'
+        verbose_name_plural = 'Abonelikler'
+        ordering = ['-updated_at', '-pk']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+        ]
+
+    def __str__(self):
+        return f'{self.user_id} — {self.plan.name} ({self.get_status_display()})'
 
 
 class BillingInvoice(models.Model):

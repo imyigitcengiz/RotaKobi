@@ -7,6 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from chat.models import ChatMembership, ChatMessage, ChatThread
+from common.brand_scope import users_share_brand
 
 User = get_user_model()
 
@@ -18,19 +19,30 @@ def direct_key(user_a_id: int, user_b_id: int) -> str:
     return f'{a}:{b}'
 
 
-def ensure_team_thread() -> ChatThread:
-    thread = ChatThread.objects.filter(kind=ChatThread.KIND_TEAM).order_by('pk').first()
+def ensure_team_thread(brand) -> ChatThread:
+    if brand is None:
+        raise ValueError('Marka gerekli.')
+    thread = ChatThread.objects.filter(kind=ChatThread.KIND_TEAM, brand=brand).order_by('pk').first()
     if not thread:
-        thread = ChatThread.objects.create(kind=ChatThread.KIND_TEAM, title=TEAM_THREAD_TITLE)
+        thread = ChatThread.objects.create(
+            kind=ChatThread.KIND_TEAM,
+            brand=brand,
+            title=TEAM_THREAD_TITLE,
+        )
     elif not thread.title:
         thread.title = TEAM_THREAD_TITLE
         thread.save(update_fields=['title'])
-    _ensure_all_active_users_in_thread(thread)
+    _ensure_brand_users_in_thread(thread, brand)
     return thread
 
 
-def _ensure_all_active_users_in_thread(thread: ChatThread) -> None:
-    user_ids = set(User.objects.filter(is_active=True).values_list('id', flat=True))
+def _ensure_brand_users_in_thread(thread: ChatThread, brand) -> None:
+    from core_settings.models import BrandMembership
+
+    user_ids = set(
+        BrandMembership.objects.filter(brand=brand, brand__is_active=True).values_list('user_id', flat=True)
+    )
+    user_ids &= set(User.objects.filter(is_active=True, pk__in=user_ids).values_list('pk', flat=True))
     existing = set(
         ChatMembership.objects.filter(thread=thread, user_id__in=user_ids).values_list('user_id', flat=True)
     )
@@ -47,11 +59,19 @@ def ensure_membership(thread: ChatThread, user) -> ChatMembership:
     return membership
 
 
-def get_or_create_direct_thread(user, other_user) -> ChatThread:
+def get_or_create_direct_thread(user, other_user, *, brand) -> ChatThread:
     if user.pk == other_user.pk:
         raise ValueError('Kendinizle sohbet açılamaz.')
+    if brand is None:
+        raise ValueError('Marka gerekli.')
+    if not users_share_brand(user, other_user, brand_id=brand.pk):
+        raise PermissionError('Bu kullanıcıyla aynı markada değilsiniz.')
     key = direct_key(user.pk, other_user.pk)
-    thread = ChatThread.objects.filter(kind=ChatThread.KIND_DIRECT, direct_key=key).first()
+    thread = ChatThread.objects.filter(
+        kind=ChatThread.KIND_DIRECT,
+        direct_key=key,
+        brand=brand,
+    ).first()
     if thread:
         ensure_membership(thread, user)
         ensure_membership(thread, other_user)
@@ -60,6 +80,7 @@ def get_or_create_direct_thread(user, other_user) -> ChatThread:
         thread = ChatThread.objects.create(
             kind=ChatThread.KIND_DIRECT,
             direct_key=key,
+            brand=brand,
             title=other_user.display_name,
         )
         ChatMembership.objects.bulk_create([
@@ -152,15 +173,21 @@ def broadcast_chat_message(message: ChatMessage) -> None:
         )
 
 
-def total_unread_for_user(user) -> int:
-    ensure_team_thread()
+def _memberships_for_user(user, *, brand_id: int | None):
+    qs = ChatMembership.objects.filter(user=user).select_related('thread')
+    if brand_id:
+        qs = qs.filter(thread__brand_id=brand_id)
+    return qs.order_by('-thread__updated_at')
+
+
+def total_unread_for_user(user, *, brand_id: int | None = None) -> int:
     total = 0
-    for membership in ChatMembership.objects.filter(user=user).select_related('thread'):
+    for membership in _memberships_for_user(user, brand_id=brand_id):
         total += unread_count(membership)
     return total
 
 
-def add_user_to_team_thread(user) -> None:
-    """Yeni kullanıcı kaydında genel odaya ekle."""
-    thread = ensure_team_thread()
+def add_user_to_team_thread(user, *, brand) -> None:
+    """Yeni kullanıcı kaydında markanın genel odasına ekle."""
+    thread = ensure_team_thread(brand)
     ensure_membership(thread, user)

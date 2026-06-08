@@ -70,5 +70,5 @@ urlpatterns = [
     path('api/firmalar/hafiza/', firms_memory_list, name='outreach_firms_memory'),
     # Eski yollar
     path('pazarlama/', RedirectView.as_view(pattern_name='outreach_hub', permanent=False)),
-    path('pazarlama/<path:rest>', RedirectView.as_view(url='/iletisim/', permanent=False)),
+    path('pazarlama/<path:rest>', RedirectView.as_view(url='/iletisim/%(rest)s', permanent=False)),
 ]

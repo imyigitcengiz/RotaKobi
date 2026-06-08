@@ -47,6 +47,27 @@ class TenantResolutionTests(TestCase):
         brand = resolve_tenant_from_host('marka.localhost')
         self.assertEqual(brand.pk, self.hq.pk)
 
+    @override_settings(DEBUG=False)
+    def test_resolve_hq_from_production_subdomain(self):
+        import os
+        from unittest.mock import patch
+
+        self.hq.host_slug = 'acme'
+        self.hq.save(update_fields=['host_slug'])
+        with patch.dict(os.environ, {'COOLOPS_TENANT_BASE_DOMAIN': 'kobihub.com'}, clear=False):
+            brand = resolve_tenant_from_host('acme.kobihub.com')
+        self.assertIsNotNone(brand)
+        self.assertEqual(brand.pk, self.hq.pk)
+
+    @override_settings(DEBUG=False)
+    def test_bare_platform_host_ignores_tenant(self):
+        import os
+        from unittest.mock import patch
+
+        with patch.dict(os.environ, {'COOLOPS_TENANT_BASE_DOMAIN': 'kobihub.com'}, clear=False):
+            self.assertIsNone(resolve_tenant_from_host('kobihub.com'))
+            self.assertIsNone(resolve_tenant_from_host('www.kobihub.com'))
+
     @override_settings(DEBUG=True)
     def test_build_dealer_path_url(self):
         factory = RequestFactory()

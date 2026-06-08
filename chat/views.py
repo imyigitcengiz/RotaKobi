@@ -31,12 +31,11 @@ def _json_body(request):
         return None
 
 
-def _membership_for(user, thread_id: int) -> ChatMembership:
-    membership = (
-        ChatMembership.objects.filter(user=user, thread_id=thread_id)
-        .select_related('thread')
-        .first()
-    )
+def _membership_for(user, thread_id: int, *, brand_id: int | None = None) -> ChatMembership:
+    qs = ChatMembership.objects.filter(user=user, thread_id=thread_id)
+    if brand_id:
+        qs = qs.filter(thread__brand_id=brand_id)
+    membership = qs.select_related('thread').first()
     if not membership:
         raise PermissionError('Bu sohbete erişiminiz yok.')
     return membership
@@ -45,9 +44,14 @@ def _membership_for(user, thread_id: int) -> ChatMembership:
 @json_auth_required
 @require_GET
 def chat_summary_api(request):
+    from common.brand_scope import get_active_brand
+
+    brand = get_active_brand(request)
+    if not brand:
+        return JsonResponse({'ok': False, 'error': 'Aktif marka seçin.'}, status=403)
     try:
-        ensure_team_thread()
-        add_user_to_team_thread(request.user)
+        ensure_team_thread(brand)
+        add_user_to_team_thread(request.user, brand=brand)
     except DatabaseError as exc:
         return JsonResponse({
             'ok': False,
@@ -55,7 +59,7 @@ def chat_summary_api(request):
             'detail': str(exc),
         }, status=503)
     memberships = (
-        ChatMembership.objects.filter(user=request.user)
+        ChatMembership.objects.filter(user=request.user, thread__brand=brand)
         .select_related('thread')
         .order_by('-thread__updated_at')
     )
@@ -65,7 +69,7 @@ def chat_summary_api(request):
     return JsonResponse({
         'ok': True,
         'me': serialize_user(request.user),
-        'unread_total': total_unread_for_user(request.user),
+        'unread_total': total_unread_for_user(request.user, brand_id=brand.pk),
         'team_thread': team,
         'threads': threads,
         'direct_threads': direct,
@@ -75,11 +79,22 @@ def chat_summary_api(request):
 @json_auth_required
 @require_GET
 def chat_users_api(request):
-    users = (
-        User.objects.filter(is_active=True)
-        .exclude(pk=request.user.pk)
-        .order_by('first_name', 'last_name', 'username')
-    )
+    from common.brand_scope import get_active_brand_id
+    from core_settings.models import BrandMembership
+
+    brand_id = get_active_brand_id(request)
+    if brand_id:
+        member_ids = BrandMembership.objects.filter(
+            brand_id=brand_id,
+            brand__is_active=True,
+        ).values_list('user_id', flat=True)
+        users = (
+            User.objects.filter(is_active=True, pk__in=member_ids)
+            .exclude(pk=request.user.pk)
+            .order_by('first_name', 'last_name', 'username')
+        )
+    else:
+        users = User.objects.none()
     return JsonResponse({
         'ok': True,
         'users': [serialize_user(u) for u in users],
@@ -89,8 +104,10 @@ def chat_users_api(request):
 @json_auth_required
 @require_GET
 def chat_messages_api(request, thread_id: int):
+    from common.brand_scope import get_active_brand_id
+
     try:
-        membership = _membership_for(request.user, thread_id)
+        membership = _membership_for(request.user, thread_id, brand_id=get_active_brand_id(request))
     except PermissionError as exc:
         return JsonResponse({'ok': False, 'error': str(exc)}, status=403)
 
@@ -121,8 +138,10 @@ def chat_messages_api(request, thread_id: int):
 @json_auth_required
 @require_POST
 def chat_send_api(request, thread_id: int):
+    from common.brand_scope import get_active_brand_id
+
     try:
-        membership = _membership_for(request.user, thread_id)
+        membership = _membership_for(request.user, thread_id, brand_id=get_active_brand_id(request))
     except PermissionError as exc:
         return JsonResponse({'ok': False, 'error': str(exc)}, status=403)
 
@@ -146,20 +165,27 @@ def chat_send_api(request, thread_id: int):
 @json_auth_required
 @require_POST
 def chat_read_api(request, thread_id: int):
+    from common.brand_scope import get_active_brand_id
+
     try:
-        membership = _membership_for(request.user, thread_id)
+        membership = _membership_for(request.user, thread_id, brand_id=get_active_brand_id(request))
     except PermissionError as exc:
         return JsonResponse({'ok': False, 'error': str(exc)}, status=403)
     mark_thread_read(membership.thread, request.user)
     return JsonResponse({
         'ok': True,
-        'unread_total': total_unread_for_user(request.user),
+        'unread_total': total_unread_for_user(request.user, brand_id=get_active_brand_id(request)),
     })
 
 
 @json_auth_required
 @require_POST
 def chat_direct_api(request):
+    from common.brand_scope import get_active_brand, users_share_brand
+
+    brand = get_active_brand(request)
+    if not brand:
+        return JsonResponse({'ok': False, 'error': 'Aktif marka seçin.'}, status=403)
     body = _json_body(request) or {}
     try:
         other_id = int(body.get('user_id'))
@@ -169,11 +195,13 @@ def chat_direct_api(request):
     other = get_object_or_404(User, pk=other_id, is_active=True)
     if other.pk == request.user.pk:
         return JsonResponse({'ok': False, 'error': 'Kendinizle sohbet açılamaz.'}, status=400)
+    if not users_share_brand(request.user, other, brand_id=brand.pk):
+        return JsonResponse({'ok': False, 'error': 'Bu kullanıcıyla aynı markada değilsiniz.'}, status=403)
 
     try:
-        thread = get_or_create_direct_thread(request.user, other)
-    except ValueError as exc:
-        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+        thread = get_or_create_direct_thread(request.user, other, brand=brand)
+    except (ValueError, PermissionError) as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=403)
 
     membership = ensure_membership(thread, request.user)
     return JsonResponse({
@@ -186,8 +214,13 @@ def chat_direct_api(request):
 @require_POST
 def chat_join_team_api(request):
     """Mevcut kullanıcıyı genel odaya ekler (ilk giriş)."""
-    add_user_to_team_thread(request.user)
-    thread = ensure_team_thread()
+    from common.brand_scope import get_active_brand
+
+    brand = get_active_brand(request)
+    if not brand:
+        return JsonResponse({'ok': False, 'error': 'Aktif marka seçin.'}, status=403)
+    add_user_to_team_thread(request.user, brand=brand)
+    thread = ensure_team_thread(brand)
     membership = ensure_membership(thread, request.user)
     return JsonResponse({
         'ok': True,

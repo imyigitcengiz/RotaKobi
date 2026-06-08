@@ -131,6 +131,13 @@ class CsvImportWizardTests(TestCase):
             role.permissions.add(perm)
         self.user = User.objects.create_user(username='csvadmin', password='test12345', role=role)
         self.brand = create_brand_for_user(self.user, 'CSV Marka')
+        from common.kobi_lean_preset import lean_kobi_slugs
+        from common.tests.helpers import set_user_modules
+
+        slugs = lean_kobi_slugs()
+        if 'integration_csv_exchange' not in slugs:
+            slugs.append('integration_csv_exchange')
+        set_user_modules(self.user, slugs)
 
     def _login(self):
         from common.brand_scope import SESSION_ACTIVE_BRAND
@@ -209,7 +216,7 @@ class CsvImportWizardTests(TestCase):
         self.assertEqual(SalesLead.objects.filter(customer__name='Satışlı Müşteri').count(), 1)
 
     def test_customer_import_creates_and_updates(self):
-        Customer.objects.create(name='Ali Veli', phone='05001112233')
+        Customer.objects.create(name='Ali Veli', phone='05001112233', brand=self.brand)
         rows = [
             {'name': 'Ali Veli', 'phone': '05009998877', 'region': 'İzmir'},
             {'name': 'Yeni Müşteri', 'phone': '05005556677'},
@@ -225,7 +232,11 @@ class CsvImportWizardTests(TestCase):
     def test_wizard_upload_and_import_flow(self):
         self._login()
         csv_text = 'Personel;Tür;Tutar\nAhmet Yılmaz;avans;250\n'
-        ServicePersonnel.objects.create(name='Ahmet Yılmaz', monthly_salary=10000)
+        ServicePersonnel.objects.create(
+            name='Ahmet Yılmaz',
+            monthly_salary=10000,
+            brand=self.brand,
+        )
         uploaded = SimpleUploadedFile('payroll.csv', csv_text.encode('utf-8-sig'), content_type='text/csv')
 
         resp = self.client.post(

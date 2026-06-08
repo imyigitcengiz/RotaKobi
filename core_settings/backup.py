@@ -26,6 +26,11 @@ LEGACY_BACKUP_FORMAT_V2 = 'gy-dashboard-backup-v2'
 BRAND_BACKUP_MODELS = (
     'customers.customer',
     'services.servicerecord',
+    'core_settings.financerecord',
+    'core_settings.servicepersonnel',
+    'core_settings.solutionpartner',
+    'tools.mapsscrapedfirm',
+    'tools.outreachcollection',
 )
 
 
@@ -137,10 +142,12 @@ def _read_uploaded_json(uploaded) -> dict | list:
         with open(parse_path, 'r', encoding='utf-8') as handle:
             return json.load(handle)
     finally:
-        if tmp_input and os.path.exists(tmp_input.name):
-            os.unlink(tmp_input.name)
-        if tmp_json and os.path.exists(tmp_json.name):
-            os.unlink(tmp_json.name)
+        for tmp_path in (getattr(tmp_input, 'name', None), getattr(tmp_json, 'name', None)):
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
 
 
 def _parse_brand_backup_payload(data) -> tuple[dict, list]:
@@ -335,11 +342,15 @@ def export_brand_backup_response(brand_id: int) -> HttpResponse:
 
     payload = {
         'format': BRAND_BACKUP_FORMAT_V1,
+        'export_kind': 'kvkk_brand_export',
         'created_at': timezone.now().isoformat(),
         'django_version': django.get_version(),
         'brand_id': brand.pk,
         'brand_name': brand.name,
         'brand_slug': brand.slug,
+        'brand_legal_name': brand.legal_name or '',
+        'brand_phone': brand.phone or '',
+        'brand_currency': brand.currency_code or '',
         'record_count': len(fixture) + len(brand_meta),
         'fixture': brand_meta + fixture,
     }
@@ -644,7 +655,7 @@ def _seed_factory_defaults():
 
     ensure_default_statuses()
     if not SiteSettings.objects.exists():
-        SiteSettings.objects.create(site_name='CoolOPS')
+        SiteSettings.objects.create(site_name='Kobi Hub')
     if not WorkSchedulePlan.objects.exists():
         plan = WorkSchedulePlan.objects.create(
             name='Standart mesai',
@@ -655,7 +666,10 @@ def _seed_factory_defaults():
         set_default_plan(plan)
     try:
         from chat.services import ensure_team_thread
-        ensure_team_thread()
+        from core_settings.models import BusinessBrand
+
+        for brand in BusinessBrand.objects.filter(is_active=True).order_by('pk'):
+            ensure_team_thread(brand)
     except Exception:
         pass
 

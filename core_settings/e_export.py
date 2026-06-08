@@ -10,6 +10,8 @@ from decimal import Decimal
 from django.db.models import Sum
 from django.utils import timezone
 
+from common.brand_scope import filter_finance, filter_personnel, filter_sales_leads
+
 from core_settings.models import EExportSettings, FinanceRecord, PersonnelPayment
 from sales_leads.models import SalesLead
 
@@ -32,25 +34,39 @@ def _default_period() -> tuple[date, date]:
     return start, today
 
 
-def build_e_export_summary(*, start: date | None = None, end: date | None = None) -> dict:
+def build_e_export_summary(*, request=None, start: date | None = None, end: date | None = None) -> dict:
     if not start or not end:
         start, end = _default_period()
 
-    finance_income = FinanceRecord.objects.filter(
+    finance_qs = FinanceRecord.objects.all()
+    if request is not None:
+        finance_qs = filter_finance(finance_qs, request)
+    finance_income = finance_qs.filter(
         record_type=FinanceRecord.TYPE_INCOME,
         record_date__gte=start,
         record_date__lte=end,
     ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-    finance_expense = FinanceRecord.objects.filter(
+    finance_expense = finance_qs.filter(
         record_type=FinanceRecord.TYPE_EXPENSE,
         record_date__gte=start,
         record_date__lte=end,
     ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-    payroll = PersonnelPayment.objects.filter(
+    from core_settings.models import ServicePersonnel
+
+    personnel_ids = None
+    if request is not None:
+        personnel_ids = filter_personnel(ServicePersonnel.objects.all(), request).values_list('pk', flat=True)
+    payroll_qs = PersonnelPayment.objects.filter(
         payment_date__gte=start,
         payment_date__lte=end,
-    ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-    sales = SalesLead.objects.filter(
+    )
+    if personnel_ids is not None:
+        payroll_qs = payroll_qs.filter(personnel_id__in=personnel_ids)
+    payroll = payroll_qs.aggregate(t=Sum('amount'))['t'] or Decimal('0')
+    sales = SalesLead.objects.all()
+    if request is not None:
+        sales = filter_sales_leads(sales, request)
+    sales = sales.filter(
         sale_date__gte=start,
         sale_date__lte=end,
     ).exclude(status=SalesLead.STATUS_CANCELLED)
@@ -69,10 +85,10 @@ def build_e_export_summary(*, start: date | None = None, end: date | None = None
     }
 
 
-def build_combined_csv(*, start: date, end: date) -> str:
+def build_combined_csv(*, request=None, start: date, end: date) -> str:
     buffer = io.StringIO()
     writer = csv.writer(buffer)
-    writer.writerow(['CoolOPS — Dış muhasebe aktarım paketi'])
+    writer.writerow(['Kobi Hub — Dış muhasebe aktarım paketi'])
     writer.writerow(['Dönem', f'{start.isoformat()} — {end.isoformat()}'])
     writer.writerow([])
 
@@ -81,7 +97,10 @@ def build_combined_csv(*, start: date, end: date) -> str:
         'Tarih', 'Tür', 'Kategori', 'Açıklama', 'Tutar',
         'Hesap', 'Satış ID', 'Müşteri', 'Proje', 'Not',
     ])
-    for rec in FinanceRecord.objects.filter(record_date__gte=start, record_date__lte=end).select_related(
+    finance_qs = FinanceRecord.objects.filter(record_date__gte=start, record_date__lte=end)
+    if request is not None:
+        finance_qs = filter_finance(finance_qs, request)
+    for rec in finance_qs.select_related(
         'cash_account', 'sales_lead__customer', 'operational_project',
     ).order_by('record_date'):
         writer.writerow([
@@ -100,7 +119,10 @@ def build_combined_csv(*, start: date, end: date) -> str:
     writer.writerow([])
     writer.writerow(['--- Satış kayıtları ---'])
     writer.writerow(['Tarih', 'Müşteri', 'Proje', 'Tutar', 'Peşinat', 'Durum'])
-    for lead in SalesLead.objects.filter(sale_date__gte=start, sale_date__lte=end).select_related('customer'):
+    sales_qs = SalesLead.objects.filter(sale_date__gte=start, sale_date__lte=end)
+    if request is not None:
+        sales_qs = filter_sales_leads(sales_qs, request)
+    for lead in sales_qs.select_related('customer'):
         writer.writerow([
             lead.sale_date.isoformat() if lead.sale_date else '',
             lead.customer.name,
@@ -113,7 +135,12 @@ def build_combined_csv(*, start: date, end: date) -> str:
     writer.writerow([])
     writer.writerow(['--- Maaş / avans ödemeleri ---'])
     writer.writerow(['Tarih', 'Personel', 'Tür', 'Tutar'])
-    for pay in PersonnelPayment.objects.filter(payment_date__gte=start, payment_date__lte=end).select_related('personnel'):
+    payroll_qs = PersonnelPayment.objects.filter(payment_date__gte=start, payment_date__lte=end)
+    if request is not None:
+        payroll_qs = payroll_qs.filter(
+            personnel_id__in=filter_personnel(ServicePersonnel.objects.all(), request).values_list('pk', flat=True),
+        )
+    for pay in payroll_qs.select_related('personnel'):
         writer.writerow([
             pay.payment_date.isoformat() if pay.payment_date else '',
             pay.personnel.name,

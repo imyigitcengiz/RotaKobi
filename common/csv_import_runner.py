@@ -119,6 +119,20 @@ def _attach_report_meta(
     return out
 
 
+def _import_request(user, request=None):
+    if request is not None:
+        return request
+    from django.test import RequestFactory
+
+    from common.brand_scope import SESSION_ACTIVE_BRAND, default_brand_for_user
+
+    req = RequestFactory().get('/')
+    req.user = user
+    brand = default_brand_for_user(user) if user and getattr(user, 'is_authenticated', True) else None
+    req.session = {SESSION_ACTIVE_BRAND: brand.pk} if brand else {}
+    return req
+
+
 def run_import(
     import_type: str,
     rows: list[dict[str, str]],
@@ -142,10 +156,11 @@ def run_import(
     )
     shell = empty_result_shell(import_type)
     shell['total_rows'] = len(rows)
+    request = _import_request(user, request)
 
     if import_type == 'finance':
         from core_settings.csv_exchange import import_finance_rows
-        result = import_finance_rows(mapped, user=user)
+        result = import_finance_rows(mapped, user=user, request=request)
     elif import_type == 'payroll':
         from core_settings.csv_exchange import import_payroll_rows
         result = import_payroll_rows(mapped, user=user)

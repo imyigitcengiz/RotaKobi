@@ -1,4 +1,5 @@
-from django.urls import path
+from django.contrib.auth import views as auth_views
+from django.urls import path, reverse_lazy
 from django.views.generic import RedirectView
 
 from .brand_team_views import (
@@ -51,16 +52,45 @@ from .admin_platform_views import (
 )
 from .impersonation_views import ImpersonateStopView
 from .brand_views import BrandSwitchView
-from .views import ProfileSettingsView, UserLoginView, UserLogoutView, UserRegisterView
+from .views import ActivateAccountView, ProfileSettingsView, UserLoginView, UserLogoutView, UserRegisterView
 
 urlpatterns = [
     path('profil/', ProfileSettingsView.as_view(), name='profile_settings'),
     path('profil/markalar/', RedirectView.as_view(pattern_name='subscription_dashboard', permanent=False), name='brands_manage'),
     path('kayit/', UserRegisterView.as_view(), name='register'),
+    path('aktiflestir/<str:token>/', ActivateAccountView.as_view(), name='activate_account'),
     path('profil/marka/degist/', BrandSwitchView.as_view(), name='brand_switch'),
     path('profil/gecis/bitir/', ImpersonateStopView.as_view(), name='impersonate_stop'),
     path('giris/', UserLoginView.as_view(), name='login'),
     path('cikis/', UserLogoutView.as_view(), name='logout'),
+    path(
+        'sifre-sifirla/',
+        auth_views.PasswordResetView.as_view(
+            template_name='users/password_reset_form.html',
+            email_template_name='users/password_reset_email.txt',
+            subject_template_name='users/password_reset_subject.txt',
+            success_url=reverse_lazy('password_reset_done'),
+        ),
+        name='password_reset',
+    ),
+    path(
+        'sifre-sifirla/gonderildi/',
+        auth_views.PasswordResetDoneView.as_view(template_name='users/password_reset_done.html'),
+        name='password_reset_done',
+    ),
+    path(
+        'sifre-sifirla/onay/<uidb64>/<token>/',
+        auth_views.PasswordResetConfirmView.as_view(
+            template_name='users/password_reset_confirm.html',
+            success_url=reverse_lazy('password_reset_complete'),
+        ),
+        name='password_reset_confirm',
+    ),
+    path(
+        'sifre-sifirla/tamam/',
+        auth_views.PasswordResetCompleteView.as_view(template_name='users/password_reset_complete.html'),
+        name='password_reset_complete',
+    ),
     path('yonetim/', SuperAdminDashboardView.as_view(), name='admin_dashboard'),
     path('yonetim/roller/', RoleListView.as_view(), name='admin_roles'),
     path('yonetim/roller/yeni/', RoleCreateView.as_view(), name='admin_role_create'),

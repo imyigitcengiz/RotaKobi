@@ -17,7 +17,9 @@ def _ensure_team_thread(sender, **kwargs):
         return
     try:
         from chat.services import ensure_team_thread
+        from core_settings.models import BusinessBrand
 
-        ensure_team_thread()
+        for brand in BusinessBrand.objects.filter(is_active=True).order_by('pk'):
+            ensure_team_thread(brand)
     except Exception:
         pass

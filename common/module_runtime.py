@@ -167,7 +167,9 @@ def get_enabled_module_slugs() -> list[str]:
     if user and getattr(user, 'is_authenticated', False):
         if user.is_superuser:
             return _normalize_stored_slugs(None)
-        owner = subscription_owner_for_user(user) or user
+        from common.module_context import current_module_request
+
+        owner = subscription_owner_for_user(user, request=current_module_request()) or user
         return owner_selected_modules(owner)
 
     _migrate_legacy_app_modules_in_storage()
@@ -759,12 +761,18 @@ def build_erp_sidebar_modules(user, request, *, active_slug: str | None) -> list
         ('outreach', 'outreach_hub', 'messages-square', 'common/erp_outreach_nav.html', None),
     )
 
+    from common.module_plan import plan_included_modules, subscription_owner_for_user
+
+    owner = subscription_owner_for_user(user, request=request) or user
+    plan_mods = set(plan_included_modules(owner.active_plan))
+
     blocks: list[dict] = []
     for slug, hub_name, icon, nav_template, nav_module in defs:
-        if not nav_flags.get(slug):
-            continue
+        installed = nav_flags.get(slug, False)
         mod = module_by_slug(slug)
         if not mod:
+            continue
+        if not installed and slug not in plan_mods:
             continue
         if slug == 'accounting':
             if not (
@@ -780,8 +788,13 @@ def build_erp_sidebar_modules(user, request, *, active_slug: str | None) -> list
         if slug == 'contact' and not user.has_perm_codename('access.contact'):
             if user.has_perm_codename('contact.personnel'):
                 hub_url_name = 'contact_personnel'
+        disabled = not installed
         try:
-            hub_url = reverse(hub_url_name)
+            hub_url = (
+                reverse('subscription_dashboard') + '#moduller'
+                if disabled
+                else reverse(hub_url_name)
+            )
         except NoReverseMatch:
             continue
         blocks.append({
@@ -791,8 +804,10 @@ def build_erp_sidebar_modules(user, request, *, active_slug: str | None) -> list
             'hub_url': hub_url,
             'nav_template': nav_template,
             'nav_module': nav_module,
-            'expanded': active_slug == slug,
-            'features': _sidebar_feature_items(sidebar, slug, user, request),
+            'expanded': active_slug == slug and not disabled,
+            'disabled': disabled,
+            'disabled_tooltip': 'Kapalı — Modül Merkezi' if disabled else '',
+            'features': [] if disabled else _sidebar_feature_items(sidebar, slug, user, request),
         })
     return blocks
 

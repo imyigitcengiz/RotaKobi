@@ -3,10 +3,11 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from common.brand_scope import create_brand_for_user
 from common.module_context import bind_module_user, reset_module_user
 from common.module_plan import default_plan_module_seed, plan_included_modules
 from common.module_runtime import is_module_installed, is_particle_enabled
-from core_settings.models import Plan, SiteSettings
+from core_settings.models import BrandMembership, Plan, SiteSettings
 
 User = get_user_model()
 
@@ -33,6 +34,7 @@ class ModuleToggleApiTests(TestCase):
             self.user.role = role
             self.user.save()
         SiteSettings.objects.create(site_name='Test')
+        self.brand = create_brand_for_user(self.user, 'Toggle Marka')
         self.client.force_login(self.user)
 
     def _assert_installed(self, slug, expected):
@@ -87,10 +89,15 @@ class ModuleToggleApiTests(TestCase):
 
     def test_toggle_requires_settings_perm(self):
         role = __import__('users.models', fromlist=['Role']).Role.objects.filter(slug='service').first()
-        user = User.objects.create_user(username='_svc', password='x')
+        user = User.objects.create_user(username='_svc', password='x', plan=self.plan)
         if role:
             user.role = role
             user.save()
+        BrandMembership.objects.create(
+            brand=self.brand,
+            user=user,
+            role=BrandMembership.ROLE_MEMBER,
+        )
         self.client.force_login(user)
         resp = self.client.post('/panel/abonelik/modul-toggle/', {'module_slug': 'contact'})
         self.assertIn(resp.status_code, (403, 400))

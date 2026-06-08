@@ -23,9 +23,11 @@ def sync_partner_to_directory(partner) -> MapsScrapedFirm | None:
         return None
 
     phone_norm = normalize_phone(partner.phone or '')
-    firm = MapsScrapedFirm.objects.filter(solution_partner_id=partner.pk).first()
+    brand_id = partner.brand_id
+    scope = MapsScrapedFirm.objects.filter(brand_id=brand_id) if brand_id else MapsScrapedFirm.objects.none()
+    firm = scope.filter(solution_partner_id=partner.pk).first()
     if not firm and phone_norm:
-        firm = MapsScrapedFirm.objects.filter(
+        firm = scope.filter(
             phone_normalized=phone_norm,
             firm_kind=KIND_PARTNER,
         ).first()
@@ -58,7 +60,7 @@ def sync_partner_to_directory(partner) -> MapsScrapedFirm | None:
         return firm
 
     if phone_norm:
-        clash = MapsScrapedFirm.objects.filter(phone_normalized=phone_norm).exclude(
+        clash = scope.filter(phone_normalized=phone_norm).exclude(
             firm_kind=KIND_PARTNER
         ).first()
         if clash and clash.firm_kind == KIND_SCRAPED:
@@ -71,6 +73,8 @@ def sync_partner_to_directory(partner) -> MapsScrapedFirm | None:
             clash.save()
             return clash
 
+    if brand_id:
+        payload['brand_id'] = brand_id
     return MapsScrapedFirm.objects.create(**payload)
 
 

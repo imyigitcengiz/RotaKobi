@@ -14,6 +14,8 @@ from analytics.views import (
 )
 from common.media_views import serve_media_file
 from common.views import IntroducerKnowledgeBaseView, healthz
+from core_settings.billing.views import SubscriptionCheckoutView
+from core_settings.billing.webhooks import iyzico_webhook, stripe_webhook
 from common.shell_api import (
     notification_mark_read_api,
     notifications_api,
@@ -36,6 +38,9 @@ urlpatterns = [
     path('panel/moduller/', ModuleHubView.as_view(), name='module_hub'),
     path('panel/yetenekler/', CapabilitiesHubView.as_view(), name='capabilities_hub'),
     path('panel/abonelik/', SubscriptionView.as_view(), name='subscription_dashboard'),
+    path('panel/abonelik/odeme/', SubscriptionCheckoutView.as_view(), name='subscription_checkout'),
+    path('api/billing/webhook/iyzico/', iyzico_webhook, name='billing_webhook_iyzico'),
+    path('api/billing/webhook/stripe/', stripe_webhook, name='billing_webhook_stripe'),
     path('', include('users.urls')),
     path('services-dashboard/', include('config.services_dashboard_urls')),
     path('tools/', include('config.tools_urls')),
@@ -51,6 +56,7 @@ urlpatterns = [
 
 handler404 = 'common.views.page_not_found'
 handler403 = 'common.views.permission_denied'
+handler500 = 'common.views.server_error'
 
 _serve_media = os.environ.get('DJANGO_SERVE_MEDIA', '1').lower() not in ('0', 'false', 'no')
 if _serve_media:

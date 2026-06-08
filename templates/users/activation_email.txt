@@ -1,0 +1,9 @@
+Merhaba {{ user.display_name }},
+
+{{ site_name }} hesabınızı oluşturduğunuz için teşekkürler.
+
+Hesabınızı aktifleştirmek için aşağıdaki bağlantıya tıklayın (3 gün geçerlidir):
+
+{{ activate_url }}
+
+Bu işlemi siz yapmadıysanız bu e-postayı yok sayabilirsiniz.

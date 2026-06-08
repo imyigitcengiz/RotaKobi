@@ -31,7 +31,7 @@ class UserRegisterForm(UserCreationForm):
         }),
     )
     email = forms.EmailField(
-        required=False,
+        required=True,
         label='E-posta',
         widget=forms.EmailInput(attrs={
             'class': INPUT,

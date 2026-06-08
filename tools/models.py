@@ -7,22 +7,23 @@ from django.db.models import Q
 
 
 class FirmTag(models.Model):
-
-    name = models.CharField(max_length=60, unique=True, verbose_name='Etiket')
-
+    brand = models.ForeignKey(
+        'core_settings.BusinessBrand',
+        on_delete=models.CASCADE,
+        related_name='firm_tags',
+        verbose_name='Marka',
+    )
+    name = models.CharField(max_length=60, verbose_name='Etiket')
     color = models.CharField(max_length=7, default='#6366f1', verbose_name='Renk')
-
     created_at = models.DateTimeField(auto_now_add=True)
 
-
-
     class Meta:
-
         verbose_name = 'Firma etiketi'
-
         verbose_name_plural = 'Firma etiketleri'
-
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['brand', 'name'], name='tools_firmtag_unique_brand_name'),
+        ]
 
 
 
@@ -35,6 +36,12 @@ class FirmTag(models.Model):
 
 
 class MapsScrapedFirm(models.Model):
+    brand = models.ForeignKey(
+        'core_settings.BusinessBrand',
+        on_delete=models.CASCADE,
+        related_name='scraped_firms',
+        verbose_name='Marka',
+    )
     KIND_SCRAPED = 'scraped'
     KIND_PARTNER = 'partner'
     KIND_DEALER = 'dealer'
@@ -107,27 +114,16 @@ class MapsScrapedFirm(models.Model):
         ordering = ['-last_scraped_at']
 
         constraints = [
-
             models.UniqueConstraint(
-
-                fields=['place_id'],
-
+                fields=['brand', 'place_id'],
                 condition=~Q(place_id=''),
-
-                name='tools_mapsfirm_unique_place_id',
-
+                name='tools_mapsfirm_unique_brand_place_id',
             ),
-
             models.UniqueConstraint(
-
-                fields=['phone_normalized'],
-
+                fields=['brand', 'phone_normalized'],
                 condition=~Q(phone_normalized=''),
-
-                name='tools_mapsfirm_unique_phone',
-
+                name='tools_mapsfirm_unique_brand_phone',
             ),
-
         ]
 
 
@@ -144,6 +140,12 @@ class OutreachCollection(models.Model):
 
     """Kampanya / alıcı koleksiyonu."""
 
+    brand = models.ForeignKey(
+        'core_settings.BusinessBrand',
+        on_delete=models.CASCADE,
+        related_name='outreach_collections',
+        verbose_name='Marka',
+    )
     name = models.CharField(max_length=120, verbose_name='Koleksiyon adı')
 
     message_template = models.TextField(blank=True, default='', verbose_name='Mesaj şablonu')
@@ -393,6 +395,14 @@ class WhatsappOutboundMessage(models.Model):
 
 
 class WhatsappConnection(models.Model):
+    brand = models.ForeignKey(
+        'core_settings.BusinessBrand',
+        on_delete=models.CASCADE,
+        related_name='whatsapp_connections',
+        null=True,
+        blank=True,
+        verbose_name='Marka',
+    )
     name = models.CharField(max_length=80, verbose_name='Bağlantı adı')
     phone = models.CharField(max_length=40, blank=True, default='')
     pushname = models.CharField(max_length=120, blank=True, default='')

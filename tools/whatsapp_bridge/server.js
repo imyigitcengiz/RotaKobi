@@ -31,7 +31,11 @@ app.use((req, res, next) => {
   if (req.path === '/health') return next();
   const expected = readBridgeToken();
   if (!expected) {
-    if (BIND_HOST !== '127.0.0.1' && BIND_HOST !== '::1') {
+    const requireToken = process.env.DATA_DIR
+      || process.env.KOBIOPS_DATA_DIR
+      || process.env.NODE_ENV === 'production'
+      || (BIND_HOST !== '127.0.0.1' && BIND_HOST !== '::1');
+    if (requireToken) {
       return res.status(503).json({ ok: false, error: 'Bridge token not configured yet.' });
     }
     return next();

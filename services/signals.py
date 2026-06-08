@@ -43,15 +43,11 @@ def cache_service_status(sender, instance, **kwargs):
 def on_service_saved(sender, instance, created, **kwargs):
 
     publish_live_event(
-
         kind="service",
-
         action="created" if created else "updated",
-
         object_id=instance.id,
-
         message=f"Servis #{instance.id} {'oluşturuldu' if created else 'güncellendi'}.",
-
+        brand_id=getattr(instance, 'brand_id', None),
     )
 
 
@@ -67,15 +63,11 @@ def on_service_saved(sender, instance, created, **kwargs):
 def on_service_deleted(sender, instance, **kwargs):
 
     publish_live_event(
-
         kind="service",
-
         action="deleted",
-
         object_id=instance.id,
-
         message=f"Servis #{instance.id} silindi.",
-
+        brand_id=getattr(instance, 'brand_id', None),
     )
 
 
@@ -89,15 +81,11 @@ def on_service_products_changed(sender, instance, action, **kwargs):
     if action in {"post_add", "post_remove", "post_clear"}:
 
         publish_live_event(
-
             kind="service",
-
             action="updated",
-
             object_id=instance.id,
-
             message=f"Servis #{instance.id} ürünleri güncellendi.",
-
+            brand_id=getattr(instance, 'brand_id', None),
         )
 
 
@@ -111,15 +99,11 @@ def on_service_types_changed(sender, instance, action, **kwargs):
     if action in {"post_add", "post_remove", "post_clear"}:
 
         publish_live_event(
-
             kind="service",
-
             action="updated",
-
             object_id=instance.id,
-
             message=f"Servis #{instance.id} arıza tipleri güncellendi.",
-
+            brand_id=getattr(instance, 'brand_id', None),
         )
 
 

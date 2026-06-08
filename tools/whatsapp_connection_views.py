@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from pathlib import Path
 
+from common.brand_scope import assign_brand, filter_by_brand
 from common.decorators import json_auth_required, permission_required
 from core_settings.models import SiteSettings
 from core_settings.whatsapp_print import (
@@ -179,7 +180,7 @@ def whatsapp_connections_api(request):
         probe = probe_bridge()
         bridge_offline = not probe.get('modern')
         items = []
-        for conn in WhatsappConnection.objects.all():
+        for conn in filter_by_brand(WhatsappConnection.objects.all(), request):
             bridge = _bridge_status_for(conn) if not bridge_offline else None
             if bridge and not bridge_offline:
                 bridge = _maybe_auto_reconnect(conn, bridge)
@@ -197,7 +198,9 @@ def whatsapp_connections_api(request):
     name = (body.get('name') or '').strip()
     if not name:
         return JsonResponse({'ok': False, 'error': 'Bağlantı adı girin.'}, status=400)
-    conn = WhatsappConnection.objects.create(name=name[:80])
+    conn = WhatsappConnection(name=name[:80])
+    assign_brand(conn, request)
+    conn.save()
     return JsonResponse({'ok': True, 'connection': serialize_connection(conn)})
 
 
@@ -205,7 +208,7 @@ def whatsapp_connections_api(request):
 @json_auth_required
 @permission_required('tools.whatsapp')
 def whatsapp_connection_detail_api(request, pk):
-    conn = get_object_or_404(WhatsappConnection, pk=pk)
+    conn = get_object_or_404(filter_by_brand(WhatsappConnection.objects.all(), request), pk=pk)
     if request.method == 'PATCH':
         body = _json_body(request) or {}
         name = (body.get('name') or '').strip()
@@ -228,7 +231,7 @@ def whatsapp_connection_detail_api(request, pk):
 @json_auth_required
 @permission_required('tools.whatsapp')
 def whatsapp_connection_status_api(request, pk):
-    conn = get_object_or_404(WhatsappConnection, pk=pk)
+    conn = get_object_or_404(filter_by_brand(WhatsappConnection.objects.all(), request), pk=pk)
     try:
         bridge = bridge_connection_status(conn.id)
     except WhatsappBridgeOffline as exc:
@@ -243,7 +246,7 @@ def whatsapp_connection_status_api(request, pk):
 @json_auth_required
 @permission_required('tools.whatsapp')
 def whatsapp_connection_connect_api(request, pk):
-    conn = get_object_or_404(WhatsappConnection, pk=pk)
+    conn = get_object_or_404(filter_by_brand(WhatsappConnection.objects.all(), request), pk=pk)
     try:
         bridge = bridge_connection_connect(conn.id)
     except WhatsappBridgeOffline as exc:
@@ -258,7 +261,7 @@ def whatsapp_connection_connect_api(request, pk):
 @json_auth_required
 @permission_required('tools.whatsapp')
 def whatsapp_connection_disconnect_api(request, pk):
-    conn = get_object_or_404(WhatsappConnection, pk=pk)
+    conn = get_object_or_404(filter_by_brand(WhatsappConnection.objects.all(), request), pk=pk)
     try:
         bridge = bridge_connection_disconnect(conn.id)
     except WhatsappBridgeOffline as exc:

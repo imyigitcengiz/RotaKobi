@@ -68,7 +68,15 @@ def import_customer_rows(rows: list[dict], *, user=None, request=None) -> dict:
                     from common.brand_team import check_customer_limit_for_request
 
                     try:
-                        check_customer_limit_for_request(request, brand=get_active_brand(request))
+                        blocked = check_customer_limit_for_request(request, brand=get_active_brand(request))
+                        if blocked:
+                            skipped += 1
+                            skipped_rows.append({
+                                'row': line_no,
+                                'reason': 'müşteri limiti',
+                                'preview': row_preview(row),
+                            })
+                            continue
                     except ValueError as exc:
                         skipped += 1
                         skipped_rows.append({
@@ -77,7 +85,7 @@ def import_customer_rows(rows: list[dict], *, user=None, request=None) -> dict:
                             'preview': row_preview(row),
                         })
                         continue
-                customer = Customer.objects.create(
+                customer = Customer(
                     name=name,
                     phone=phone,
                     region=region,
@@ -85,14 +93,18 @@ def import_customer_rows(rows: list[dict], *, user=None, request=None) -> dict:
                     location_link=location_link,
                     contract_date=contract_date,
                 )
+                if request is not None:
+                    from common.brand_scope import assign_brand
+
+                    assign_brand(customer, request)
+                elif user:
+                    from common.brand_scope import default_brand_for_user
+
+                    brand = default_brand_for_user(user)
+                    if brand:
+                        customer.brand_id = brand.pk
+                customer.save()
                 created += 1
-
-            if request is not None:
-                from common.brand_scope import assign_brand
-
-                assign_brand(customer, request)
-                if customer.brand_id:
-                    customer.save(update_fields=['brand_id'])
 
             if product_names:
                 options = resolve_product_options(product_names)

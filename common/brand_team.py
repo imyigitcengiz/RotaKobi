@@ -46,8 +46,6 @@ def can_manage_brand_team(user) -> bool:
 def is_subscription_owner(user) -> bool:
     if not user or not user.is_authenticated or user.is_superuser:
         return False
-    if user.plan_id:
-        return True
     return BrandMembership.objects.filter(
         user=user,
         role=BrandMembership.ROLE_OWNER,
@@ -184,13 +182,21 @@ def attach_user_to_brand(
     return mem
 
 
+class PlanLimitExceeded(Exception):
+    def __init__(self, message: str, *, status_code: int = 402):
+        super().__init__(message)
+        self.message = message
+        self.status_code = status_code
+
+
 def check_team_user_limit(owner, brand: BusinessBrand) -> None:
     plan = owner.active_plan
     count = BrandMembership.objects.filter(brand=brand).count()
     if not owner.is_superuser and count >= plan.max_users_per_brand:
-        raise ValueError(
+        raise PlanLimitExceeded(
             f'"{brand.name}" panelinde kullanıcı limitine ulaşıldı '
-            f'({count}/{plan.max_users_per_brand}). Planınızı yükseltin.'
+            f'({count}/{plan.max_users_per_brand}). Planınızı yükseltin.',
+            status_code=403,
         )
 
 
@@ -221,20 +227,32 @@ def check_customer_limit(owner, brand: BusinessBrand) -> None:
     plan = owner.active_plan
     count = Customer.objects.filter(brand_id=brand.pk).count()
     if count >= plan.max_customers_per_brand:
-        raise ValueError(
+        raise PlanLimitExceeded(
             f'"{brand.name}" panelinde müşteri limitine ulaşıldı '
             f'({count}/{plan.max_customers_per_brand}). '
-            f'Planınızı yükseltmek için Abonelik sayfasını ziyaret edin.'
+            f'Planınızı yükseltmek için Abonelik sayfasını ziyaret edin.',
+            status_code=402,
         )
 
 
-def check_customer_limit_for_request(request, *, brand: BusinessBrand | None = None) -> None:
+def check_customer_limit_for_request(request, *, brand: BusinessBrand | None = None):
     from common.brand_scope import get_active_brand
+    from common.middleware import _is_api_request
+    from django.http import JsonResponse
 
     brand = brand or get_active_brand(request)
     if not brand:
-        return
+        return None
     owner = subscription_owner_for_brand(brand)
     if not owner:
-        return
-    check_customer_limit(owner, brand)
+        return None
+    try:
+        check_customer_limit(owner, brand)
+    except PlanLimitExceeded as exc:
+        if _is_api_request(request):
+            return JsonResponse(
+                {'ok': False, 'error': 'plan_limit', 'detail': exc.message},
+                status=exc.status_code,
+            )
+        raise ValueError(exc.message) from exc
+    return None

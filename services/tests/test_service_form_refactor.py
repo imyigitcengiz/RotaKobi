@@ -1,6 +1,7 @@
 from django.test import TestCase
 from decimal import Decimal
 from django.contrib.auth import get_user_model
+from common.tests.helpers import default_test_brand
 from core_settings.models import SiteSettings, ServicePersonnel, ServiceTeam, StatusOption, PriorityOption
 from customers.models import Customer
 from services.models import ServiceRecord
@@ -14,10 +15,12 @@ class ServiceFormRefactorTests(TestCase):
         self.status = StatusOption.objects.create(name='Aktif', sort_order=1)
         self.priority = PriorityOption.objects.create(name='Yüksek')
         
+        self.brand = default_test_brand()
         # Create customer
         self.customer = Customer.objects.create(
             name='Test Customer',
             phone='5551234567',
+            brand=self.brand,
         )
 
         # Create settings
@@ -33,6 +36,7 @@ class ServiceFormRefactorTests(TestCase):
         self.personnel = ServicePersonnel.objects.create(
             name='Ahmet Usta',
             team=self.team,
+            brand=self.brand,
             is_active=True,
         )
 
@@ -44,6 +48,7 @@ class ServiceFormRefactorTests(TestCase):
     def test_service_record_has_partner_fee(self):
         service = ServiceRecord.objects.create(
             customer=self.customer,
+            brand=self.brand,
             status=self.status,
             priority=self.priority,
             partner_fee=Decimal('250.75'),

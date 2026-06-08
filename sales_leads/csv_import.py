@@ -80,7 +80,15 @@ def import_sales_rows(
                     from common.brand_team import check_customer_limit_for_request
 
                     try:
-                        check_customer_limit_for_request(request, brand=get_active_brand(request))
+                        blocked = check_customer_limit_for_request(request, brand=get_active_brand(request))
+                        if blocked:
+                            skipped += 1
+                            skipped_rows.append({
+                                'row': line_no,
+                                'reason': 'müşteri limiti',
+                                'preview': row_preview(raw),
+                            })
+                            continue
                     except ValueError as exc:
                         skipped += 1
                         skipped_rows.append({

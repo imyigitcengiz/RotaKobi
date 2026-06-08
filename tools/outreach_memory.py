@@ -27,18 +27,27 @@ def firm_outreach_messages_qs(*, phone_normalized: str = '', firm=None):
     return qs
 
 
-def get_sent_count(phone_normalized: str) -> int:
+def get_sent_count(phone_normalized: str, *, brand_id: int | None = None) -> int:
     """Hafızadaki firma için firma/kampanya gönderim sayısı (müşteri hariç)."""
     if not phone_normalized:
         return 0
-    firm = MapsScrapedFirm.objects.filter(phone_normalized=phone_normalized).only('messages_sent_count').first()
+    firm_qs = MapsScrapedFirm.objects.filter(phone_normalized=phone_normalized)
+    if brand_id:
+        firm_qs = firm_qs.filter(brand_id=brand_id)
+    firm = firm_qs.only('messages_sent_count').first()
     if not firm:
         return 0
-    return firm_outreach_messages_qs(phone_normalized=phone_normalized).count()
+    qs = firm_outreach_messages_qs(phone_normalized=phone_normalized, firm=firm)
+    if brand_id:
+        qs = qs.filter(
+            Q(firm__brand_id=brand_id)
+            | Q(collection__brand_id=brand_id)
+        )
+    return qs.count()
 
 
-def has_been_messaged_globally(phone_normalized: str) -> bool:
-    return get_sent_count(phone_normalized) > 0
+def has_been_messaged_globally(phone_normalized: str, *, brand_id: int | None = None) -> bool:
+    return get_sent_count(phone_normalized, brand_id=brand_id) > 0
 
 
 def get_last_message_at(phone_normalized: str):
@@ -135,21 +144,22 @@ def resolve_firm_for_send(message: WhatsappOutboundMessage) -> MapsScrapedFirm |
     return sync_firm_message_stats(firm)
 
 
-def messaged_firm_count() -> int:
-    return (
-        WhatsappOutboundMessage.objects.filter(
-            status=WhatsappOutboundMessage.STATUS_SENT,
-        )
-        .exclude(send_type=WhatsappOutboundMessage.SEND_CUSTOMER)
-        .exclude(firm_id__isnull=True)
-        .values('firm_id')
-        .distinct()
-        .count()
-    )
+def messaged_firm_count(request=None) -> int:
+    qs = WhatsappOutboundMessage.objects.filter(
+        status=WhatsappOutboundMessage.STATUS_SENT,
+    ).exclude(send_type=WhatsappOutboundMessage.SEND_CUSTOMER).exclude(firm_id__isnull=True)
+    if request is not None:
+        from common.brand_scope import filter_outreach_messages
+        qs = filter_outreach_messages(qs, request)
+    return qs.values('firm_id').distinct().count()
 
 
-def memory_stats() -> dict:
+def memory_stats(request=None) -> dict:
+    firm_qs = MapsScrapedFirm.objects.exclude(notes=CUSTOMER_SHADOW_NOTE)
+    if request is not None:
+        from common.brand_scope import filter_firms
+        firm_qs = filter_firms(firm_qs, request)
     return {
-        'memory_total': MapsScrapedFirm.objects.exclude(notes=CUSTOMER_SHADOW_NOTE).count(),
-        'messaged_count': messaged_firm_count(),
+        'memory_total': firm_qs.count(),
+        'messaged_count': messaged_firm_count(request),
     }

@@ -75,7 +75,9 @@ class CustomerCreateView(PermissionRequiredMixin, CreateView):
 
         assign_brand(form.instance, self.request)
         try:
-            check_customer_limit_for_request(self.request, brand=get_active_brand(self.request))
+            blocked = check_customer_limit_for_request(self.request, brand=get_active_brand(self.request))
+            if blocked:
+                return blocked
         except ValueError as exc:
             form.add_error('name', str(exc))
             return self.form_invalid(form)
@@ -199,7 +201,9 @@ def quick_customer_create(request):
             from common.brand_scope import assign_brand, get_active_brand
 
             try:
-                check_customer_limit_for_request(request, brand=get_active_brand(request))
+                blocked = check_customer_limit_for_request(request, brand=get_active_brand(request))
+                if blocked:
+                    return blocked
             except ValueError as exc:
                 return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
             customer = Customer.objects.create(
@@ -249,7 +253,7 @@ def update_customer_products(request, pk):
     import json
     data = json.loads(request.body)
     product_ids = data.get('product_ids', [])
-    c = Customer.objects.get(pk=pk)
+    c = get_customer_for_request(request, pk)
     c.products.set(product_ids)
     return JsonResponse({'status': 'ok'})
 
@@ -266,7 +270,10 @@ def customer_quick_edit_api(request, pk):
         if not user.is_superuser and not user.has_perm_codename(CUSTOMERS_EDIT_PERM):
             return JsonResponse({'ok': False, 'error': 'Yetkiniz yok.'}, status=403)
 
-    customer = get_object_or_404(Customer.objects.prefetch_related('products'), pk=pk)
+    customer = get_object_or_404(
+        filter_customers(Customer.objects.prefetch_related('products'), request),
+        pk=pk,
+    )
     if request.method == 'GET':
         return JsonResponse({
             'ok': True,
@@ -305,7 +312,7 @@ def customer_quick_edit_api(request, pk):
 def customer_whatsapp_messages_api(request, pk):
     from tools.models import WhatsappOutboundMessage
 
-    customer = get_object_or_404(Customer, pk=pk)
+    customer = get_customer_for_request(request, pk)
     status = (request.GET.get('status') or 'all').strip()
     page = max(int(request.GET.get('page') or 1), 1)
     page_size = min(max(int(request.GET.get('page_size') or 50), 1), 200)

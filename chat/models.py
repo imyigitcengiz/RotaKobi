@@ -11,6 +11,14 @@ class ChatThread(models.Model):
     ]
 
     kind = models.CharField(max_length=10, choices=KIND_CHOICES)
+    brand = models.ForeignKey(
+        'core_settings.BusinessBrand',
+        on_delete=models.CASCADE,
+        related_name='chat_threads',
+        null=True,
+        blank=True,
+        verbose_name='Marka',
+    )
     direct_key = models.CharField(max_length=64, unique=True, null=True, blank=True)
     title = models.CharField(max_length=120, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

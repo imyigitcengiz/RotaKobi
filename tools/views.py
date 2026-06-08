@@ -14,6 +14,8 @@ from core_settings.models import SiteSettings
 from users.mixins import PermissionRequiredMixin
 from tools.whatsapp_cloud_client import cloud_api_status
 
+from common.brand_scope import filter_firms, get_active_brand_id
+
 from tools.firm_memory import enrich_search_results, register_scrape, serialize_firm
 from tools.google_maps_search import GoogleMapsSearchError, search_businesses
 from tools.models import FirmTag, MapsScrapedFirm
@@ -46,17 +48,18 @@ class FirmalarView(TemplateView):
         context = super().get_context_data(**kwargs)
         view = (self.request.GET.get('view') or '').strip().lower()
         context['active_panel'] = 'maps' if view == 'maps' else 'rehber'
-        context['memory_count'] = MapsScrapedFirm.objects.count()
-        context['messaged_count'] = messaged_firm_count()
+        firm_qs = filter_firms(MapsScrapedFirm.objects.all(), self.request)
+        context['memory_count'] = firm_qs.count()
+        context['messaged_count'] = messaged_firm_count(self.request)
         context['partner_types'] = list(
             SolutionPartnerType.objects.filter(is_active=True).order_by('name').values('id', 'name')
         )
         context['kind_counts'] = {
-            'all': MapsScrapedFirm.objects.count(),
-            'scraped': MapsScrapedFirm.objects.filter(firm_kind=MapsScrapedFirm.KIND_SCRAPED).count(),
-            'partner': MapsScrapedFirm.objects.filter(firm_kind=MapsScrapedFirm.KIND_PARTNER).count(),
-            'dealer': MapsScrapedFirm.objects.filter(firm_kind=MapsScrapedFirm.KIND_DEALER).count(),
-            'business': MapsScrapedFirm.objects.filter(firm_kind=MapsScrapedFirm.KIND_BUSINESS).count(),
+            'all': firm_qs.count(),
+            'scraped': firm_qs.filter(firm_kind=MapsScrapedFirm.KIND_SCRAPED).count(),
+            'partner': firm_qs.filter(firm_kind=MapsScrapedFirm.KIND_PARTNER).count(),
+            'dealer': firm_qs.filter(firm_kind=MapsScrapedFirm.KIND_DEALER).count(),
+            'business': firm_qs.filter(firm_kind=MapsScrapedFirm.KIND_BUSINESS).count(),
         }
         return context
 
@@ -192,11 +195,15 @@ def google_maps_search(request):
 
     try:
         raw_results = search_businesses(query, location, max_results)
+        brand_id = get_active_brand_id(request)
+        if not brand_id:
+            return JsonResponse({'ok': False, 'error': 'Aktif marka seçin.'}, status=403)
         results = enrich_search_results(
             raw_results,
             phone_filter=phone_filter,
             tag_ids=tag_ids,
             scrape_region=scrape_region,
+            brand_id=brand_id,
         )
     except GoogleMapsSearchError as exc:
         return JsonResponse({'ok': False, 'error': str(exc)}, status=502)
@@ -209,7 +216,7 @@ def google_maps_search(request):
     new_count = sum(1 for r in results if r.get('saved_to_memory') and not r.get('already_in_memory'))
     memory_count = sum(1 for r in results if r.get('already_in_memory'))
     saved_count = sum(1 for r in results if r.get('saved_to_memory'))
-    stats = memory_stats()
+    stats = memory_stats(request)
     return JsonResponse({
         'ok': True,
         'count': len(results),
@@ -234,7 +241,7 @@ def firms_memory_list(request):
     kind = (request.GET.get('kind') or '').strip()
     from tools.firm_csv_export import firms_directory_queryset
 
-    qs = firms_directory_queryset(q=q, kind=kind, region=region, tag_id=tag_id)
+    qs = firms_directory_queryset(request=request, q=q, kind=kind, region=region, tag_id=tag_id)
 
     total = qs.count()
     start = (page - 1) * page_size
@@ -242,9 +249,9 @@ def firms_memory_list(request):
     if whatsapp_only:
         page_firms = [f for f in page_firms if is_whatsapp_eligible(f.phone, f.phone_normalized)]
     items = [serialize_firm(f) for f in page_firms]
-    stats = memory_stats()
+    stats = memory_stats(request)
     regions = list(
-        MapsScrapedFirm.objects.exclude(region='')
+        filter_firms(MapsScrapedFirm.objects.exclude(region=''), request)
         .values_list('region', flat=True)
         .distinct()
         .order_by('region')

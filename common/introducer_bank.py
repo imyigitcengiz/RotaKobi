@@ -63,7 +63,7 @@ INTRODUCER_JOURNEYS: tuple[dict, ...] = (
                 1, 'Açılış ve değer önerisi', '5 dk',
                 'Dinleyicinin Excel / dağınık araçlar yerine neden tek panel istediğini netleştirin.',
                 (
-                    'CoolOPS resmi muhasebe değil — günlük operasyon kararları için ön muhasebe.',
+                    'Kobi Hub resmi muhasebe değil — günlük operasyon kararları için ön muhasebe.',
                     'Modüller ve parçacıklar ihtiyaca göre açılır; aynı altyapı bayi ve hizmet profiline de uyar.',
                     'Veriler self-host: Docker, kendi sunucunuz, SQLite + medya volume.',
                 ),
@@ -324,7 +324,7 @@ INTRODUCER_JOURNEYS: tuple[dict, ...] = (
 INTRODUCER_FAQ: tuple[tuple[str, str], ...] = (
     (
         'Logo, Mikro veya resmi muhasebe yerine geçer mi?',
-        'Hayır. CoolOPS operasyon ve ön muhasebe içindir: tahsilat, kasa, stok, maaş, servis. '
+        'Hayır. Kobi Hub operasyon ve ön muhasebe içindir: tahsilat, kasa, stok, maaş, servis. '
         'E-defter ve resmi muhasebe entegrasyonu yol haritasındadır; günlük saha kararları için tasarlanmıştır.',
     ),
     (
@@ -358,7 +358,7 @@ INTRODUCER_OBJECTIONS: tuple[tuple[str, str], ...] = (
     ),
     (
         'Logo kullanıyoruz, buna gerek yok.',
-        'CoolOPS Logo\'nun yerine değil; saha ekibi, servis, teklif ve operasyon kasasının yanında. '
+        'Kobi Hub Logo\'nun yerine değil; saha ekibi, servis, teklif ve operasyon kasasının yanında. '
         'Resmi muhasebe ayrı kalır, operasyon hızlanır.',
     ),
     (

@@ -12,6 +12,7 @@ def on_customer_saved(sender, instance, created, **kwargs):
         action="created" if created else "updated",
         object_id=instance.id,
         message=f"Müşteri '{instance.name}' {'eklendi' if created else 'güncellendi'}.",
+        brand_id=getattr(instance, 'brand_id', None),
     )
     # WhatsApp: müşteri oluşturma mesajı kullanıcı onayı ile (customers/views.py).
 
@@ -23,6 +24,7 @@ def on_customer_deleted(sender, instance, **kwargs):
         action="deleted",
         object_id=instance.id,
         message=f"Müşteri '{instance.name}' silindi.",
+        brand_id=getattr(instance, 'brand_id', None),
     )
 
 
@@ -34,4 +36,5 @@ def on_customer_products_changed(sender, instance, action, **kwargs):
             action="updated",
             object_id=instance.id,
             message=f"Müşteri '{instance.name}' ürünleri güncellendi.",
+            brand_id=getattr(instance, 'brand_id', None),
         )

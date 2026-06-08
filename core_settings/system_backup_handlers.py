@@ -130,7 +130,6 @@ def _handle_factory_reset_post(request, *, redirect_name: str):
         return redirect(redirect_name)
 
     if ok:
-        log_platform_audit(request, action=PlatformAuditLog.ACTION_FACTORY_RESET)
         logout(request)
         messages.success(request, msg)
         return redirect('login')

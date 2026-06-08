@@ -234,17 +234,17 @@ ROUTE_PERMISSIONS = [
     ('/contact/pazarlama/musteri-mesajlari/', 'access.outreach'),
     ('/contact/pazarlama/', 'access.outreach'),
     ('/contact/etiketler/', 'access.settings'),
-    ('/contact/firmalar/', 'contact.firms'),
-    ('/contact/firma-kazi/', 'contact.firms'),
     ('/contact/', 'access.contact'),
+    ('/crm/', 'access.contact'),
+    ('/ortak/', 'access.contact'),
     ('/sales-lead/', None),
     ('/tools/api/hava-durumu/', 'access.home'),
     ('/tools/api/ai-chat/', 'tools.ai'),
     ('/tools/medya/sil/', 'tools.media_delete'),
     ('/tools/medya/', 'tools.media'),
     ('/tools/whatsapp-api/', 'tools.whatsapp'),
-    ('/tools/whatsapp', 'tools.whatsapp'),
-    ('/tools/', 'access.tools'),
+    ('/tools/whatsapp/', 'tools.whatsapp'),
+    ('/tools/', 'access.home'),
     ('/admin/', None),
     ('/media/', None),
     ('/panel/abonelik/modul-toggle/', 'access.home'),
@@ -254,5 +254,14 @@ ROUTE_PERMISSIONS = [
     ('/panel/', 'access.home'),
 ]
 
-LOGIN_EXEMPT_PREFIXES = ('/giris/', '/kayit/', '/static/', '/healthz/', '/bilgi-bankasi/')
+LOGIN_EXEMPT_PREFIXES = (
+    '/giris/',
+    '/kayit/',
+    '/aktiflestir/',
+    '/sifre-sifirla/',
+    '/api/billing/',
+    '/static/',
+    '/healthz/',
+    '/bilgi-bankasi/',
+)
 SUPERUSER_ONLY_PREFIXES = ('/yonetim/',)

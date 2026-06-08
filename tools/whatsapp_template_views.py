@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
 
+from common.brand_scope import filter_whatsapp_connections
 from common.decorators import json_auth_required, permission_required
 from core_settings.models import StatusOption, WhatsAppTemplate
 from core_settings.status_defaults import ensure_default_statuses
@@ -228,7 +229,12 @@ def whatsapp_scenario_templates_api(request):
         return JsonResponse({'ok': False, 'error': 'Geçersiz senaryo.'}, status=400)
 
     connection_id = body.get('connection_id')
-    conn = WhatsappConnection.objects.filter(pk=connection_id).first() if connection_id else None
+    conn = None
+    if connection_id:
+        conn = filter_whatsapp_connections(
+            WhatsappConnection.objects.filter(pk=connection_id),
+            request,
+        ).first()
 
     trigger_from = _normalize_trigger_value(body.get('trigger_from'))
     trigger_to = _normalize_trigger_value(body.get('trigger_to'))
@@ -279,7 +285,13 @@ def whatsapp_scenario_template_detail_api(request, pk):
         template.sort_order = int(body.get('sort_order') or 0)
     if 'connection_id' in body:
         cid = body.get('connection_id')
-        template.connection = WhatsappConnection.objects.filter(pk=cid).first() if cid else None
+        if cid:
+            template.connection = filter_whatsapp_connections(
+                WhatsappConnection.objects.filter(pk=cid),
+                request,
+            ).first()
+        else:
+            template.connection = None
 
     if not template.title or not template.message:
         return JsonResponse({'ok': False, 'error': 'Kural adı ve mesaj boş olamaz.'}, status=400)

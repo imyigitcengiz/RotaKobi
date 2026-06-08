@@ -175,9 +175,16 @@ def _serialize_raw_row(data: dict) -> dict:
 
 
 
+def _firm_scope(*, brand_id: int | None = None):
+    qs = MapsScrapedFirm.objects.all()
+    if brand_id:
+        qs = qs.filter(brand_id=brand_id)
+    return qs
+
+
 @transaction.atomic
 
-def register_scrape(data: dict) -> tuple[MapsScrapedFirm, bool]:
+def register_scrape(data: dict, *, brand_id: int | None = None) -> tuple[MapsScrapedFirm, bool]:
 
     payload = _build_payload(data)
 
@@ -185,11 +192,11 @@ def register_scrape(data: dict) -> tuple[MapsScrapedFirm, bool]:
 
     phone_norm = payload.get('phone_normalized', '')
 
+    scope = _firm_scope(brand_id=brand_id)
 
+    firm_by_place = scope.filter(place_id=place_id).first() if place_id else None
 
-    firm_by_place = MapsScrapedFirm.objects.filter(place_id=place_id).first() if place_id else None
-
-    firm_by_phone = MapsScrapedFirm.objects.filter(phone_normalized=phone_norm).first() if phone_norm else None
+    firm_by_phone = scope.filter(phone_normalized=phone_norm).first() if phone_norm else None
 
 
 
@@ -230,6 +237,8 @@ def register_scrape(data: dict) -> tuple[MapsScrapedFirm, bool]:
 
 
     payload.setdefault('firm_kind', MapsScrapedFirm.KIND_SCRAPED)
+    if brand_id:
+        payload['brand_id'] = brand_id
 
     try:
 
@@ -243,11 +252,11 @@ def register_scrape(data: dict) -> tuple[MapsScrapedFirm, bool]:
 
         if place_id:
 
-            firm = MapsScrapedFirm.objects.filter(place_id=place_id).first()
+            firm = scope.filter(place_id=place_id).first()
 
         if not firm and phone_norm:
 
-            firm = MapsScrapedFirm.objects.filter(phone_normalized=phone_norm).first()
+            firm = scope.filter(phone_normalized=phone_norm).first()
 
         if not firm:
 
@@ -361,10 +370,14 @@ def enrich_search_results(
 
     tag_ids: list | None = None,
     scrape_region: str = '',
+    brand_id: int | None = None,
 ) -> list[dict]:
     tag_ids = tag_ids or []
     scrape_region = (scrape_region or '').strip()[:80]
-    tags = list(FirmTag.objects.filter(pk__in=tag_ids)) if tag_ids else []
+    tag_qs = FirmTag.objects.filter(pk__in=tag_ids) if tag_ids else FirmTag.objects.none()
+    if brand_id:
+        tag_qs = tag_qs.filter(brand_id=brand_id)
+    tags = list(tag_qs)
     enriched = []
 
     for row in results:
@@ -379,9 +392,10 @@ def enrich_search_results(
 
             firm = None
 
+            scope = _firm_scope(brand_id=brand_id)
             if phone_norm:
 
-                firm = MapsScrapedFirm.objects.filter(phone_normalized=phone_norm).prefetch_related('tags').first()
+                firm = scope.filter(phone_normalized=phone_norm).prefetch_related('tags').first()
 
             if not firm:
 
@@ -389,7 +403,7 @@ def enrich_search_results(
 
                 if place_id:
 
-                    firm = MapsScrapedFirm.objects.filter(place_id=place_id).prefetch_related('tags').first()
+                    firm = scope.filter(place_id=place_id).prefetch_related('tags').first()
 
             item = serialize_firm(firm, already_in_memory=True) if firm else _serialize_raw_row(row)
 
@@ -401,7 +415,7 @@ def enrich_search_results(
 
 
 
-        firm, created = register_scrape(row)
+        firm, created = register_scrape(row, brand_id=brand_id)
 
         if tags:
 

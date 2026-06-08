@@ -10,9 +10,13 @@ from django.utils import timezone
 from core_settings.models import FinanceRecord, SupplierPayable
 
 
-def build_payables_context(*, overdue_days: int = 30) -> dict:
+def build_payables_context(*, request=None, overdue_days: int = 30) -> dict:
     today = timezone.localdate()
-    rows = list(SupplierPayable.objects.order_by('due_date', '-created_at'))
+    qs = SupplierPayable.objects.order_by('due_date', '-created_at')
+    if request is not None:
+        from common.brand_scope import filter_by_brand
+        qs = filter_by_brand(qs, request)
+    rows = list(qs)
     payable_rows = []
     total_open = Decimal('0')
     overdue_total = Decimal('0')
@@ -48,18 +52,34 @@ def build_payables_context(*, overdue_days: int = 30) -> dict:
     }
 
 
-def create_payable(*, supplier_name: str, amount: Decimal, due_date=None, invoice_ref: str = '', notes: str = '') -> SupplierPayable:
-    return SupplierPayable.objects.create(
+def create_payable(
+    *,
+    supplier_name: str,
+    amount: Decimal,
+    due_date=None,
+    invoice_ref: str = '',
+    notes: str = '',
+    request=None,
+    brand=None,
+) -> SupplierPayable:
+    payable = SupplierPayable(
         supplier_name=supplier_name.strip(),
         amount=amount,
         due_date=due_date,
         invoice_ref=invoice_ref.strip(),
         notes=notes.strip(),
     )
+    if request is not None:
+        from common.brand_scope import assign_brand
+        assign_brand(payable, request)
+    elif brand is not None:
+        payable.brand = brand
+    payable.save()
+    return payable
 
 
 @transaction.atomic
-def record_payment(payable: SupplierPayable, amount: Decimal, user) -> FinanceRecord:
+def record_payment(payable: SupplierPayable, amount: Decimal, user, request=None) -> FinanceRecord:
     if amount <= 0:
         raise ValueError('Ödeme tutarı 0\'dan büyük olmalı.')
     remaining = payable.remaining
@@ -71,7 +91,7 @@ def record_payment(payable: SupplierPayable, amount: Decimal, user) -> FinanceRe
     if payable.invoice_ref:
         title += f' ({payable.invoice_ref})'
     default_account = _default_cash_account()
-    return FinanceRecord.objects.create(
+    record = FinanceRecord(
         record_type=FinanceRecord.TYPE_EXPENSE,
         category='supplier',
         title=title,
@@ -81,6 +101,12 @@ def record_payment(payable: SupplierPayable, amount: Decimal, user) -> FinanceRe
         recorded_by=user,
         cash_account=default_account,
     )
+    if request is not None:
+        from common.brand_scope import assign_brand
+
+        assign_brand(record, request)
+    record.save()
+    return record
 
 
 def _default_cash_account():

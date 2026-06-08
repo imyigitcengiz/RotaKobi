@@ -2,6 +2,14 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
+from common.brand_scope import (
+    authorized_whatsapp_batch_qs,
+    filter_customers,
+    filter_firms,
+    filter_whatsapp_connections,
+    get_firm_for_request,
+    get_outreach_collection_for_request,
+)
 from common.decorators import json_auth_required, permission_required
 
 from customers.models import Customer
@@ -24,22 +32,25 @@ from tools.whatsapp_cloud_client import (
 )
 
 
-def _list_connection_candidates(preferred_id=None) -> list[int]:
+def _list_connection_candidates(preferred_id=None, *, request=None) -> list[int]:
     ids = []
     if preferred_id:
         try:
             ids.append(int(preferred_id))
         except (TypeError, ValueError):
             pass
-    for conn in WhatsappConnection.objects.order_by('-last_connected_at', 'name'):
+    conn_qs = WhatsappConnection.objects.order_by('-last_connected_at', 'name')
+    if request is not None:
+        conn_qs = filter_whatsapp_connections(conn_qs, request)
+    for conn in conn_qs:
         if conn.id not in ids:
             ids.append(conn.id)
     return ids
 
 
-def pick_ready_connection(preferred_id=None, *, strict=False) -> tuple[int | None, dict | None, str | None]:
+def pick_ready_connection(preferred_id=None, *, strict=False, request=None) -> tuple[int | None, dict | None, str | None]:
     last_offline = None
-    candidates = _list_connection_candidates(preferred_id)
+    candidates = _list_connection_candidates(preferred_id, request=request)
     if strict and preferred_id:
         try:
             candidates = [int(preferred_id)]
@@ -58,7 +69,10 @@ def pick_ready_connection(preferred_id=None, *, strict=False) -> tuple[int | Non
         if status.get('status') == 'ready':
             return cid, status, None
         if strict:
-            conn = WhatsappConnection.objects.filter(pk=cid).first()
+            conn_qs = WhatsappConnection.objects.filter(pk=cid)
+            if request is not None:
+                conn_qs = filter_whatsapp_connections(conn_qs, request)
+            conn = conn_qs.first()
             label = conn.name if conn else f'Hat #{cid}'
             return None, status, f'"{label}" şu an bağlı değil. Başka hat seçin veya QR ile bağlanın.'
     if last_offline:
@@ -125,6 +139,7 @@ def _dispatch_send(
     message: str,
     connection_id: int | None,
     outbound: WhatsappOutboundMessage,
+    request=None,
 ):
     if transport == 'cloud':
         if not cloud_api_configured():
@@ -137,7 +152,7 @@ def _dispatch_send(
             return None, str(exc), None
         return None, None, result
 
-    conn_id, _, conn_err = pick_ready_connection(connection_id, strict=bool(connection_id))
+    conn_id, _, conn_err = pick_ready_connection(connection_id, strict=bool(connection_id), request=request)
     if conn_err:
         return conn_id, conn_err, None
     if not conn_id:
@@ -166,17 +181,35 @@ def _log_and_send(
     send_type: str = '',
     scenario: str = '',
     transport: str = '',
+    request=None,
 ):
     firm = None
     customer = None
     if firm_id:
-        firm = MapsScrapedFirm.objects.filter(pk=firm_id).first()
+        firm_qs = MapsScrapedFirm.objects.filter(pk=firm_id)
+        if request is not None:
+            firm = filter_firms(firm_qs, request).first()
+            if not firm:
+                return None, None, 'Firma bulunamadı veya erişim yok.', None
+        else:
+            firm = firm_qs.first()
     elif customer_id:
-        customer = Customer.objects.filter(pk=customer_id).first()
+        if request is not None:
+            customer = filter_customers(
+                Customer.objects.filter(pk=customer_id),
+                request,
+            ).first()
+            if not customer:
+                return None, None, 'Müşteri bulunamadı veya erişim yok.', None
+        else:
+            customer = Customer.objects.filter(pk=customer_id).first()
     elif phone_norm:
-        firm = MapsScrapedFirm.objects.filter(phone_normalized=phone_norm).exclude(
+        firm_qs = MapsScrapedFirm.objects.filter(phone_normalized=phone_norm).exclude(
             notes='Müşteri mesajı',
-        ).first()
+        )
+        if request is not None:
+            firm_qs = filter_firms(firm_qs, request)
+        firm = firm_qs.first()
 
     resolved_send_type = _resolve_send_type(
         customer_id=customer_id,
@@ -221,6 +254,7 @@ def _log_and_send(
             message=message,
             connection_id=connection_id,
             outbound=outbound,
+            request=request,
         )
     except WhatsappBridgeOffline as exc:
         outbound.status = WhatsappOutboundMessage.STATUS_FAILED
@@ -313,7 +347,10 @@ def send_pending_outbound(
 def whatsapp_ready_connections_api(request):
     try:
         items = []
-        for conn in WhatsappConnection.objects.order_by('-last_connected_at', 'name'):
+        for conn in filter_whatsapp_connections(
+            WhatsappConnection.objects.order_by('-last_connected_at', 'name'),
+            request,
+        ):
             try:
                 bridge = bridge_connection_status(conn.id)
             except WhatsappBridgeOffline:
@@ -384,6 +421,7 @@ def whatsapp_send_api(request):
             send_type=send_type,
             scenario=scenario,
             transport=transport,
+            request=request,
         )
     except WhatsappBridgeOffline as exc:
         return JsonResponse({'ok': False, 'offline': True, 'error': str(exc)}, status=503)
@@ -435,10 +473,8 @@ def campaign_send_next_api(request):
         }, status=400)
 
     outbound = (
-        WhatsappOutboundMessage.objects.filter(
-            batch_id=batch_id,
-            status=WhatsappOutboundMessage.STATUS_PENDING,
-        )
+        authorized_whatsapp_batch_qs(request, batch_id)
+        .filter(status=WhatsappOutboundMessage.STATUS_PENDING)
         .order_by('id')
         .first()
     )
@@ -466,7 +502,7 @@ def campaign_queue_status_api(request):
     batch_id = (request.GET.get('batch_id') or '').strip()
     if not batch_id:
         return JsonResponse({'ok': False, 'error': 'batch_id gerekli.'}, status=400)
-    qs = WhatsappOutboundMessage.objects.filter(batch_id=batch_id)
+    qs = authorized_whatsapp_batch_qs(request, batch_id)
     return JsonResponse({
         'ok': True,
         'sent': qs.filter(status=WhatsappOutboundMessage.STATUS_SENT).count(),

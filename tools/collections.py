@@ -39,25 +39,25 @@ def preview_message_template(template: str) -> str:
 
 
 
-def get_or_create_default_collection():
+def get_or_create_default_collection(*, request=None):
+    from common.brand_scope import assign_brand, filter_by_brand
 
-    col = OutreachCollection.objects.order_by('-updated_at').first()
-
+    qs = OutreachCollection.objects.all()
+    if request is not None:
+        qs = filter_by_brand(qs, request)
+    col = qs.order_by('-updated_at').first()
     if col:
-
         return col
-
-    return OutreachCollection.objects.create(
-
+    col = OutreachCollection(
         name='Genel Kampanya',
-
         message_template=DEFAULT_TEMPLATE,
-
         skip_globally_messaged=False,
-
         allow_repeat_in_campaign=True,
-
     )
+    if request is not None:
+        assign_brand(col, request)
+    col.save()
+    return col
 
 
 

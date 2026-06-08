@@ -3,11 +3,12 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from core_settings.backup import factory_reset_database
 from core_settings.models import SiteSettings, StatusOption
+from common.tests.helpers import default_test_brand
 from customers.models import Customer
 from users.models import Permission, Role
 
@@ -32,9 +33,10 @@ def _superuser_client(password='test-pass-123'):
     return client, user
 
 
+@override_settings(DEBUG=True)
 class FactoryResetDatabaseTests(TestCase):
     def test_factory_reset_recreates_admin_and_defaults(self):
-        Customer.objects.create(name='Silinecek müşteri')
+        Customer.objects.create(name='Silinecek müşteri', brand=default_test_brand())
         ok, _msg = factory_reset_database(backup_before=False)
         self.assertTrue(ok)
         self.assertEqual(Customer.objects.count(), 0)
@@ -42,7 +44,7 @@ class FactoryResetDatabaseTests(TestCase):
         self.assertTrue(admin.is_superuser)
         self.assertTrue(check_password('admin', admin.password))
         self.assertGreaterEqual(StatusOption.objects.count(), 1)
-        self.assertTrue(SiteSettings.objects.filter(site_name='CoolOPS').exists())
+        self.assertTrue(SiteSettings.objects.filter(site_name='Kobi Hub').exists())
 
     def test_factory_reset_requires_superuser_on_page(self):
         role = Role.objects.create(slug='plain', name='Plain', is_system=False)
@@ -85,7 +87,7 @@ class FactoryResetDatabaseTests(TestCase):
 
     def test_factory_reset_post_success_logs_out(self):
         client, user = _superuser_client(password='secret123')
-        Customer.objects.create(name='Kayıt')
+        Customer.objects.create(name='Kayıt', brand=default_test_brand())
         url = reverse('admin_system_backup')
         response = client.post(url, {
             'factory_reset_database': '1',

@@ -58,13 +58,18 @@ def _month_bounds(weeks: list[list[date]]) -> tuple[date, date]:
     return flat[0], flat[-1]
 
 
-def _entries_for_range(start: date, end: date) -> dict[str, list]:
+def _entries_for_range(start: date, end: date, *, request=None) -> dict[str, list]:
+    from common.brand_scope import get_active_brand_id
+
+    rows_qs = InstallationScheduleEntry.objects.filter(
+        scheduled_date__gte=start,
+        scheduled_date__lte=end,
+    )
+    bid = get_active_brand_id(request) if request is not None else None
+    if bid:
+        rows_qs = rows_qs.filter(customer__brand_id=bid)
     rows = (
-        InstallationScheduleEntry.objects.filter(
-            scheduled_date__gte=start,
-            scheduled_date__lte=end,
-        )
-        .select_related('customer', 'team', 'sales_lead', 'operational_project')
+        rows_qs.select_related('customer', 'team', 'sales_lead', 'operational_project')
         .order_by('scheduled_date', 'sort_order', 'pk')
     )
     grouped: dict[str, list] = {}
@@ -136,6 +141,7 @@ def build_day_cell(
 
 def build_schedule_calendar(
     *,
+    request=None,
     year: int | None = None,
     month: int | None = None,
     view: str = 'month',
@@ -146,11 +152,11 @@ def build_schedule_calendar(
     month = month or today.month
     settings = _site_settings()
     if not settings:
-        settings = SiteSettings(site_name='CoolOPS')
+        settings = SiteSettings(site_name='Kobi Hub')
 
     weeks_raw = _weeks_in_month(year, month)
     range_start, range_end = _month_bounds(weeks_raw)
-    entries_by_date = _entries_for_range(range_start, range_end)
+    entries_by_date = _entries_for_range(range_start, range_end, request=request)
     weather_by_date = daily_forecast_for_site(settings, range_start, range_end)
 
     entry_weather_map: dict[tuple[int, str], object] = {}

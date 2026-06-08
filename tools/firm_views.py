@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
 
+from common.brand_scope import assign_brand, filter_by_brand, get_active_brand_id
 from tools.firm_delete_guard import delete_firms_response
 from tools.firm_directory import create_manual_firm, sync_all_partners_to_directory, sync_partner_to_directory
 from tools.firm_memory import serialize_firm
@@ -13,6 +14,10 @@ from tools.outreach_memory import memory_stats
 from tools.views import _json_body
 
 TAG_COLORS = ('#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#64748b')
+
+
+def _firms_qs(request):
+    return filter_by_brand(MapsScrapedFirm.objects.all(), request)
 
 
 def _serialize_tag(tag: FirmTag) -> dict:
@@ -29,28 +34,37 @@ def _parse_firm_ids(body) -> list[int]:
     return ids
 
 
-def _get_or_create_tag(name: str) -> FirmTag:
+def _tags_qs(request):
+    return filter_by_brand(FirmTag.objects.all(), request)
+
+
+def _get_or_create_tag(name: str, *, brand_id: int) -> FirmTag:
     clean = name.strip()[:60]
-    tag = FirmTag.objects.filter(name__iexact=clean).first()
+    tag = FirmTag.objects.filter(brand_id=brand_id, name__iexact=clean).first()
     if tag:
         return tag
+    count = FirmTag.objects.filter(brand_id=brand_id).count()
     return FirmTag.objects.create(
+        brand_id=brand_id,
         name=clean,
-        color=TAG_COLORS[FirmTag.objects.count() % len(TAG_COLORS)],
+        color=TAG_COLORS[count % len(TAG_COLORS)],
     )
 
 
 @require_http_methods(['GET', 'POST'])
 def tags_api(request):
     if request.method == 'GET':
-        tags = [_serialize_tag(t) for t in FirmTag.objects.all()]
+        tags = [_serialize_tag(t) for t in _tags_qs(request)]
         return JsonResponse({'ok': True, 'tags': tags})
 
+    brand_id = get_active_brand_id(request)
+    if not brand_id:
+        return JsonResponse({'ok': False, 'error': 'Aktif marka seçin.'}, status=403)
     body = _json_body(request) or {}
     name = (body.get('name') or '').strip()
     if not name:
         return JsonResponse({'ok': False, 'error': 'Etiket adı girin.'}, status=400)
-    tag = _get_or_create_tag(name)
+    tag = _get_or_create_tag(name, brand_id=brand_id)
     if body.get('color'):
         tag.color = str(body['color'])[:7]
         tag.save(update_fields=['color'])
@@ -59,7 +73,7 @@ def tags_api(request):
 
 @require_http_methods(['PATCH', 'DELETE'])
 def tag_detail_api(request, pk):
-    tag = get_object_or_404(FirmTag, pk=pk)
+    tag = get_object_or_404(_tags_qs(request), pk=pk)
     if request.method == 'DELETE':
         tag.delete()
         return JsonResponse({'ok': True, 'deleted': pk})
@@ -67,7 +81,7 @@ def tag_detail_api(request, pk):
     body = _json_body(request) or {}
     name = (body.get('name') or '').strip()
     if name:
-        clash = FirmTag.objects.filter(name__iexact=name).exclude(pk=pk).first()
+        clash = _tags_qs(request).filter(name__iexact=name).exclude(pk=pk).first()
         if clash:
             return JsonResponse({'ok': False, 'error': 'Bu isimde başka etiket var.'}, status=400)
         tag.name = name[:60]
@@ -80,7 +94,7 @@ def tag_detail_api(request, pk):
 @require_http_methods(['GET'])
 def regions_api(request):
     regions = list(
-        MapsScrapedFirm.objects.exclude(region='')
+        _firms_qs(request).exclude(region='')
         .values_list('region', flat=True)
         .distinct()
         .order_by('region')
@@ -97,7 +111,7 @@ def firms_bulk_api(request):
     if not firm_ids and action not in no_selection_actions:
         return JsonResponse({'ok': False, 'error': 'Firma seçin.'}, status=400)
 
-    firms = MapsScrapedFirm.objects.filter(pk__in=firm_ids)
+    firms = _firms_qs(request).filter(pk__in=firm_ids)
 
     if action == 'delete':
         payload = delete_firms_response(firms)
@@ -106,12 +120,15 @@ def firms_bulk_api(request):
         return JsonResponse(payload, status=status)
 
     if action == 'add_tag':
+        brand_id = get_active_brand_id(request)
+        if not brand_id:
+            return JsonResponse({'ok': False, 'error': 'Aktif marka seçin.'}, status=403)
         tag_name = (body.get('tag_name') or '').strip()
         tag_id = body.get('tag_id')
         if tag_id:
-            tag = FirmTag.objects.filter(pk=int(tag_id)).first()
+            tag = _tags_qs(request).filter(pk=int(tag_id)).first()
         elif tag_name:
-            tag = _get_or_create_tag(tag_name)
+            tag = _get_or_create_tag(tag_name, brand_id=brand_id)
         else:
             return JsonResponse({'ok': False, 'error': 'Etiket seçin veya ad girin.'}, status=400)
         if not tag:
@@ -124,7 +141,7 @@ def firms_bulk_api(request):
         tag_id = body.get('tag_id')
         if not tag_id:
             return JsonResponse({'ok': False, 'error': 'Etiket seçin.'}, status=400)
-        tag = FirmTag.objects.filter(pk=int(tag_id)).first()
+        tag = _tags_qs(request).filter(pk=int(tag_id)).first()
         if not tag:
             return JsonResponse({'ok': False, 'error': 'Etiket bulunamadı.'}, status=404)
         for firm in firms:
@@ -183,7 +200,7 @@ def firms_bulk_api(request):
 
     if action == 'sync_partners':
         count = sync_all_partners_to_directory()
-        return JsonResponse({'ok': True, 'action': action, 'synced': count, **memory_stats()})
+        return JsonResponse({'ok': True, 'action': action, 'synced': count, **memory_stats(request)})
 
     if action == 'add_partner':
         from core_settings.models import SolutionPartner, SolutionPartnerType
@@ -227,21 +244,21 @@ def firms_memory_clear_api(request):
     if mode == 'all':
         if confirm != 'TEMIZLE':
             return JsonResponse({'ok': False, 'error': 'Onay için confirm: "TEMIZLE" gönderin.'}, status=400)
-        payload = delete_firms_response(MapsScrapedFirm.objects.all())
+        payload = delete_firms_response(_firms_qs(request).all())
         if not payload.get('ok'):
             return JsonResponse(payload, status=400)
         payload['mode'] = 'all'
-        payload.update(memory_stats())
+        payload.update(memory_stats(request))
         return JsonResponse(payload)
 
     firm_ids = _parse_firm_ids(body)
     if not firm_ids:
         return JsonResponse({'ok': False, 'error': 'Silinecek firma seçin.'}, status=400)
-    payload = delete_firms_response(MapsScrapedFirm.objects.filter(pk__in=firm_ids))
+    payload = delete_firms_response(_firms_qs(request).filter(pk__in=firm_ids))
     if not payload.get('ok'):
         return JsonResponse(payload, status=400)
     payload['mode'] = 'selected'
-    payload.update(memory_stats())
+    payload.update(memory_stats(request))
     return JsonResponse(payload)
 
 
@@ -296,7 +313,7 @@ def sent_messages_api(request):
     if firm_id:
         try:
             fid = int(firm_id)
-            firm = MapsScrapedFirm.objects.filter(pk=fid).first()
+            firm = _firms_qs(request).filter(pk=fid).first()
             if firm and firm.phone_normalized:
                 qs = qs.filter(Q(firm_id=fid) | Q(phone_normalized=firm.phone_normalized))
             else:

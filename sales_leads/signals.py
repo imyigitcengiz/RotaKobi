@@ -19,20 +19,28 @@ def cache_sales_lead_status(sender, instance, **kwargs):
 
 @receiver(post_save, sender=SalesLead)
 def on_sales_lead_saved(sender, instance, created, **kwargs):
+    brand_id = None
+    if instance.customer_id:
+        brand_id = getattr(instance.customer, 'brand_id', None)
     publish_live_event(
         kind='sales_lead',
         action='created' if created else 'updated',
         object_id=instance.id,
         message=f"Satış kaydı '{instance.customer.name}' {'eklendi' if created else 'güncellendi'}.",
+        brand_id=brand_id,
     )
     # WhatsApp senaryoları otomatik gönderilmez; kullanıcı onayı views + whatsapp_status_prompt ile yapılır.
 
 
 @receiver(post_delete, sender=SalesLead)
 def on_sales_lead_deleted(sender, instance, **kwargs):
+    brand_id = None
+    if instance.customer_id:
+        brand_id = getattr(instance.customer, 'brand_id', None)
     publish_live_event(
         kind='sales_lead',
         action='deleted',
         object_id=instance.id,
         message=f"Satış kaydı '{instance.customer.name}' silindi.",
+        brand_id=brand_id,
     )

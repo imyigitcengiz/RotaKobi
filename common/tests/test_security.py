@@ -5,6 +5,8 @@ import json
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 
+from common.kobi_lean_preset import lean_kobi_slugs
+from common.tests.helpers import ensure_brand_for_user, login_with_brand, set_user_modules
 from users.models import Permission, Role
 
 User = get_user_model()
@@ -48,7 +50,9 @@ class SecurityApiTests(TestCase):
         self.assertEqual(res.status_code, 403)
 
     def test_settings_api_post_with_csrf(self):
-        self.client.login(username='secuser', password='test-pass-123')
+        brand = ensure_brand_for_user(self.user, 'Sec Marka')
+        set_user_modules(self.user, lean_kobi_slugs())
+        login_with_brand(self.client, self.user, brand)
         self.client.get('/ayarlar/genel/')
         csrf = self.client.cookies['csrftoken'].value
         res = self.client.post(
@@ -130,7 +134,12 @@ class MediaAuthTests(TestCase):
             defaults={'name': 'View', 'module': 'Test', 'kind': 'action', 'sort_order': 0},
         )
         role.permissions.add(perm)
-        User.objects.create_user(username='mediauser', password='test-pass-123', role=role)
-        self.client.login(username='mediauser', password='test-pass-123')
-        res = self.client.get('/media/customers/1/dosyalar/nonexistent.png')
+        user = User.objects.create_user(username='mediauser', password='test-pass-123', role=role)
+        brand = ensure_brand_for_user(user, 'Media Marka')
+        set_user_modules(user, lean_kobi_slugs())
+        login_with_brand(self.client, user, brand)
+        from customers.models import Customer
+
+        customer = Customer.objects.create(brand=brand, name='Medya Müşteri', phone='555')
+        res = self.client.get(f'/media/customers/{customer.pk}/dosyalar/nonexistent.png')
         self.assertEqual(res.status_code, 404)

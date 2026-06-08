@@ -9,6 +9,8 @@ from django.db.models import Q
 from django.utils import timezone
 
 from analytics.service_report import build_service_dashboard_report
+from common.brand_scope import filter_by_brand, filter_outreach_messages, get_active_brand_id
+
 from tools.models import OutreachCollection, OutreachCollectionMember, WhatsappOutboundMessage
 
 
@@ -46,7 +48,17 @@ def build_services_panel_context(request) -> dict:
     }
 
 
-def build_outreach_panel_context(user) -> dict:
+def _outreach_member_count(request) -> int:
+    bid = get_active_brand_id(request)
+    qs = OutreachCollectionMember.objects.all()
+    if bid:
+        qs = qs.filter(collection__brand_id=bid)
+    else:
+        qs = qs.none()
+    return qs.count()
+
+
+def build_outreach_panel_context(request) -> dict:
     """İletişim Merkezi panel bölümü — kampanya ve mesaj özeti."""
     today = timezone.localdate()
     period = today.replace(day=1)
@@ -54,9 +66,12 @@ def build_outreach_panel_context(user) -> dict:
     month_start_dt = timezone.make_aware(datetime.combine(month_start, time.min))
     month_end_dt = timezone.make_aware(datetime.combine(month_end, time.max))
 
-    month_qs = WhatsappOutboundMessage.objects.filter(
-        Q(sent_at__gte=month_start_dt, sent_at__lte=month_end_dt)
-        | Q(sent_at__isnull=True, created_at__gte=month_start_dt, created_at__lte=month_end_dt),
+    month_qs = filter_outreach_messages(
+        WhatsappOutboundMessage.objects.filter(
+            Q(sent_at__gte=month_start_dt, sent_at__lte=month_end_dt)
+            | Q(sent_at__isnull=True, created_at__gte=month_start_dt, created_at__lte=month_end_dt),
+        ),
+        request,
     )
     sent_month = month_qs.filter(status=WhatsappOutboundMessage.STATUS_SENT).count()
     pending_month = month_qs.filter(
@@ -68,8 +83,8 @@ def build_outreach_panel_context(user) -> dict:
     return {
         'outreach_panel_period_label': _month_label(period),
         'outreach_show_panel': True,
-        'outreach_campaigns': OutreachCollection.objects.count(),
-        'outreach_members': OutreachCollectionMember.objects.count(),
+        'outreach_campaigns': filter_by_brand(OutreachCollection.objects.all(), request).count(),
+        'outreach_members': _outreach_member_count(request),
         'outreach_sent_month': sent_month,
         'outreach_pending_month': pending_month,
         'outreach_failed_month': failed_month,

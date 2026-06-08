@@ -278,6 +278,7 @@ class ServiceListView(PermissionRequiredMixin, ListView):
     template_name = 'services_dashboard/services/service_list.html'
     context_object_name = 'services'
     ordering = ['-created_at']
+    paginate_by = 50
 
     def get_queryset(self):
         ensure_default_statuses()
@@ -800,7 +801,10 @@ def bulk_manage_services(request):
             if not personnel_value.isdigit():
                 messages.error(request, "Geçerli bir personel seçin.")
                 return redirect('services')
-            personnel = get_object_or_404(ServicePersonnel, pk=int(personnel_value))
+            personnel = get_object_or_404(
+                filter_by_brand(ServicePersonnel.objects.all(), request),
+                pk=int(personnel_value),
+            )
             label = personnel.name
         updated = 0
         for service in queryset:

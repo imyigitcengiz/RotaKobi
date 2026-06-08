@@ -145,7 +145,7 @@ class HomeView(TemplateView):
         if panel_section_visible('services') and user.has_perm_codename('access.services'):
             context.update(build_services_panel_context(self.request))
         if panel_section_visible('outreach') and user.has_perm_codename('access.outreach'):
-            context.update(build_outreach_panel_context(user))
+            context.update(build_outreach_panel_context(request))
 
         context['panel_has_content'] = bool(
             context['panel_modules']

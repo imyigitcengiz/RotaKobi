@@ -22,6 +22,7 @@ from tools.collections import (
     preview_message_template,
     serialize_collection,
 )
+from common.brand_scope import assign_brand, filter_by_brand, filter_customers
 from customers.models import Customer
 
 from tools.models import MapsScrapedFirm, OutreachCollection, OutreachCollectionMember, WhatsappOutboundMessage
@@ -36,9 +37,8 @@ from tools.views import _apply_template, _json_body
 
 
 
-def _get_collection(pk):
-
-    return get_object_or_404(OutreachCollection, pk=pk)
+def _get_collection(request, pk):
+    return get_object_or_404(filter_by_brand(OutreachCollection.objects.all(), request), pk=pk)
 
 
 
@@ -50,11 +50,12 @@ def collections_api(request):
 
     if request.method == 'GET':
 
-        items = [serialize_collection(c) for c in OutreachCollection.objects.all()]
+        scoped = filter_by_brand(OutreachCollection.objects.all(), request)
+        items = [serialize_collection(c) for c in scoped]
 
         if not items:
 
-            default = get_or_create_default_collection()
+            default = get_or_create_default_collection(request=request)
 
             items = [serialize_collection(default)]
 
@@ -74,19 +75,15 @@ def collections_api(request):
 
     name = (body.get('name') or '').strip() or 'Yeni Kampanya'
 
-    col = OutreachCollection.objects.create(
-
+    col = OutreachCollection(
         name=name,
-
         message_template=(body.get('message_template') or DEFAULT_TEMPLATE).strip(),
-
         skip_globally_messaged=bool(body.get('skip_globally_messaged', False)),
-
         allow_repeat_in_campaign=bool(body.get('allow_repeat_in_campaign', True)),
-
         delay_seconds=int(body.get('delay_seconds') or 4),
-
     )
+    assign_brand(col, request)
+    col.save()
 
     return JsonResponse({'ok': True, 'collection': serialize_collection(col, include_members=True)})
 
@@ -98,7 +95,7 @@ def collections_api(request):
 
 def collection_detail_api(request, pk):
 
-    col = _get_collection(pk)
+    col = _get_collection(request, pk)
 
     if request.method == 'GET':
 
@@ -151,7 +148,7 @@ def collection_detail_api(request, pk):
 
 def collection_clear_api(request, pk):
 
-    col = _get_collection(pk)
+    col = _get_collection(request, pk)
 
     deleted, _ = col.members.all().delete()
 
@@ -165,7 +162,7 @@ def collection_clear_api(request, pk):
 
 def collection_add_members_api(request, pk):
 
-    col = _get_collection(pk)
+    col = _get_collection(request, pk)
 
     body = _json_body(request) or {}
 
@@ -187,7 +184,7 @@ def collection_add_members_api(request, pk):
 
         try:
 
-            firm = MapsScrapedFirm.objects.get(pk=int(firm_id))
+            firm = filter_by_brand(MapsScrapedFirm.objects.all(), request).get(pk=int(firm_id))
 
         except (MapsScrapedFirm.DoesNotExist, TypeError, ValueError):
 
@@ -211,8 +208,14 @@ def collection_add_members_api(request, pk):
 
     for customer_id in customer_ids:
         try:
-            customer = Customer.objects.get(pk=int(customer_id))
-        except (Customer.DoesNotExist, TypeError, ValueError):
+            customer = filter_customers(
+                Customer.objects.filter(pk=int(customer_id)),
+                request,
+            ).first()
+        except (TypeError, ValueError):
+            skipped += 1
+            continue
+        if not customer:
             skipped += 1
             continue
         member, reason = add_customer_to_collection(col, customer)
@@ -267,7 +270,7 @@ def collection_add_members_api(request, pk):
 
 @require_http_methods(['DELETE', 'PATCH'])
 def collection_remove_member_api(request, pk, member_id):
-    col = _get_collection(pk)
+    col = _get_collection(request, pk)
     member = get_object_or_404(OutreachCollectionMember, collection=col, pk=member_id)
     if request.method == 'PATCH':
         body = _json_body(request) or {}
@@ -319,7 +322,7 @@ def _should_skip_member(col, member) -> str | None:
 
 
 
-    if col.skip_globally_messaged and has_been_messaged_globally(phone_norm):
+    if col.skip_globally_messaged and has_been_messaged_globally(phone_norm, brand_id=col.brand_id):
 
         return 'Daha önce mesaj atıldı'
 
@@ -343,7 +346,10 @@ def _resolve_member_firm(member):
 
         return member.firm
 
-    firm = MapsScrapedFirm.objects.filter(phone_normalized=member.phone_normalized).first()
+    firm = MapsScrapedFirm.objects.filter(
+        brand_id=member.collection.brand_id,
+        phone_normalized=member.phone_normalized,
+    ).first()
 
     if firm:
 
@@ -361,7 +367,7 @@ def _resolve_member_firm(member):
 
 def collection_queue_api(request, pk):
 
-    col = _get_collection(pk)
+    col = _get_collection(request, pk)
 
     body = _json_body(request) or {}
 

@@ -49,6 +49,27 @@ class CustomerIsolationTests(TestCase):
         response = self.client.get(f'/contact/musteriler/{self.customer_b.pk}/ozet/')
         self.assertEqual(response.status_code, 404)
 
+    def test_customer_quick_edit_api_404_for_other_brand(self):
+        self._login_brand_a()
+        response = self.client.get(f'/contact/musteriler/{self.customer_b.pk}/hizli-duzenle/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_update_customer_products_404_for_other_brand(self):
+        self._login_brand_a()
+        response = self.client.post(
+            f'/contact/musteriler/api/{self.customer_b.pk}/urunler/',
+            data='{"product_ids": []}',
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_customer_whatsapp_messages_api_404_for_other_brand(self):
+        self._login_brand_a()
+        response = self.client.get(
+            f'/contact/musteriler/api/{self.customer_b.pk}/whatsapp-mesajlar/',
+        )
+        self.assertEqual(response.status_code, 404)
+
 
 class ServiceIsolationTests(TestCase):
     def setUp(self):
@@ -168,6 +189,62 @@ class SalesIsolationTests(TestCase):
         body = response.content.decode('utf-8-sig')
         self.assertIn('Proje A', body)
         self.assertNotIn('Proje B', body)
+
+
+class FinanceIsolationTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        SiteSettings.objects.create(site_name='Finance Isolation')
+        from core_settings.models import FinanceRecord
+
+        role = Role.objects.create(slug='fin-user', name='Finance User', is_system=False)
+        for codename in ('access.accounting', 'accounting.finance'):
+            perm, _ = Permission.objects.get_or_create(
+                codename=codename,
+                defaults={'name': codename, 'module': 'Test', 'kind': 'action', 'sort_order': 0},
+            )
+            role.permissions.add(perm)
+
+        self.owner_a = User.objects.create_user(username='fin_owner_a', password='test1234', role=role)
+        self.owner_b = User.objects.create_user(username='fin_owner_b', password='test1234', role=role)
+        self.brand_a = create_brand_for_user(self.owner_a, 'Finans Marka A')
+        self.brand_b = create_brand_for_user(self.owner_b, 'Finans Marka B')
+
+        from django.utils import timezone
+
+        today = timezone.localdate()
+        self.record_a = FinanceRecord.objects.create(
+            record_type=FinanceRecord.TYPE_INCOME,
+            title='Gelir A',
+            amount='100.00',
+            record_date=today,
+            brand=self.brand_a,
+        )
+        self.record_b = FinanceRecord.objects.create(
+            record_type=FinanceRecord.TYPE_INCOME,
+            title='Gelir B',
+            amount='200.00',
+            record_date=today,
+            brand=self.brand_b,
+        )
+
+    def _login_brand_a(self):
+        self.client.force_login(self.owner_a)
+        session = self.client.session
+        session[SESSION_ACTIVE_BRAND] = self.brand_a.pk
+        session.save()
+
+    def test_finance_delete_does_not_remove_other_brand(self):
+        self._login_brand_a()
+        response = self.client.post(
+            '/muhasebe/gelir-gider/',
+            data={'delete_finance': '1', 'id': self.record_b.pk},
+        )
+        self.assertEqual(response.status_code, 302)
+        from core_settings.models import FinanceRecord
+
+        self.assertTrue(FinanceRecord.objects.filter(pk=self.record_b.pk).exists())
+        self.assertTrue(FinanceRecord.objects.filter(pk=self.record_a.pk).exists())
 
 
 class MediaIsolationTests(TestCase):

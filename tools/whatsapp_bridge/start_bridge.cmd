@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul
 title GY WhatsApp Bridge
-cd /d "/Users/imyigitcengiz/CoolOPS/tools/whatsapp_bridge"
+cd /d "C:\Users\Admin\İndirilenler\KobiOPS\tools\whatsapp_bridge"
 echo [%date% %time%] Köprü baslatiliyor...
-echo Node: "/Users/imyigitcengiz/.nvm/versions/node/v24.15.0/bin/node"
-"/Users/imyigitcengiz/.nvm/versions/node/v24.15.0/bin/node" server.js
+echo Node: "C:\Program Files\nodejs\node.exe"
+"C:\Program Files\nodejs\node.exe" server.js
 if errorlevel 1 (
   echo.
   echo HATA: Köprü kapandi. Yukaridaki kirmizi mesaji okuyun.

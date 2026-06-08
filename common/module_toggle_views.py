@@ -11,7 +11,7 @@ from common.module_toggle import toggle_module_slug, toggle_particle_slug
 @require_POST
 @json_auth_required
 def module_toggle_api(request):
-    token = bind_module_user(request.user)
+    token = bind_module_user(request.user, request=request)
     try:
         particle_slug = (request.POST.get('particle_slug') or '').strip()
         if particle_slug:

@@ -20,10 +20,10 @@ def get_whatsapp_location_request_template() -> str:
 
 
 def get_site_display_name() -> str:
-    """Site ayarlarındaki firma adı; yoksa varsayılan CoolOPS."""
+    """Site ayarlarındaki firma adı; yoksa varsayılan Kobi Hub."""
     row = SiteSettings.objects.first()
     name = (getattr(row, 'site_name', None) or '').strip() if row else ''
-    return name or 'CoolOPS'
+    return name or 'Kobi Hub'
 
 
 def render_whatsapp_location_request_message(*, ariza: str, site_name: str | None = None) -> str:

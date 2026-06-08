@@ -59,7 +59,8 @@ def _csrf_origins_for_port(port=8000):
 SECRET_KEY = 'django-insecure-*t7emu@y2jvbpi(gvcrbvtc*#6(cx)om5=xpzzdd*8y*n&6-ta'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', '1').lower() in ('1', 'true', 'yes')
+_debug_default = '0' if os.environ.get('DATA_DIR', '').strip() else '1'
+DEBUG = os.environ.get('DJANGO_DEBUG', _debug_default).lower() in ('1', 'true', 'yes')
 
 # Geliştirme: aynı Wi‑Fi’deki telefon/tablet/PC’ler LAN IP ile bağlanabilsin
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
@@ -184,8 +185,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'common.middleware_dealer_guard.DealerPlatformGuardMiddleware',
     'common.middleware.LoginRequiredMiddleware',
-    'common.middleware.PermissionMiddleware',
     'common.middleware_module_gate.ModuleInstallMiddleware',
+    'common.middleware.PermissionMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -219,11 +220,28 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+_redis_url = os.environ.get('REDIS_URL', '').strip()
+if _redis_url:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': _redis_url,
+        }
     }
-}
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {'hosts': [_redis_url]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        }
+    }
 
 
 # Database
@@ -231,6 +249,14 @@ CHANNEL_LAYERS = {
 
 _db_url = os.environ.get('DATABASE_URL', '').strip()
 _db_host = os.environ.get('DB_HOST', '').strip()
+_data_dir = os.environ.get('DATA_DIR', '').strip()
+
+if _data_dir and not _db_url and not _db_host:
+    raise ImproperlyConfigured(
+        'DATA_DIR is set but DATABASE_URL is missing. '
+        'Production deployments require PostgreSQL — set DATABASE_URL '
+        '(e.g. postgres://user:pass@db:5432/coolops).'
+    )
 
 if _db_url:
     try:
@@ -238,8 +264,10 @@ if _db_url:
         DATABASES = {
             'default': dj_database_url.config(default=_db_url)
         }
-    except ImportError:
-        pass
+    except ImportError as exc:
+        raise ImproperlyConfigured(
+            'DATABASE_URL is set but dj-database-url is not installed.'
+        ) from exc
 elif _db_host:
     DATABASES = {
         'default': {
@@ -310,6 +338,9 @@ AUTH_USER_MODEL = 'users.User'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'landing'
+
+if DEBUG and not os.environ.get('EMAIL_HOST', '').strip():
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 _use_secure_ssl = os.environ.get('DJANGO_SECURE_SSL', '').lower() in ('1', 'true', 'yes')
 # sslip.io / traefik.me: HTTPS yok; SECURE_SSL=1 → http→https redirect → Traefik 404

@@ -28,6 +28,10 @@ def permission_denied(request, exception=None):
     )
 
 
+def server_error(request):
+    return render(request, 'errors/500.html', status=500)
+
+
 class ContactHubView(TemplateView):
     template_name = 'crm/index.html'
 

@@ -60,6 +60,31 @@ def find_tenant_key_conflict(key: str, *, brand=None, panel_kind=None, parent_br
     return None
 
 
+def allocate_host_slug(
+    name: str,
+    *,
+    panel_kind=None,
+    parent_brand=None,
+) -> str:
+    """Marka adından benzersiz kiracı anahtarı üretir (kayıt / otomatik atama)."""
+    from core_settings.models import BusinessBrand
+
+    base = normalize_tenant_key(name) or 'marka'
+    candidate = base
+    n = 1
+    while True:
+        try:
+            return validate_brand_tenant_key(
+                candidate,
+                panel_kind=panel_kind or BusinessBrand.PANEL_HQ,
+                parent_brand=parent_brand,
+                allow_empty=False,
+            )
+        except ValueError:
+            n += 1
+            candidate = f'{base}-{n}'
+
+
 def validate_brand_tenant_key(
     key: str,
     *,

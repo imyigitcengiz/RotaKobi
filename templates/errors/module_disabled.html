@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modül kapalı</title>
+    {% load static %}
+    {% include 'common/erp_head_assets.html' %}
+</head>
+<body class="erp-app min-h-screen bg-slate-100 flex items-center justify-center p-4">
+    <div class="max-w-lg text-center bg-white rounded-3xl border border-slate-200 shadow-sm p-10">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
+            <i data-lucide="lock" class="w-7 h-7"></i>
+        </div>
+        <h1 class="text-xl font-bold text-slate-900 mb-2">Bu özellik kapalı</h1>
+        <p class="text-sm text-slate-600 mb-6">{{ message|default:"İlgili modül veya entegrasyon aboneliğinizde kapalı." }}</p>
+        <a href="{% url 'subscription_dashboard' %}#moduller" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-brand-600 text-white font-bold hover:bg-brand-700">
+            <i data-lucide="puzzle" class="w-4 h-4"></i> Modül Merkezi
+        </a>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

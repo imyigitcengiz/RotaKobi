@@ -9,8 +9,6 @@ class ServiceRecord(models.Model):
         'core_settings.BusinessBrand',
         on_delete=models.PROTECT,
         related_name='service_records',
-        null=True,
-        blank=True,
         verbose_name='Marka / firma',
     )
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='service_records')

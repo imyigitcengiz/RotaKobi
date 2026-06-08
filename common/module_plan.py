@@ -109,21 +109,34 @@ def clamp_owner_modules_to_plan(owner, *, save: bool = True) -> None:
             owner.save(update_fields=['enabled_module_slugs'])
 
 
-def subscription_owner_for_user(user):
-    from common.brand_team import subscription_owner_for_brand
-    from common.brand_scope import get_active_brand_id
+def subscription_owner_for_user(user, *, request=None):
+    from common.brand_team import is_subscription_owner, subscription_owner_for_brand
+    from common.brand_scope import get_active_brand_id, user_memberships
+    from common.module_context import current_module_request
 
     if not user or not user.is_authenticated:
         return None
     if user.is_superuser:
         return None
-    brand_id = get_active_brand_id(user)
+
+    if request is None:
+        request = current_module_request()
+
+    brand_id = get_active_brand_id(request) if request else None
+    if not brand_id:
+        mem = (
+            user_memberships(user).filter(is_default=True).select_related('brand').first()
+            or user_memberships(user).select_related('brand').first()
+        )
+        brand_id = mem.brand_id if mem else None
+
     if brand_id:
         from core_settings.models import BusinessBrand
+
         brand = BusinessBrand.objects.filter(pk=brand_id).first()
         if brand:
             return subscription_owner_for_brand(brand) or user
-    from common.brand_team import is_subscription_owner
+
     if is_subscription_owner(user):
         return user
     return None

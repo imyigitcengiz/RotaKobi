@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import RedirectView, ListView, CreateView, UpdateView, DeleteView
@@ -8,6 +9,7 @@ from common.brand_team import (
     assignable_roles_queryset,
     attach_user_to_brand,
     brand_assignable_permissions_queryset,
+    PlanLimitExceeded,
     check_team_user_limit,
     owned_brand_ids,
     owned_brands_queryset,
@@ -77,8 +79,8 @@ class BrandTeamUserCreateView(BrandTeamManagerMixin, CreateView):
         brand = form.cleaned_data['brand']
         try:
             check_team_user_limit(manager, brand)
-        except ValueError as exc:
-            form.add_error('brand', str(exc))
+        except PlanLimitExceeded as exc:
+            form.add_error('brand', exc.message)
             return self.form_invalid(form)
 
         user = form.save()
@@ -110,6 +112,7 @@ class BrandTeamUserUpdateView(BrandTeamManagerMixin, UpdateView):
         kwargs['editor'] = self.request.user
         return kwargs
 
+    @transaction.atomic
     def form_valid(self, form):
         user = form.save()
         manager = _manager(self.request)
@@ -124,8 +127,8 @@ class BrandTeamUserUpdateView(BrandTeamManagerMixin, UpdateView):
             if not existing:
                 try:
                     check_team_user_limit(manager, brand)
-                except ValueError as exc:
-                    messages.error(self.request, str(exc))
+                except PlanLimitExceeded as exc:
+                    messages.error(self.request, exc.message)
                     return redirect('brand_team_user_edit', pk=user.pk)
             attach_user_to_brand(
                 user,

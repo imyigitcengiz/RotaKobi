@@ -54,15 +54,20 @@ class AccountingPayablesView(TemplateView):
                     due_date=due_date,
                     invoice_ref=request.POST.get('invoice_ref', ''),
                     notes=request.POST.get('notes', ''),
+                    request=request,
                 )
                 messages.success(request, 'Tedarikçi borcu eklendi.')
             except ValueError as exc:
                 messages.error(request, str(exc))
         elif action == 'pay':
-            payable = get_object_or_404(SupplierPayable, pk=request.POST.get('payable_id'))
+            from common.brand_scope import filter_by_brand
+            payable = get_object_or_404(
+                filter_by_brand(SupplierPayable.objects.all(), request),
+                pk=request.POST.get('payable_id'),
+            )
             try:
                 amount = parse_decimal(request.POST.get('pay_amount', '0'))
-                record_payment(payable, amount, request.user)
+                record_payment(payable, amount, request.user, request=request)
                 messages.success(request, 'Ödeme kaydedildi ve gider oluşturuldu.')
             except ValueError as exc:
                 messages.error(request, str(exc))
@@ -76,7 +81,7 @@ class AccountingPayablesView(TemplateView):
         raw = self.request.GET.get('overdue_days', '')
         if raw.isdigit():
             overdue_days = max(1, int(raw))
-        context.update(build_payables_context(overdue_days=overdue_days))
+        context.update(build_payables_context(request=self.request, overdue_days=overdue_days))
         return context
 
 
@@ -161,7 +166,7 @@ class AccountingEExportView(TemplateView):
             messages.error(request, 'Geçerli tarih aralığı seçin.')
             return redirect('accounting_e_export')
 
-        csv_text = build_combined_csv(start=start, end=end)
+        csv_text = build_combined_csv(request=request, start=start, end=end)
         response = HttpResponse(csv_text, content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = f'attachment; filename="coolops-dis-aktarim-{start}_{end}.csv"'
         return response
@@ -179,7 +184,7 @@ class AccountingEExportView(TemplateView):
                 end = date.fromisoformat(end_raw)
             except ValueError:
                 pass
-        context.update(build_e_export_summary(start=start, end=end))
+        context.update(build_e_export_summary(request=self.request, start=start, end=end))
         return context
 
 
@@ -214,7 +219,15 @@ class AccountingTimesheetView(TemplateView):
             except (ValueError, InvalidOperation) as exc:
                 messages.error(request, str(exc) or 'Kayıt eklenemedi.')
         elif action == 'toggle_invoiced':
-            entry = get_object_or_404(TimeEntry, pk=request.POST.get('entry_id'))
+            from common.brand_scope import get_active_brand_id
+            from django.db.models import Q
+            entry_qs = TimeEntry.objects.filter(pk=request.POST.get('entry_id'))
+            bid = get_active_brand_id(request)
+            if bid:
+                entry_qs = entry_qs.filter(
+                    Q(personnel__brand_id=bid) | Q(sales_lead__customer__brand_id=bid),
+                )
+            entry = get_object_or_404(entry_qs)
             entry.invoiced = not entry.invoiced
             entry.save(update_fields=['invoiced'])
             messages.success(request, 'Faturalama durumu güncellendi.')
@@ -229,7 +242,7 @@ class AccountingTimesheetView(TemplateView):
         today = timezone.localdate()
         year = int(self.request.GET.get('year', today.year))
         month = int(self.request.GET.get('month', today.month))
-        context.update(build_timesheet_context(year=year, month=month))
+        context.update(build_timesheet_context(request=self.request, year=year, month=month))
         from core_settings.models import OperationalProject
         from sales_leads.models import SalesLead
         context['timesheet_projects'] = OperationalProject.objects.order_by('name')[:50]
@@ -280,7 +293,12 @@ class AccountingProjectsView(TemplateView):
                     messages.error(request, 'Kayıt eklenemedi — müşteri ve tarihi kontrol edin.')
 
         elif action == 'update_entry':
-            entry = get_object_or_404(InstallationScheduleEntry, pk=request.POST.get('entry_id'))
+            from common.brand_scope import get_active_brand_id
+            entry_qs = InstallationScheduleEntry.objects.filter(pk=request.POST.get('entry_id'))
+            bid = get_active_brand_id(request)
+            if bid:
+                entry_qs = entry_qs.filter(customer__brand_id=bid)
+            entry = get_object_or_404(entry_qs)
             raw_date = (request.POST.get('scheduled_date') or '').strip()
             try:
                 fields = {
@@ -298,7 +316,12 @@ class AccountingProjectsView(TemplateView):
                 messages.error(request, 'Güncelleme başarısız.')
 
         elif action == 'delete_entry':
-            entry = get_object_or_404(InstallationScheduleEntry, pk=request.POST.get('entry_id'))
+            from common.brand_scope import get_active_brand_id
+            entry_qs = InstallationScheduleEntry.objects.filter(pk=request.POST.get('entry_id'))
+            bid = get_active_brand_id(request)
+            if bid:
+                entry_qs = entry_qs.filter(customer__brand_id=bid)
+            entry = get_object_or_404(entry_qs)
             entry.delete()
             messages.info(request, 'Montaj planı silindi.')
 
@@ -334,17 +357,20 @@ class AccountingProjectsView(TemplateView):
         week_raw = self.request.GET.get('week')
         week_index = int(week_raw) if week_raw is not None and week_raw.isdigit() else None
 
+        from common.brand_scope import filter_customers, filter_sales_leads
+
         context.update(build_schedule_calendar(
+            request=self.request,
             year=year,
             month=month,
             view=view if view in ('month', 'week') else 'month',
             week_index=week_index,
         ))
         context.update(schedule_form_context(self.request))
-        context['schedule_customers'] = Customer.objects.order_by('name')[:200]
+        context['schedule_customers'] = filter_customers(Customer.objects.order_by('name'), self.request)[:200]
         context['schedule_teams'] = ServiceTeam.objects.filter(is_active=True).order_by('name')
         context['schedule_sales_leads'] = (
-            SalesLead.objects.select_related('customer').order_by('-sale_date')[:80]
+            filter_sales_leads(SalesLead.objects.select_related('customer').order_by('-sale_date'), self.request)[:80]
         )
         context['selected_day'] = self.request.GET.get('day', '')
         return context
@@ -371,6 +397,7 @@ class AccountingProjectsPrintView(TemplateView):
         week_index = int(week_raw) if week_raw is not None and week_raw.isdigit() else None
 
         context.update(build_schedule_calendar(
+            request=self.request,
             year=year,
             month=month,
             view=view if view in ('month', 'week') else 'month',

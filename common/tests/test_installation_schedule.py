@@ -13,6 +13,7 @@ from core_settings.installation_schedule import (
     save_schedule_settings,
 )
 from core_settings.models import InstallationScheduleEntry, SiteSettings
+from common.tests.helpers import default_test_brand
 from customers.models import Customer
 
 
@@ -30,7 +31,8 @@ class InstallationScheduleTests(TestCase):
             self.user.role = role
             self.user.save()
         self.client.force_login(self.user)
-        self.customer = Customer.objects.create(name='Test Müşteri')
+        self.brand = default_test_brand()
+        self.customer = Customer.objects.create(name='Test Müşteri', brand=self.brand)
 
     def test_sunday_holiday_by_default(self):
         settings = SiteSettings.objects.first()

@@ -24,6 +24,7 @@ FIRM_CSV_HEADER = [
 
 def firms_directory_queryset(
     *,
+    request=None,
     q: str = '',
     kind: str = '',
     region: str = '',
@@ -34,6 +35,9 @@ def firms_directory_queryset(
         .exclude(notes=CUSTOMER_SHADOW_NOTE)
         .order_by('-last_scraped_at')
     )
+    if request is not None:
+        from common.brand_scope import filter_firms
+        qs = filter_firms(qs, request)
     kind = (kind or '').strip()
     if kind and kind != 'all':
         qs = qs.filter(firm_kind=kind)
@@ -79,6 +83,7 @@ def export_firms_csv_response(request):
 
     kind = (request.GET.get('kind') or '').strip()
     qs = firms_directory_queryset(
+        request=request,
         q=request.GET.get('q'),
         kind=kind,
         region=request.GET.get('region'),

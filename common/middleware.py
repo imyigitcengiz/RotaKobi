@@ -109,7 +109,9 @@ class PermissionMiddleware:
             return self.get_response(request)
 
         if any(_path_matches(path, prefix) for prefix in SUPERUSER_ONLY_PREFIXES):
-            return permission_denied_redirect(request, 'Bu sayfaya erişim yetkiniz yok.')
+            if not user.is_superuser:
+                return redirect('home')
+            return self.get_response(request)
 
         required = _resolve_required_permission(path, request.method)
         if required:

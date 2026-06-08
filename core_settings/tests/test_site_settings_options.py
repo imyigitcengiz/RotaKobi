@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from common.kobi_lean_preset import lean_kobi_slugs
+from common.tests.helpers import ensure_brand_for_user, login_with_brand, set_user_modules
 from core_settings.models import ServiceTypeOption, StatusOption
 from core_settings.work_schedule import validate_weekly_hours_from_request
 from users.models import Permission, Role
@@ -21,8 +23,10 @@ def _settings_test_client():
         password='test-pass-123',
         role=role,
     )
+    brand = ensure_brand_for_user(user, 'Settings Test Marka')
+    set_user_modules(user, lean_kobi_slugs())
     client = Client()
-    client.force_login(user)
+    login_with_brand(client, user, brand)
     return client
 
 
