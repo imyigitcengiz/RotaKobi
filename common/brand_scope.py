@@ -12,10 +12,14 @@ def user_brands(user):
 
     if not user or not getattr(user, 'is_authenticated', False) or not user.is_authenticated:
         return BusinessBrand.objects.none()
-    qs = BusinessBrand.objects.filter(is_active=True)
+    # Süper admin markaları yönetim panelinden yönetir; header'da kiracı seçici yok.
     if user.is_superuser:
-        return qs.order_by('name')
-    return qs.filter(memberships__user=user).distinct().order_by('name')
+        return BusinessBrand.objects.none()
+    return (
+        BusinessBrand.objects.filter(is_active=True, memberships__user=user)
+        .distinct()
+        .order_by('name')
+    )
 
 
 def user_memberships(user):

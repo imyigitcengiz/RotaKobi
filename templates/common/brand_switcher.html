@@ -1,4 +1,4 @@
-{% if user.is_authenticated and user_brands %}
+{% if user.is_authenticated and user_brands and not user.is_superuser %}
 <div class="erp-brand-switcher relative" data-erp-brand-switcher>
     <button type="button"
             class="erp-brand-switcher__btn flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-semibold max-w-[12rem] sm:max-w-[14rem]"
