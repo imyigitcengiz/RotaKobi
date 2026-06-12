@@ -72,5 +72,7 @@ Deploy sonrası app logları:
 | Eski sslip.io / DisallowedHost | Environment'tan `APP_URL`, `DJANGO_ALLOWED_HOSTS` sil → redeploy |
 | CSRF hatası | Domain panelde `app` servisine bağlı mı? Plesk/1Panel: `KOBIOPS_DOMAIN` doğru mu? |
 | 404 (Traefik) | Coolify/Dokploy: servis `app`, port **80**; `whatsapp_bridge`'e domain bağlamayın |
+| Restarting + DATABASE_URL | Tam compose (`db`+`redis`); virgülle `SERVICE_FQDN` yazmayın — Domains sekmesi |
+| Dokploy rehberi | [deploy/dokploy/README.md](dokploy/README.md) |
 
 Kod: [panel-domain.sh](panel-domain.sh) · [common/panel_env.py](../common/panel_env.py)

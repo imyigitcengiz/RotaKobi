@@ -1,13 +1,14 @@
 # Dokploy: Traefik domain yönetimi — host ports açmayın.
-# Dokploy UI → Domains → servis "app" → container port 80, HTTPS kapalı (sslip.io).
+# Dokploy UI → Domains → servis "app" → container port 80
+#
+# Environment (Dokploy UI):
+#   COMPOSE_FILE=docker-compose.yaml:deploy/dokploy/docker-compose.dokploy.yaml
+#   DJANGO_ENSURE_SUPERADMIN=1
+#   DJANGO_DEBUG=0
+#
+# Domain'leri Environment'a virgülle YAZMAYIN — Domains sekmesinden ayrı ayrı ekleyin.
 #
 # 404 alıyorsanız: app servisi dokploy-network'te olmalı + traefik.docker.network etiketi.
-#
-# Kullanım (SSH test):
-#   COMPOSE_FILE=docker-compose.yaml:deploy/dokploy/docker-compose.dokploy.yaml docker compose up -d --build
-#
-# Dokploy Compose projesinde ortam değişkeni (isteğe bağlı):
-#   COMPOSE_FILE=docker-compose.yaml:deploy/dokploy/docker-compose.dokploy.yaml
 name: cool-ops
 
 services:
@@ -20,6 +21,10 @@ services:
       - traefik.docker.network=dokploy-network
     environment:
       COOLOPS_COMPOSE_STACK: "1"
+      KOBIOPS_COMPOSE_STACK: "1"
+      COOLOPS_PANEL: dokploy
+      DATABASE_URL: postgres://${POSTGRES_USER:-coolops}:${POSTGRES_PASSWORD:-coolops}@db:5432/${POSTGRES_DB:-coolops}
+      REDIS_URL: redis://redis:6379/0
 
 networks:
   dokploy-network:

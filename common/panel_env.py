@@ -91,7 +91,22 @@ def normalize_panel_service_env() -> tuple[str, str]:
             url = _origin_from_fqdn(_strip_host(url))
         return fqdn, url
 
-    fqdn = _read_fqdn_key('SERVICE_FQDN_APP')
+    raw_fqdn = os.environ.get('SERVICE_FQDN_APP', '').strip()
+    if ',' in raw_fqdn:
+        hosts = []
+        for part in raw_fqdn.split(','):
+            host = _strip_host(part.strip())
+            if host and is_plausible_public_fqdn(host):
+                hosts.append(host)
+        fqdn = ''
+        for host in hosts:
+            if not is_http_only_panel_host(host):
+                fqdn = host
+                break
+        if not fqdn and hosts:
+            fqdn = hosts[0]
+    else:
+        fqdn = _read_fqdn_key('SERVICE_FQDN_APP')
     if fqdn and not is_plausible_public_fqdn(fqdn):
         fqdn = ''
     if not fqdn:
@@ -104,7 +119,17 @@ def normalize_panel_service_env() -> tuple[str, str]:
         if not fqdn:
             fqdn = _detect_fqdn_raw()
 
-    url = os.environ.get('SERVICE_URL_APP', '').strip().rstrip('/')
+    raw_url = os.environ.get('SERVICE_URL_APP', '').strip()
+    if ',' in raw_url:
+        parts = [p.strip().rstrip('/') for p in raw_url.split(',') if p.strip()]
+        url = parts[0] if parts else ''
+        if url and '://' not in url:
+            url = _origin_from_fqdn(_strip_host(url))
+        host = _strip_host(url)
+        if host and is_http_only_panel_host(host):
+            url = f'http://{host}'
+    else:
+        url = raw_url.rstrip('/')
     if not url:
         for key in PANEL_URL_ENV_KEYS:
             raw = os.environ.get(key, '').strip()

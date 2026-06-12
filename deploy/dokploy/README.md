@@ -1,94 +1,120 @@
-# CoolOPS — Dokploy kurulumu (tak-çalıştır)
+# CoolOPS — Dokploy kurulumu
 
-Otomatik domain: [DOMAIN.md](../DOMAIN.md) · Env: [dokploy.env.minimal](dokploy.env.minimal)
+[Dokploy](https://dokploy.com) ile tam uyumlu Docker Compose deploy.
 
-[Dokploy](https://dokploy.com) ile Docker Compose modunda panel + WhatsApp köprüsü birlikte çalışır.
+## Hızlı kurulum (önerilen)
 
-## 3 adımda deploy
+### 1. Proje oluştur
 
-### A) Git + Compose (önerilen)
+| Alan | Değer |
+|------|--------|
+| Tip | **Docker Compose** |
+| Repo | `https://github.com/imyigitcengiz/RotaKobi` |
+| Branch | `main` |
+| Compose path | `docker-compose.yaml` |
 
-1. **Project** → **Docker Compose** → **Create**
-2. **Source:** GitHub → `imyigitcengiz/cool-ops`, branch `main`  
-   **Compose file path:** `docker-compose.yaml`
-3. **Environment** → [dokploy.env.minimal](./dokploy.env.minimal) (APP_URL yazmayın)
-4. **Domains** → servis **`app`**, port **`80`** → **Deploy** (domain otomatik enjekte edilir)
+### 2. Environment
 
-Overlay için env: `COMPOSE_FILE=docker-compose.yaml:deploy/dokploy/docker-compose.dokploy.yaml`
+[`dokploy.env.minimal`](dokploy.env.minimal) dosyasını yapıştırın:
 
-### B) Compose Raw (tek dosya — Dockerfile modu işe yaramadıysa)
+```env
+COMPOSE_FILE=docker-compose.yaml:deploy/dokploy/docker-compose.dokploy.yaml
+DJANGO_ENSURE_SUPERADMIN=1
+DJANGO_DEBUG=0
+```
 
-1. **Docker Compose** → **Compose Type: Raw**
-2. Repo’daki **[docker-compose.raw.yaml](./docker-compose.raw.yaml)** içeriğini yapıştır  
-   veya Git path: `deploy/dokploy/docker-compose.raw.yaml`
-3. **Environment:**
-   ```env
-   DJANGO_ENSURE_SUPERADMIN=1
-   DJANGO_DEBUG=0
-   ```
-4. **Domains** → **`app`**, port **80** → **Deploy**
+**Yazmayın:** `DATABASE_URL`, `REDIS_URL`, `SERVICE_FQDN_APP`, `SERVICE_URL_APP`, `DJANGO_ALLOWED_HOSTS`, `APP_URL`
 
-Raw dosya: `app` + `whatsapp_bridge` + `dokploy-network` + volume’ler — overlay gerekmez.
+Bunlar otomatik ayarlanır (`bootstrap-env.sh` + Dokploy Domains).
 
-**Env şablonları**
+### 3. Domains
 
-| Dosya | Ne için |
-|-------|---------|
-| [dokploy.env.example](./dokploy.env.example) | Dokploy UI'ya yapıştır — açıklamalı tam şablon |
-| [dokploy.env.minimal](./dokploy.env.minimal) | Hızlı başlangıç (domain otomatik) |
-| [../../.env.example](../../.env.example) | Tüm değişkenler referansı (Coolify, VPS, override) |
+Her domain **ayrı satır** olarak ekleyin:
 
-Repo kökünde `.env` oluşturmanız **gerekmez** — Dokploy Environment sekmesi yeterli.  
-Secret, ALLOWED_HOSTS ve CSRF → `bootstrap-env.sh` + Dokploy domain enjekte eder (`SERVICE_FQDN_APP`).
+| Servis | Port | Protokol |
+|--------|------|----------|
+| `app` | **80** | sslip.io → **HTTP** |
+| `app` | **80** | ops.firma.com → **HTTPS** |
 
-- Panel URL: Dokploy **Domains** sekmesindeki adres + `/giris/`
-- İlk giriş: **admin** / **admin**
-- Şifre sıfırlama (tek redeploy): `DJANGO_ENSURE_SUPERADMIN_RESET=1` → sonra `0`
-- Mevcut kurulumda şifre bilinmiyorsa: app konteynerinde `cat /data/.initial_admin_password`
+- Servis adı mutlaka **`app`** (whatsapp_bridge değil)
+- Container port **80** (8000 değil)
+- Virgülle birleştirilmiş domain **Environment'a yazmayın**
 
-## Ön koşullar
+### 4. Deploy
 
-- En az **2 GB RAM** (WhatsApp köprüsü Chromium kullanır)
-- DNS A kaydı → sunucu IP
-- Dokploy **Domains** sekmesi: host port açmayın; Traefik yönlendirir
+Deploy sonrası logda şunları görmelisiniz:
+
+```text
+[cool-ops] PostgreSQL hazır.
+[cool-ops] ALLOWED_HOSTS ← ops.firma.com, xxx.sslip.io
+[cool-ops] CSRF ← https://ops.firma.com,http://xxx.sslip.io
+[cool-ops] daphne 0.0.0.0:80
+```
+
+**4 konteyner** çalışmalı: `app`, `db`, `redis`, `whatsapp_bridge`
+
+Giriş: `https://ops.firma.com/giris/` — `admin` / `admin` (hemen değiştirin)
+
+---
+
+## Compose Raw (alternatif)
+
+Overlay kullanmak istemezseniz:
+
+- Compose path: `deploy/dokploy/docker-compose.raw.yaml`
+- Environment: yalnızca `DJANGO_ENSURE_SUPERADMIN=1` ve `DJANGO_DEBUG=0`
+
+Raw dosya `db`, `redis`, `DATABASE_URL` ve `dokploy-network` dahil tam stack içerir.
+
+---
 
 ## Overlay ne işe yarar?
 
 `deploy/dokploy/docker-compose.dokploy.yaml`:
 
-- Host `ports` bağlamaz (80 çakışması önlenir)
-- `dokploy-network` (Traefik) ile `app` servisini birleştirir
+- `app` → `dokploy-network` (Traefik erişimi)
+- `traefik.docker.network=dokploy-network` etiketi
+- `DATABASE_URL` / `REDIS_URL` yedek tanımı (Dokploy env iletim sorunlarına karşı)
 
-Overlay olmadan da çalışabilir; domain tanımlıysa ana compose yeterlidir.
-
-## Kalıcı veri
-
-Named volume **`kobiops_gy_data`** → `/data` (SQLite + medya). Deploy sırasında volume silmeyin.
-
-## Environment (isteğe bağlı)
-
-Dokploy şablonu: **[deploy/dokploy/dokploy.env.example](dokploy/dokploy.env.example)**  
-Genel referans: [`.env.example`](../.env.example)
-
-`DJANGO_SECRET_KEY` içinde `$` varsa tek tırnak: `DJANGO_SECRET_KEY='abc$xyz'`
-
-Domain tanımlayınca Dokploy `SERVICE_FQDN_APP` / `SERVICE_URL_APP` gönderir — **APP_URL yazmayın**.
-
-## GitHub otomatik deploy
-
-Dokploy → **Deployments** → **Webhook** → GitHub push event.
+---
 
 ## Sorun giderme
 
 | Belirti | Çözüm |
 |---------|--------|
-| **404 page not found** | Domain servisi **`app`**, port **80**. sslip.io → **http://** (https değil). Overlay'de `traefik.docker.network=dokploy-network` olmalı — redeploy. Dokploy → **Reload Traefik**. Log: `daphne 0.0.0.0:80` |
-| **Deploy error / Restarting** | Logs → app konteyneri. `KRİTİK: /data` → volume bağlı mı? Eski stack `kobi-ops` çalışıyorsa durdurun. |
-| DisallowedHost | Environment'tan eski `APP_URL` / `DJANGO_ALLOWED_HOSTS` satırlarını silin → redeploy |
-| 404 / sslip | `DJANGO_SECURE_SSL` otomatik 0; http:// kullanın |
-| CSRF | Domain ile CSRF otomatik; redeploy |
-| Port 80 meşgul | Dokploy overlay kullanın; host ports kapatın |
-| WhatsApp kapalı | `whatsapp_bridge` logs; RAM kontrol |
-| Veri sıfırlandı | `kobiops_gy_data` volume koruyun |
+| **Restarting (1)** + `DATABASE_URL is missing` | Tam compose deploy; `db`+`redis` konteynerleri var mı? Redeploy |
+| **404 page not found** | Domain → servis `app`, port 80; Reload Traefik; sslip → `http://` |
+| **DisallowedHost** | Environment'tan `SERVICE_FQDN_APP` / `DJANGO_ALLOWED_HOSTS` sil; Domains kullan |
+| **CSRF hatası** | Domains doğru servise bağlı mı? Redeploy |
+| **PostgreSQL bağlantı hatası** | `db` healthy mi? 90 sn bekleyin (otomatik retry var) |
+| Veri sıfırlandı | `kobiops_gy_data` volume silmeyin |
 
-Tüm paneller: [deploy/README.md](../README.md) · Genel: [DEPLOY.md](../../DEPLOY.md)
+### Log kontrolü
+
+```bash
+docker logs <proje>-app-1 --tail 80
+docker ps -a | grep <proje>
+```
+
+---
+
+## Kalıcı veri
+
+| Volume | İçerik |
+|--------|--------|
+| `kobiops_gy_data` | Medya + işaretler |
+| `kobiops_gy_postgres` | PostgreSQL |
+| `kobiops_gy_redis` | Redis |
+| `kobiops_whatsapp_session` | WhatsApp oturumu |
+
+Deploy sırasında volume **silmeyin**.
+
+---
+
+## Ortam şablonları
+
+| Dosya | Açıklama |
+|-------|----------|
+| [dokploy.env.minimal](dokploy.env.minimal) | Hızlı başlangıç |
+| [dokploy.env.example](dokploy.env.example) | Açıklamalı tam şablon |
+| [../DOMAIN.md](../DOMAIN.md) | Tüm paneller domain rehberi |

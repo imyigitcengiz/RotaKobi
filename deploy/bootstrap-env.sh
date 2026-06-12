@@ -95,6 +95,16 @@ if [[ -z "${WHATSAPP_BRIDGE_TOKEN:-}" ]]; then
   fi
 fi
 
+# Compose stack — PostgreSQL / Redis (Dokploy bazen servis env'lerini app'e iletmez)
+if [[ "${COOLOPS_COMPOSE_STACK:-${KOBIOPS_COMPOSE_STACK:-0}}" == "1" ]]; then
+  _pg_user="${POSTGRES_USER:-coolops}"
+  _pg_pass="${POSTGRES_PASSWORD:-coolops}"
+  _pg_db="${POSTGRES_DB:-coolops}"
+  export DATABASE_URL="${DATABASE_URL:-postgres://${_pg_user}:${_pg_pass}@db:5432/${_pg_db}}"
+  export REDIS_URL="${REDIS_URL:-redis://redis:6379/0}"
+  export COOLOPS_PANEL="${COOLOPS_PANEL:-dokploy}"
+fi
+
 # WhatsApp köprü varsayılanları
 if [[ "${COOLOPS_COMPOSE_STACK:-${KOBIOPS_COMPOSE_STACK:-0}}" == "1" ]]; then
   export WHATSAPP_BRIDGE_URL="${WHATSAPP_BRIDGE_URL:-http://whatsapp_bridge:3939}"

@@ -36,6 +36,30 @@ if [ -n "${DATA_DIR:-}" ] && [ ! -w "$DATA_DIR" ]; then
   exit 1
 fi
 
+if [[ -n "${DATABASE_URL:-}" ]] && [[ "${DATABASE_URL}" == postgres://* ]]; then
+  echo "[cool-ops] PostgreSQL bekleniyor..."
+  python - <<'PY'
+import os, sys, time
+url = os.environ.get("DATABASE_URL", "")
+if url.startswith("postgres"):
+    try:
+        import psycopg2
+    except ImportError:
+        sys.exit(0)
+    for attempt in range(45):
+        try:
+            conn = psycopg2.connect(url)
+            conn.close()
+            print("[cool-ops] PostgreSQL hazır.")
+            break
+        except Exception as exc:
+            if attempt >= 44:
+                print(f"[cool-ops] HATA: PostgreSQL bağlantısı kurulamadı: {exc}", file=sys.stderr)
+                sys.exit(1)
+            time.sleep(2)
+PY
+fi
+
 echo "[cool-ops] kalıcı veri kontrolü..."
 python manage.py guard_persistent_data --phase pre --verbose
 

@@ -5,6 +5,7 @@ from django.urls import reverse_lazy
 from django.views import View
 
 from common.brand_scope import set_active_brand
+from common.safe_redirect import safe_redirect_url
 
 
 class BrandSwitchView(LoginRequiredMixin, View):
@@ -12,7 +13,8 @@ class BrandSwitchView(LoginRequiredMixin, View):
 
     def post(self, request):
         raw = request.POST.get('brand_id')
-        next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse_lazy('home')
+        fallback = str(reverse_lazy('home'))
+        next_url = safe_redirect_url(request, request.POST.get('next'), fallback=fallback)
         try:
             brand_id = int(raw)
         except (TypeError, ValueError):

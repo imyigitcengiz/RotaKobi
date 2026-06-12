@@ -273,9 +273,12 @@ def sent_messages_api(request):
     page = max(int(request.GET.get('page') or 1), 1)
     page_size = min(max(int(request.GET.get('page_size') or 50), 1), 200)
 
-    qs = WhatsappOutboundMessage.objects.select_related('collection', 'firm', 'customer').order_by(
-        '-sent_at', '-created_at',
-    )
+    from common.brand_scope import filter_outreach_messages
+
+    qs = filter_outreach_messages(
+        WhatsappOutboundMessage.objects.select_related('collection', 'firm', 'customer'),
+        request,
+    ).order_by('-sent_at', '-created_at')
     firm_send_types = (
         WhatsappOutboundMessage.SEND_SCRAPED,
         WhatsappOutboundMessage.SEND_PARTNER,

@@ -70,6 +70,12 @@ if _env_hosts:
 _panel_fqdn = detect_panel_fqdn()
 if _panel_fqdn and _panel_fqdn not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_panel_fqdn)
+_panel_fqdn_list = os.environ.get('PANEL_FQDN_LIST', '').strip()
+if _panel_fqdn_list:
+    for _h in _panel_fqdn_list.split(','):
+        _h = _h.strip()
+        if _h and _h not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(_h)
 _lan_ip = _lan_ipv4()
 if _lan_ip and _lan_ip not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_lan_ip)
@@ -106,6 +112,12 @@ else:
 _panel_origin = detect_panel_origin()
 if _panel_origin and _panel_origin not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(_panel_origin)
+_panel_url_list = os.environ.get('PANEL_URL_LIST', '').strip()
+if _panel_url_list:
+    for _u in _panel_url_list.split(','):
+        _u = _u.strip().rstrip('/')
+        if _u and _u not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_u)
 
 WHATSAPP_BRIDGE_URL = os.environ.get('WHATSAPP_BRIDGE_URL', 'http://127.0.0.1:3939').strip()
 # Yerel Node köprüsünü Django sürecinden başlatma (Docker/production: 0)

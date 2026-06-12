@@ -2,6 +2,8 @@
 
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
+from common.safe_redirect import safe_redirect_url
+
 _SERVICE_CREATE_PATH = '/services-dashboard/services/new/'
 
 
@@ -9,9 +11,8 @@ def get_safe_return_url(request) -> str | None:
     raw = (request.GET.get('next') or request.POST.get('next') or '').strip()
     if not raw:
         return None
-    if raw.startswith('/') and not raw.startswith('//'):
-        return raw
-    return None
+    safe = safe_redirect_url(request, raw, fallback='')
+    return safe or None
 
 
 def ensure_customer_on_service_create_return(url: str | None, customer_id: int) -> str | None:

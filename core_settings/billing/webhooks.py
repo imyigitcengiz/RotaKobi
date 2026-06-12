@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import logging
+import os
+import time
 
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -20,10 +24,59 @@ def _parse_json_body(request) -> dict:
         return {}
 
 
+def _billing_webhook_secret() -> str:
+    return (
+        os.environ.get('COOLOPS_BILLING_WEBHOOK_SECRET', '').strip()
+        or os.environ.get('KOBIOPS_BILLING_WEBHOOK_SECRET', '').strip()
+    )
+
+
+def _verify_shared_webhook_secret(request) -> bool:
+    secret = _billing_webhook_secret()
+    if not secret:
+        return False
+    header = (request.headers.get('X-Coolops-Webhook-Secret') or '').strip()
+    if header and hmac.compare_digest(header, secret):
+        return True
+    auth = (request.headers.get('Authorization') or '').strip()
+    if auth.lower().startswith('bearer '):
+        token = auth[7:].strip()
+        if token and hmac.compare_digest(token, secret):
+            return True
+    return False
+
+
+def _verify_stripe_signature(payload: bytes, sig_header: str, secret: str) -> bool:
+    if not sig_header or not secret:
+        return False
+    parts: dict[str, str] = {}
+    for item in sig_header.split(','):
+        if '=' in item:
+            key, value = item.split('=', 1)
+            parts[key.strip()] = value.strip()
+    timestamp = parts.get('t')
+    signature = parts.get('v1')
+    if not timestamp or not signature:
+        return False
+    try:
+        ts = int(timestamp)
+    except ValueError:
+        return False
+    if abs(time.time() - ts) > 300:
+        return False
+    signed = f'{timestamp}.{payload.decode("utf-8")}'
+    expected = hmac.new(secret.encode(), signed.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+
 @csrf_exempt
 @require_POST
 def iyzico_webhook(request):
-    """Iyzico ödeme bildirimi."""
+    """Iyzico ödeme bildirimi — imzasız istekler reddedilir."""
+    if not _verify_shared_webhook_secret(request):
+        logger.warning('iyzico webhook rejected: missing or invalid signature')
+        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
+
     payload = _parse_json_body(request)
     token = payload.get('token') or payload.get('paymentId') or request.POST.get('token', '')
     user_id = payload.get('user_id') or payload.get('buyerId')
@@ -61,15 +114,23 @@ def iyzico_webhook(request):
 @csrf_exempt
 @require_POST
 def stripe_webhook(request):
-    """Stripe webhook stub."""
+    """Stripe webhook — Stripe-Signature doğrulanır."""
     sig = request.headers.get('Stripe-Signature', '')
-    secret = __import__('os').environ.get('STRIPE_WEBHOOK_SECRET', '').strip()
+    secret = os.environ.get('STRIPE_WEBHOOK_SECRET', '').strip()
     if not secret:
         return JsonResponse({'ok': False, 'error': 'stripe_not_configured'}, status=501)
 
-    payload = _parse_json_body(request)
-    event_type = payload.get('type', '')
-    _ = sig
+    payload = request.body or b''
+    if not _verify_stripe_signature(payload, sig, secret):
+        logger.warning('stripe webhook rejected: invalid signature')
+        return JsonResponse({'ok': False, 'error': 'invalid_signature'}, status=403)
+
+    try:
+        event = json.loads(payload.decode('utf-8'))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return HttpResponseBadRequest('invalid json')
+
+    event_type = event.get('type', '')
 
     if event_type == 'checkout.session.completed':
         # Stripe entegrasyonu tamamlandığında customer metadata → user eşlemesi

@@ -338,10 +338,10 @@ def apply_webhook_update() -> tuple[bool, str, list[str]]:
     except WebhookURLError as exc:
         return False, str(exc), ['Webhook ✗ (güvenlik)']
     steps = ['Deploy webhook tetikleniyor…']
-    req = urllib.request.Request(url, method='POST', data=b'')
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            code = resp.getcode()
+        from common.webhook_fetch import post_webhook
+
+        code = post_webhook(url, timeout=30)
         if 200 <= code < 300:
             steps.append(f'Webhook ✓ (HTTP {code})')
             return True, 'Deploy tetiklendi. Panel birkaç dakika içinde yeni sürümle ayağa kalkacak.', steps
