@@ -9,8 +9,11 @@
 
 {% block header_actions %}
 <a href="{% url 'customer_update' customer.pk %}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Düzenle</a>
+{% if user_perms.sales_manage %}
+<a href="{% url 'sales_lead_create' %}?customer={{ customer.id }}" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700">Satış kaydet</a>
+{% endif %}
 {% if user_perms.services_manage %}
-<a href="{% url 'service_create' %}?customer={{ customer.id }}" class="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-bold hover:bg-brand-700">Servis ekle</a>
+<a href="{% url 'service_create' %}?customer={{ customer.id }}" class="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-bold hover:bg-brand-700">Servis kaydı aç</a>
 {% endif %}
 {% endblock %}
 

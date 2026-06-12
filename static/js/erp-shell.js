@@ -420,16 +420,14 @@
             document.querySelectorAll('[data-erp-module-menu]').forEach(clearPopoverPosition);
             return;
         }
-        const open = document.querySelector('.erp-sidebar-module--expanded');
-        if (open) positionSidebarPopover(open);
+        const openMenu = document.querySelector('.erp-sidebar-module__menu.is-popover-ready');
+        if (!openMenu) return;
+        const block = openMenu.closest('[data-erp-sidebar-module]');
+        if (block) positionSidebarPopover(block);
     });
 
     function initSidebarPopovers() {
         document.querySelectorAll('[data-erp-sidebar-module]').forEach(wireSidebarPopoverHover);
-        if (popoverMq.matches) {
-            const expanded = document.querySelector('.erp-sidebar-module--expanded');
-            if (expanded) positionSidebarPopover(expanded);
-        }
     }
 
     if (document.readyState === 'loading') {

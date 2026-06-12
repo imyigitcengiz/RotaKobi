@@ -24,7 +24,7 @@ from common.brand_scope import assign_brand, filter_customers, get_customer_for_
 
 from .models import Customer
 from .forms import CustomerForm
-from .return_url import get_safe_return_url
+from .return_url import ensure_customer_on_service_create_return, get_safe_return_url
 
 
 class CustomerListView(PermissionRequiredMixin, ListView):
@@ -33,6 +33,7 @@ class CustomerListView(PermissionRequiredMixin, ListView):
     model = Customer
     template_name = 'crm/customers/customer_list.html'
     context_object_name = 'customers'
+    paginate_by = 50
     ordering = []
 
     def get_queryset(self):
@@ -100,14 +101,20 @@ class CustomerUpdateView(PermissionRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['can_upload_media'] = True
-        context['return_url'] = get_safe_return_url(self.request)
+        return_url = get_safe_return_url(self.request)
+        if self.object:
+            return_url = ensure_customer_on_service_create_return(return_url, self.object.pk)
+        context['return_url'] = return_url
         context['focus_products'] = (
             self.request.GET.get('focus') == 'products' or self.request.GET.get('focus') == 'urunler'
         )
         return context
 
     def get_success_url(self):
-        return get_safe_return_url(self.request) or str(reverse_lazy('customers'))
+        url = get_safe_return_url(self.request) or str(reverse_lazy('customers'))
+        if self.object:
+            url = ensure_customer_on_service_create_return(url, self.object.pk) or url
+        return url
 
     def form_valid(self, form):
         response = super().form_valid(form)

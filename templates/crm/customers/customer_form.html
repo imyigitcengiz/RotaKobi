@@ -7,6 +7,17 @@
 <p class="text-sm text-slate-500">Yeni müşteri eklemek için tercihen <a href="{% url 'sales_lead_create' %}" class="text-brand-600 font-semibold underline">satış kaydı</a> oluşturun.</p>
 {% endblock %}
 
+{% block header_actions %}
+{% if object %}
+{% if user_perms.sales_manage %}
+<a href="{% url 'sales_lead_create' %}?customer={{ object.id }}" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700">Satış kaydet</a>
+{% endif %}
+{% if user_perms.services_manage %}
+<a href="{% url 'service_create' %}?customer={{ object.id }}" class="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-bold hover:bg-brand-700">Servis kaydı aç</a>
+{% endif %}
+{% endif %}
+{% endblock %}
+
 {% block content %}
 {% if return_url %}
 <div class="max-w-2xl mb-4 p-4 rounded-2xl border border-brand-200 bg-brand-50 text-sm text-brand-900">

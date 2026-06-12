@@ -1,5 +1,9 @@
 """Güvenli `next` yönlendirmesi (servis formu ↔ müşteri düzenleme)."""
 
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+_SERVICE_CREATE_PATH = '/services-dashboard/services/new/'
+
 
 def get_safe_return_url(request) -> str | None:
     raw = (request.GET.get('next') or request.POST.get('next') or '').strip()
@@ -8,3 +12,17 @@ def get_safe_return_url(request) -> str | None:
     if raw.startswith('/') and not raw.startswith('//'):
         return raw
     return None
+
+
+def ensure_customer_on_service_create_return(url: str | None, customer_id: int) -> str | None:
+    """Servis oluşturma dönüş URL'sine müşteri parametresi ekler."""
+    if not url or not customer_id:
+        return url
+    parsed = urlparse(url)
+    if parsed.path.rstrip('/') != _SERVICE_CREATE_PATH.rstrip('/'):
+        return url
+    params = parse_qs(parsed.query, keep_blank_values=True)
+    if 'customer' in params and params['customer']:
+        return url
+    params['customer'] = [str(customer_id)]
+    return urlunparse(parsed._replace(query=urlencode(params, doseq=True)))

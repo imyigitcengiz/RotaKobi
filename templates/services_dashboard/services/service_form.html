@@ -527,9 +527,24 @@
         JSON.parse(document.getElementById('initialProductIds')?.textContent || '[]').map(Number)
     );
 
+    function syncCustomerQueryParam(customerId) {
+        if (isEditingService) return;
+        const url = new URL(window.location.href);
+        if (customerId) {
+            url.searchParams.set('customer', customerId);
+        } else {
+            url.searchParams.delete('customer');
+        }
+        history.replaceState(null, '', url);
+    }
+
     if (customerSelect) {
-        customerSelect.addEventListener('change', (e) => fetchCustomerDetails(e.target.value, !isEditingService));
+        customerSelect.addEventListener('change', (e) => {
+            syncCustomerQueryParam(e.target.value);
+            fetchCustomerDetails(e.target.value, !isEditingService);
+        });
         if (customerSelect.value) {
+            syncCustomerQueryParam(customerSelect.value);
             fetchCustomerDetails(customerSelect.value, !isEditingService);
         }
     }
@@ -713,7 +728,9 @@
             alert('Lütfen önce bir müşteri seçin.');
             return;
         }
-        const next = encodeURIComponent(window.location.pathname + window.location.search);
+        const params = new URLSearchParams(window.location.search);
+        params.set('customer', customerId);
+        const next = encodeURIComponent(`${window.location.pathname}?${params}`);
         const base = window.CRM_BASE || window.CUSTOMER_API_BASE || '/contact';
         window.location.href = `${base}/musteriler/${customerId}/duzenle/?next=${next}&focus=products`;
     }
