@@ -372,7 +372,7 @@ MEDIA_FFMPEG_PATH = os.environ.get('MEDIA_FFMPEG_PATH', 'ffmpeg')
 MEDIA_FFMPEG_TIMEOUT = int(os.environ.get('MEDIA_FFMPEG_TIMEOUT', '300'))
 
 # Panel içi uygulama güncellemesi (GitHub kontrol + git pull veya deploy webhook)
-KOBIOPS_UPDATE_REPO = os.environ.get('KOBIOPS_UPDATE_REPO', 'imyigitcengiz/kobi-ops').strip()
+KOBIOPS_UPDATE_REPO = os.environ.get('KOBIOPS_UPDATE_REPO', 'imyigitcengiz/RotaKobi').strip()
 KOBIOPS_UPDATE_BRANCH = os.environ.get('KOBIOPS_UPDATE_BRANCH', 'main').strip()
 KOBIOPS_UPDATE_CHECK_INTERVAL = int(os.environ.get('KOBIOPS_UPDATE_CHECK_INTERVAL', '1800'))
 KOBIOPS_DEPLOY_WEBHOOK_URL = os.environ.get('KOBIOPS_DEPLOY_WEBHOOK_URL', '').strip()

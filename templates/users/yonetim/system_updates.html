@@ -50,8 +50,14 @@
             <span id="statusBadge" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-700">Kontrol ediliyor…</span>
             <span class="text-xs text-slate-500">Yöntem: <strong id="applyModeLabel">{{ update_status.apply_mode }}</strong></span>
         </div>
-        <p class="text-sm text-slate-600" id="statusMessage">{{ update_status.message }}</p>
+        <p class="text-sm text-slate-600" id="statusMessage">{{ update_status.message|default:"Güncelleme durumu kontrol ediliyor…" }}</p>
         <ul id="applySteps" class="hidden text-sm text-slate-600 space-y-1 font-mono bg-slate-50 rounded-xl p-3"></ul>
+    </section>
+
+    <section class="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-400" id="changelogTitle">Son değişiklikler</h2>
+        <p id="changelogEmpty" class="hidden text-sm text-slate-500">Henüz commit listesi alınamadı. «Güncellemeyi kontrol et» ile yenileyin.</p>
+        <ul id="changelogList" class="space-y-2 text-sm"></ul>
     </section>
 
     <section class="bg-slate-50 rounded-2xl border border-slate-200 p-5 text-sm text-slate-600 space-y-2">

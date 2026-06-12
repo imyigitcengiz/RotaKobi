@@ -144,7 +144,7 @@ def detect_panel_origin() -> str:
 
 
 def panel_git_updates_enabled() -> bool:
-    """Panel içi git güncelleme — varsayılan kapalı; Plesk/VPS'te git pull + deploy kullanın."""
+    """Panel içi git güncelleme — yerel git deposunda varsayılan açık; üretimde env ile kapatılabilir."""
     raw = (
         os.environ.get('COOLOPS_PANEL_GIT_UPDATE', '').strip()
         or os.environ.get('KOBIOPS_PANEL_GIT_UPDATE', '').strip()
@@ -153,4 +153,10 @@ def panel_git_updates_enabled() -> bool:
         return True
     if raw in ('0', 'false', 'no', 'off'):
         return False
+    from pathlib import Path
+
+    from django.conf import settings
+
+    if (Path(settings.BASE_DIR) / '.git').is_dir():
+        return True
     return False

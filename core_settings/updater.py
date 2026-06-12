@@ -11,7 +11,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -40,6 +40,8 @@ class UpdateStatus:
     can_apply: bool = False
     message: str = ''
     error: str = ''
+    changelog: list[dict] = field(default_factory=list)
+    recent_commits: list[dict] = field(default_factory=list)
 
     def to_dict(self):
         return asdict(self)
@@ -58,9 +60,9 @@ def _data_dir() -> Path | None:
 
 def _cache_path() -> Path | None:
     root = _data_dir()
-    if not root:
-        return None
-    return root / CACHE_FILENAME
+    if root:
+        return root / CACHE_FILENAME
+    return _repo_root() / CACHE_FILENAME
 
 
 def _read_version_file() -> str:
@@ -131,6 +133,17 @@ def _github_request(url: str) -> dict | None:
         return None
 
 
+def _parse_github_commit_item(data: dict) -> dict:
+    commit = data.get('commit') or {}
+    full_sha = data.get('sha', '')
+    return {
+        'sha': full_sha[:7] if full_sha else '',
+        'sha_full': full_sha,
+        'message': (commit.get('message') or '').splitlines()[0].strip(),
+        'date': (commit.get('author') or {}).get('date', ''),
+    }
+
+
 def fetch_remote_commit() -> tuple[str, str, str, str]:
     repo = settings.KOBIOPS_UPDATE_REPO
     branch = settings.KOBIOPS_UPDATE_BRANCH
@@ -138,12 +151,33 @@ def fetch_remote_commit() -> tuple[str, str, str, str]:
     data = _github_request(url)
     if not data:
         return '', '', '', ''
-    full_sha = data.get('sha', '')
-    short = full_sha[:7] if full_sha else ''
-    commit = data.get('commit') or {}
-    message = (commit.get('message') or '').splitlines()[0].strip()
-    date_raw = commit.get('author', {}).get('date', '')
-    return short, full_sha, message, date_raw
+    parsed = _parse_github_commit_item(data)
+    return parsed['sha'], parsed['sha_full'], parsed['message'], parsed['date']
+
+
+def fetch_recent_commits(*, limit: int = 10) -> list[dict]:
+    repo = settings.KOBIOPS_UPDATE_REPO
+    branch = settings.KOBIOPS_UPDATE_BRANCH
+    url = f'https://api.github.com/repos/{repo}/commits?sha={branch}&per_page={max(1, min(limit, 30))}'
+    data = _github_request(url)
+    if not isinstance(data, list):
+        return []
+    return [_parse_github_commit_item(item) for item in data if isinstance(item, dict)]
+
+
+def fetch_changelog(base_sha: str, head_sha: str, *, limit: int = 30) -> list[dict]:
+    if not base_sha or not head_sha or base_sha == head_sha:
+        return []
+    repo = settings.KOBIOPS_UPDATE_REPO
+    url = f'https://api.github.com/repos/{repo}/compare/{base_sha}...{head_sha}'
+    data = _github_request(url)
+    if not data:
+        return []
+    commits = []
+    for item in (data.get('commits') or [])[:limit]:
+        if isinstance(item, dict):
+            commits.append(_parse_github_commit_item(item))
+    return commits
 
 
 def resolve_apply_mode() -> str:
@@ -204,16 +238,27 @@ def check_for_updates(*, force: bool = False) -> UpdateStatus:
     if status.local_commit_full and status.local_commit_full == r_full:
         status.update_available = False
         status.message = 'Uygulama güncel.'
+        status.recent_commits = fetch_recent_commits(limit=10)
+        if status.recent_commits and not status.remote_message:
+            status.remote_message = status.recent_commits[0].get('message', '')
     elif status.local_commit_full:
         status.update_available = True
         status.message = 'Yeni sürüm mevcut.'
+        status.changelog = fetch_changelog(status.local_commit_full, r_full)
+        if status.changelog and not status.remote_message:
+            status.remote_message = status.changelog[-1].get('message', '')
     else:
         status.update_available = True
         status.message = 'Uzak depoda yeni commit var (yerel commit bilinmiyor — güncellemeyi uygulayabilirsiniz).'
+        status.recent_commits = fetch_recent_commits(limit=10)
 
     status.can_apply = status.update_available and status.apply_mode != 'none'
     if status.apply_mode == 'none' and status.update_available:
         status.message += ' Güncelleme için git deposu veya KOBIOPS_DEPLOY_WEBHOOK_URL tanımlayın.'
+    if not status.message and status.error:
+        status.message = status.error
+    elif not status.message:
+        status.message = 'Güncelleme durumu alındı.'
 
     _write_cache(status)
     return status

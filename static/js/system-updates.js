@@ -36,6 +36,35 @@
     return 'Yapılandırılmamış';
   }
 
+  function renderCommitList(commits) {
+    const listEl = $('changelogList');
+    const emptyEl = $('changelogEmpty');
+    const titleEl = $('changelogTitle');
+    if (!listEl) return;
+    const items = Array.isArray(commits) ? commits : [];
+    if (!items.length) {
+      listEl.innerHTML = '';
+      emptyEl?.classList.remove('hidden');
+      return;
+    }
+    emptyEl?.classList.add('hidden');
+    listEl.innerHTML = items.map((item) => {
+      const when = item.date ? formatCheckedAt(item.date) : '';
+      const sha = item.sha ? `<code class="text-xs bg-slate-100 px-1 rounded">${item.sha}</code>` : '';
+      const msg = item.message || '—';
+      return `<li class="flex flex-wrap items-start gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
+        <span class="shrink-0">${sha}</span>
+        <span class="flex-1 min-w-0 text-slate-800">${msg}</span>
+        <span class="text-xs text-slate-400 w-full sm:w-auto sm:ml-auto">${when}</span>
+      </li>`;
+    }).join('');
+    if (titleEl) {
+      titleEl.textContent = dataHasPendingUpdate ? 'Yeni sürümdeki değişiklikler' : 'Son değişiklikler';
+    }
+  }
+
+  let dataHasPendingUpdate = false;
+
   function render(data) {
     const version = data.local_version ? `v${data.local_version}` : '—';
     if ($('localVersion')) $('localVersion').textContent = version;
@@ -44,8 +73,16 @@
     if ($('remoteCommit')) $('remoteCommit').textContent = data.remote_commit || '—';
     if ($('remoteMessage')) $('remoteMessage').textContent = data.remote_message || '';
     if ($('remoteDate')) $('remoteDate').textContent = data.remote_date ? new Date(data.remote_date).toLocaleString('tr-TR') : '';
-    if ($('statusMessage')) $('statusMessage').textContent = data.message || data.error || '';
+    if ($('statusMessage')) {
+      $('statusMessage').textContent = data.message || data.error || 'Güncelleme durumu alındı.';
+    }
     if ($('applyModeLabel')) $('applyModeLabel').textContent = applyModeLabel(data.apply_mode);
+
+    dataHasPendingUpdate = Boolean(data.update_available);
+    const commits = data.update_available
+      ? (data.changelog || [])
+      : (data.recent_commits || []);
+    renderCommitList(commits);
 
     const badge = $('statusBadge');
     const banner = $('updateAlertBanner');
@@ -140,5 +177,6 @@
   $('btnApplyUpdate')?.addEventListener('click', applyUpdate);
 
   render(initial);
+  fetchStatus(false).catch(() => {});
   if (window.lucide) lucide.createIcons();
 })();

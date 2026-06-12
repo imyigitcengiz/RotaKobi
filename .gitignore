@@ -38,6 +38,7 @@ tools/whatsapp_bridge/.wwebjs_auth/
 # Geçici
 *.bak
 *.tmp
+.kobiops_update_cache.json
 
 # Plesk (sunucuya özel)
 deploy/plesk/plesk.env
