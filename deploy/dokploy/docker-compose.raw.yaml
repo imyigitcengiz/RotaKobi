@@ -7,42 +7,13 @@
 #   DJANGO_DEBUG=0
 #
 # Domains → servis "app", port 80 (sslip.io → HTTP, özel domain → HTTPS)
-# SERVICE_FQDN_APP / DATABASE_URL yazmayın — otomatik.
+# SERVICE_FQDN_APP yazmayın — otomatik.
 
 name: cool-ops
 
 x-app-port: &app_port "80"
 
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-coolops}
-      POSTGRES_USER: ${POSTGRES_USER:-coolops}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-coolops}
-    volumes:
-      - gy_postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-coolops} -d ${POSTGRES_DB:-coolops}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    volumes:
-      - gy_redis:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
   app:
     build:
       context: .
@@ -50,11 +21,6 @@ services:
       args:
         COOLOPS_BUILD_COMMIT: ${COOLOPS_BUILD_COMMIT:-unknown}
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     expose:
       - *app_port
     networks:
@@ -68,8 +34,7 @@ services:
       DATA_DIR: /data
       COOLOPS_SECRETS_DIR: /run/kobiops-secrets
       KOBIOPS_SECRETS_DIR: /run/kobiops-secrets
-      DATABASE_URL: postgres://${POSTGRES_USER:-coolops}:${POSTGRES_PASSWORD:-coolops}@db:5432/${POSTGRES_DB:-coolops}
-      REDIS_URL: redis://redis:6379/0
+      DJANGO_DB_PATH: /data/db.sqlite3
       DJANGO_MEDIA_ROOT: /data/media
       DJANGO_SERVE_MEDIA: "1"
       DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
@@ -154,10 +119,6 @@ networks:
 volumes:
   gy_data:
     name: kobiops_gy_data
-  gy_postgres:
-    name: kobiops_gy_postgres
-  gy_redis:
-    name: kobiops_gy_redis
   whatsapp_session:
     name: kobiops_whatsapp_session
   kobiops_secrets:

@@ -263,13 +263,6 @@ _db_url = os.environ.get('DATABASE_URL', '').strip()
 _db_host = os.environ.get('DB_HOST', '').strip()
 _data_dir = os.environ.get('DATA_DIR', '').strip()
 
-if _data_dir and not _db_url and not _db_host:
-    raise ImproperlyConfigured(
-        'DATA_DIR is set but DATABASE_URL is missing. '
-        'Production deployments require PostgreSQL — set DATABASE_URL '
-        '(e.g. postgres://user:pass@db:5432/coolops).'
-    )
-
 if _db_url:
     try:
         import dj_database_url

@@ -6,9 +6,7 @@
 #   DJANGO_ENSURE_SUPERADMIN=1
 #   DJANGO_DEBUG=0
 #
-# Domain'leri Environment'a virgülle YAZMAYIN — Domains sekmesinden ayrı ayrı ekleyin.
-#
-# 404 alıyorsanız: app servisi dokploy-network'te olmalı + traefik.docker.network etiketi.
+# Veritabanı: SQLite (/data/db.sqlite3) — db/redis servisi gerekmez.
 name: cool-ops
 
 services:
@@ -23,8 +21,7 @@ services:
       COOLOPS_COMPOSE_STACK: "1"
       KOBIOPS_COMPOSE_STACK: "1"
       COOLOPS_PANEL: dokploy
-      DATABASE_URL: postgres://${POSTGRES_USER:-coolops}:${POSTGRES_PASSWORD:-coolops}@db:5432/${POSTGRES_DB:-coolops}
-      REDIS_URL: redis://redis:6379/0
+      DJANGO_DB_PATH: /data/db.sqlite3
 
 networks:
   dokploy-network:

@@ -23,9 +23,11 @@ DJANGO_ENSURE_SUPERADMIN=1
 DJANGO_DEBUG=0
 ```
 
-**Yazmayın:** `DATABASE_URL`, `REDIS_URL`, `SERVICE_FQDN_APP`, `SERVICE_URL_APP`, `DJANGO_ALLOWED_HOSTS`, `APP_URL`
+**Yazmayın:** `SERVICE_FQDN_APP`, `SERVICE_URL_APP`, `DJANGO_ALLOWED_HOSTS`, `APP_URL`
 
 Bunlar otomatik ayarlanır (`bootstrap-env.sh` + Dokploy Domains).
+
+Veritabanı: **SQLite** (`/data/db.sqlite3` volume içinde). `db` / `redis` konteyneri gerekmez.
 
 ### 3. Domains
 
@@ -45,13 +47,12 @@ Her domain **ayrı satır** olarak ekleyin:
 Deploy sonrası logda şunları görmelisiniz:
 
 ```text
-[cool-ops] PostgreSQL hazır.
 [cool-ops] ALLOWED_HOSTS ← ops.firma.com, xxx.sslip.io
 [cool-ops] CSRF ← https://ops.firma.com,http://xxx.sslip.io
 [cool-ops] daphne 0.0.0.0:80
 ```
 
-**4 konteyner** çalışmalı: `app`, `db`, `redis`, `whatsapp_bridge`
+**2 konteyner** çalışmalı: `app`, `whatsapp_bridge`
 
 Giriş: `https://ops.firma.com/giris/` — `admin` / `admin` (hemen değiştirin)
 
@@ -64,7 +65,7 @@ Overlay kullanmak istemezseniz:
 - Compose path: `deploy/dokploy/docker-compose.raw.yaml`
 - Environment: yalnızca `DJANGO_ENSURE_SUPERADMIN=1` ve `DJANGO_DEBUG=0`
 
-Raw dosya `db`, `redis`, `DATABASE_URL` ve `dokploy-network` dahil tam stack içerir.
+Raw dosya `dokploy-network` ve SQLite (`DJANGO_DB_PATH`) dahil tam stack içerir.
 
 ---
 
@@ -74,7 +75,7 @@ Raw dosya `db`, `redis`, `DATABASE_URL` ve `dokploy-network` dahil tam stack iç
 
 - `app` → `dokploy-network` (Traefik erişimi)
 - `traefik.docker.network=dokploy-network` etiketi
-- `DATABASE_URL` / `REDIS_URL` yedek tanımı (Dokploy env iletim sorunlarına karşı)
+- `DJANGO_DB_PATH=/data/db.sqlite3` yedek tanımı
 
 ---
 
@@ -82,11 +83,10 @@ Raw dosya `db`, `redis`, `DATABASE_URL` ve `dokploy-network` dahil tam stack iç
 
 | Belirti | Çözüm |
 |---------|--------|
-| **Restarting (1)** + `DATABASE_URL is missing` | Tam compose deploy; `db`+`redis` konteynerleri var mı? Redeploy |
+| **Restarting (1)** | `/data` volume yazılabilir mi? `kobiops_gy_data` bağlı mı? Redeploy |
 | **404 page not found** | Domain → servis `app`, port 80; Reload Traefik; sslip → `http://` |
 | **DisallowedHost** | Environment'tan `SERVICE_FQDN_APP` / `DJANGO_ALLOWED_HOSTS` sil; Domains kullan |
 | **CSRF hatası** | Domains doğru servise bağlı mı? Redeploy |
-| **PostgreSQL bağlantı hatası** | `db` healthy mi? 90 sn bekleyin (otomatik retry var) |
 | Veri sıfırlandı | `kobiops_gy_data` volume silmeyin |
 
 ### Log kontrolü
@@ -102,9 +102,7 @@ docker ps -a | grep <proje>
 
 | Volume | İçerik |
 |--------|--------|
-| `kobiops_gy_data` | Medya + işaretler |
-| `kobiops_gy_postgres` | PostgreSQL |
-| `kobiops_gy_redis` | Redis |
+| `kobiops_gy_data` | SQLite DB + medya + işaretler |
 | `kobiops_whatsapp_session` | WhatsApp oturumu |
 
 Deploy sırasında volume **silmeyin**.
